@@ -62,6 +62,7 @@ export function VisitPhotos({ scheduleId, photos, onDelete, deleting }: VisitPho
 
       {preview && (
         <div className="relative rounded-lg overflow-hidden border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview}
             alt="Preview"
@@ -80,6 +81,7 @@ export function VisitPhotos({ scheduleId, photos, onDelete, deleting }: VisitPho
               key={photo.id}
               className="relative group rounded-lg overflow-hidden border aspect-square"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photo.url}
                 alt={photo.caption ?? "Foto kunjungan"}
