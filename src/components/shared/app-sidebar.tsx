@@ -14,10 +14,21 @@ import {
   Users,
   ChevronDown,
   MapPin,
+  LogOut,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/features/auth/components/auth-context";
+import { logoutAction } from "@/features/auth/actions/auth-actions";
 
-const navItems = [
+interface NavItem {
+  href?: string;
+  label: string;
+  icon: React.ElementType;
+  children?: { href: string; label: string }[];
+  adminOnly?: boolean;
+}
+
+const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   {
     label: "Master Data",
@@ -33,11 +44,12 @@ const navItems = [
   { href: "/import", label: "Import Excel", icon: FileSpreadsheet },
   { href: "/reports", label: "Laporan", icon: BarChart3 },
   { href: "/notifications", label: "Notifikasi", icon: Bell },
-  { href: "/users", label: "Users", icon: Users },
+  { href: "/users", label: "Users", icon: Users, adminOnly: true },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(
     () => new Set(["Master Data"]),
   );
@@ -58,6 +70,11 @@ export function AppSidebar() {
     return pathname === href || pathname.startsWith(href + "/");
   }
 
+  const visibleItems = navItems.filter((item) => {
+    if (item.adminOnly && user?.role !== "admin") return false;
+    return true;
+  });
+
   return (
     <aside className="hidden sm:flex flex-col w-60 border-r bg-card shrink-0">
       <div className="p-5 border-b">
@@ -68,8 +85,8 @@ export function AppSidebar() {
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          if ("children" in item && item.children) {
+        {visibleItems.map((item) => {
+          if (item.children) {
             const isExpanded = expandedMenus.has(item.label);
             return (
               <div key={item.label}>
@@ -128,16 +145,34 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="p-3 border-t">
+      <div className="p-3 border-t space-y-1">
+        <div className="flex items-center gap-3 px-3 py-2">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+            {user?.name?.charAt(0).toUpperCase() ?? "?"}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate">{user?.name}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user?.email}
+            </p>
+          </div>
+        </div>
         <Link
           href="/profile"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
-          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-            <Users className="h-4 w-4" />
-          </div>
-          <span>Profile</span>
+          <Users className="h-4 w-4" />
+          Profile
         </Link>
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </form>
       </div>
     </aside>
   );

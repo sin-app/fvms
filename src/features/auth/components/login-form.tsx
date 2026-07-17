@@ -1,43 +1,39 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useFormState } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/features/auth/schema/auth-schema";
-import { useAuth } from "@/features/auth/hooks/use-auth";
+import { loginAction } from "@/features/auth/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useActionState } from "react";
+import type { ActionResponse } from "@/types/common";
+
+const initialState: ActionResponse = { success: false };
 
 export function LoginForm() {
-  const { handleLogin, isLoading, error } = useAuth();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  function onSubmit(data: LoginInput) {
-    handleLogin(data);
-  }
+  const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
+          name="email"
           type="email"
           placeholder="nama@email.com"
           autoComplete="email"
-          className={cn(errors.email && "border-destructive")}
-          {...register("email")}
+          className={cn(
+            state.fieldErrors?.email && "border-destructive",
+          )}
         />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
+        {state.fieldErrors?.email && (
+          <p className="text-sm text-destructive">
+            {state.fieldErrors.email[0]}
+          </p>
         )}
       </div>
 
@@ -53,25 +49,29 @@ export function LoginForm() {
         </div>
         <Input
           id="password"
+          name="password"
           type="password"
           placeholder="••••••••"
           autoComplete="current-password"
-          className={cn(errors.password && "border-destructive")}
-          {...register("password")}
+          className={cn(
+            state.fieldErrors?.password && "border-destructive",
+          )}
         />
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
+        {state.fieldErrors?.password && (
+          <p className="text-sm text-destructive">
+            {state.fieldErrors.password[0]}
+          </p>
         )}
       </div>
 
-      {error && (
+      {state.error && (
         <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
+          {state.error}
         </div>
       )}
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Memproses..." : "Masuk"}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? "Memproses..." : "Masuk"}
       </Button>
     </form>
   );

@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Menu, LogOut } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/features/auth/components/auth-context";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -21,6 +22,7 @@ const pageTitles: Record<string, string> = {
 
 export function AppHeader() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const title = Object.entries(pageTitles).find(([path]) =>
     pathname.startsWith(path),
   )?.[1] ?? "FVMS";
@@ -33,9 +35,14 @@ export function AppHeader() {
 
       <h1 className="flex-1 text-lg font-semibold sm:text-xl">{title}</h1>
 
-      <Button variant="ghost" size="icon" className="relative">
-        <Bell className="h-5 w-5" />
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+        </Button>
+        <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+          <span>{user?.name}</span>
+        </div>
+      </div>
     </header>
   );
 }
