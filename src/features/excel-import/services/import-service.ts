@@ -6,15 +6,16 @@ function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
   const rows: ExcelRow[] = [];
   const headers: string[] = [];
 
-  ws.eachRow({ includeEmpty: true }, (row, rowNumber) => {
-    const values = row.values as unknown[];
-    // First row is headers
+  ws.eachRow((row, rowNumber) => {
+    const values = (row.values as unknown[]).slice(1);
+
     if (rowNumber === 1) {
-      values.slice(1).forEach((v) => headers.push(String(v ?? "")));
+      values.forEach((v) => headers.push(String(v ?? "")));
       return;
     }
+
     const obj: ExcelRow = {};
-    values.slice(1).forEach((v, i) => {
+    values.forEach((v, i) => {
       obj[headers[i] ?? `col${i}`] = String(v ?? "");
     });
     rows.push(obj);
