@@ -1,0 +1,25 @@
+[project]
+name = "fvms"
+id = "nzpjoxndqhcvphydiyaq"
+
+[auth]
+enabled = true
+
+[db]
+port = 54322
+
+[api]
+port = 54321
+
+[studio]
+enabled = true
+port = 54323
+
+[analytics]
+enabled = false
+
+[storage]
+enabled = true
+
+[auth.external.email]
+enabled = true
