@@ -1,8 +1,5 @@
 "use client";
 
-import { useFormState } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginInput } from "@/features/auth/schema/auth-schema";
 import { loginAction } from "@/features/auth/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

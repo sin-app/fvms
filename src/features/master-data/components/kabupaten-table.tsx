@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useKabupatenList } from "../hooks/use-kabupaten";
 import { createKabupatenAction, updateKabupatenAction, deleteKabupatenAction } from "../actions/master-data-actions";
 import { PageHeader } from "@/components/shared/page-header";

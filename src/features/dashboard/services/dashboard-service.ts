@@ -1,7 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import {
-  startOfDay,
-  endOfDay,
   startOfWeek,
   endOfWeek,
   startOfMonth,

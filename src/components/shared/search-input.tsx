@@ -22,9 +22,9 @@ export function SearchInput({
     onChange(debouncedValue);
   }, [debouncedValue, onChange]);
 
-  useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+  if (value !== localValue && value === "") {
+    setLocalValue("");
+  }
 
   return (
     <div className="relative">

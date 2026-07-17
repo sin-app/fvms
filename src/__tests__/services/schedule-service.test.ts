@@ -7,21 +7,6 @@ vi.mock("@/lib/supabase/admin-client", () => ({
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createSchedule, deleteSchedule } from "@/features/schedules/services/schedule-service";
 
-function makeChain(mocks: Record<string, ReturnType<typeof vi.fn>>) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  return new Proxy(
-    {},
-    {
-      get(_, prop: string) {
-        if (!chain[prop]) {
-          chain[prop] = mocks[prop] ?? vi.fn().mockReturnValue(chain);
-        }
-        return chain[prop];
-      },
-    },
-  ) as Record<string, ReturnType<typeof vi.fn>>;
-}
-
 describe("schedule-service", () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,6 +1,7 @@
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { AppHeader } from "@/components/shared/app-header";
 import { BottomNav } from "@/components/shared/bottom-nav";
+import { ErrorBoundary } from "@/components/shared/error-boundary";
 
 export default function DashboardLayout({
   children,
@@ -13,7 +14,7 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col">
         <AppHeader />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 sm:pb-8">
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </main>
         <BottomNav />
       </div>

@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  startTransition,
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -44,10 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
-      refreshUser();
+      startTransition(() => {
+        refreshUser();
+      });
     });
 
-    refreshUser();
+    startTransition(() => {
+      refreshUser();
+    });
 
     return () => {
       subscription.unsubscribe();
