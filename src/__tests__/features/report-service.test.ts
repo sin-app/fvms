@@ -78,7 +78,7 @@ describe("report-service", () => {
   });
 
   describe("exportToExcel", () => {
-    it("generates output for valid rows", () => {
+    it("generates output for valid rows", async () => {
       const rows = [
         {
           id: "1", visit_date: "2024-01-01", status: "completed", visit_time: null,
@@ -86,12 +86,12 @@ describe("report-service", () => {
           has_notes: false,
         },
       ];
-      const result = exportToExcel(rows);
+      const result = await exportToExcel(rows);
       expect(result.byteLength).toBeGreaterThan(0);
     });
 
-    it("generates output for empty rows", () => {
-      const result = exportToExcel([]);
+    it("generates output for empty rows", async () => {
+      const result = await exportToExcel([]);
       expect(result.byteLength).toBeGreaterThan(0);
     });
   });

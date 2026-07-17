@@ -13,7 +13,7 @@ export async function fetchReportRows(filters: ReportFilters) {
 
 export async function downloadExcelAction(filters: ReportFilters): Promise<{ data: string; filename: string }> {
   const rows = await getReportRows(filters);
-  const buffer = exportToExcel(rows);
+  const buffer = await exportToExcel(rows);
   const base64 = Buffer.from(new Uint8Array(buffer)).toString("base64");
   return {
     data: base64,

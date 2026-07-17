@@ -12,7 +12,7 @@ export async function previewExcelFileAction(fileBase64: string): Promise<{
 }> {
   try {
     const buffer = Buffer.from(fileBase64, "base64");
-    const preview = parseExcelFile(buffer.buffer);
+    const preview = await parseExcelFile(buffer.buffer);
     return { success: true, data: preview };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal membaca file";
@@ -38,7 +38,7 @@ export async function executeImportAction(
   try {
     const buffer = Buffer.from(fileBase64, "base64");
     const mapping: ColumnMapping = JSON.parse(mappingJson);
-    const data = getFullData(buffer.buffer);
+    const data = await getFullData(buffer.buffer);
     const result = await bulkImportSchedules(data, mapping, user.id);
     revalidatePath("/schedules");
     return {

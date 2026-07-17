@@ -1,12 +1,38 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
 
-export function parseExcelFile(file: ArrayBuffer): ImportPreview {
-  const workbook = XLSX.read(file, { type: "array" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const data = XLSX.utils.sheet_to_json<ExcelRow>(sheet, { defval: "" });
+function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
+  const rows: ExcelRow[] = [];
+  const headers: string[] = [];
+
+  ws.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+    const values = row.values as unknown[];
+    // First row is headers
+    if (rowNumber === 1) {
+      values.slice(1).forEach((v) => headers.push(String(v ?? "")));
+      return;
+    }
+    const obj: ExcelRow = {};
+    values.slice(1).forEach((v, i) => {
+      obj[headers[i] ?? `col${i}`] = String(v ?? "");
+    });
+    rows.push(obj);
+  });
+
+  return rows;
+}
+
+export async function parseExcelFile(file: ArrayBuffer): Promise<ImportPreview> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(file);
+
+  const ws = workbook.worksheets[0];
+  if (!ws) {
+    throw new Error("File Excel kosong atau tidak memiliki data");
+  }
+
+  const data = sheetToJson(ws);
 
   if (data.length === 0) {
     throw new Error("File Excel kosong atau tidak memiliki data");
@@ -21,11 +47,14 @@ export function parseExcelFile(file: ArrayBuffer): ImportPreview {
   };
 }
 
-export function getFullData(file: ArrayBuffer): ExcelRow[] {
-  const workbook = XLSX.read(file, { type: "array" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  return XLSX.utils.sheet_to_json<ExcelRow>(sheet, { defval: "" });
+export async function getFullData(file: ArrayBuffer): Promise<ExcelRow[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(file);
+
+  const ws = workbook.worksheets[0];
+  if (!ws) return [];
+
+  return sheetToJson(ws);
 }
 
 export async function bulkImportSchedules(
@@ -77,7 +106,7 @@ export async function bulkImportSchedules(
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    const rowNum = i + 2; // +2 for header row and 0-index
+    const rowNum = i + 2;
 
     const userName = row[mapping.user_name]?.trim();
     const kabName = row[mapping.kabupaten_name]?.trim();
@@ -128,7 +157,6 @@ export async function bulkImportSchedules(
     });
   }
 
-  // Insert valid schedules
   if (schedulesToInsert.length > 0) {
     const { error: insertError } = await admin
       .from("schedules")
@@ -144,13 +172,12 @@ export async function bulkImportSchedules(
   result.errors = errors.length;
   result.errorRows = errors;
 
-  // Update import record
   await admin
     .from("excel_imports")
     .update({
       success_rows: result.success,
       error_rows: result.errors,
-      status: result.errors === 0 ? "completed" : "completed",
+      status: "completed",
       error_log: errors,
     })
     .eq("id", importRecord.id);

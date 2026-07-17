@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
   const admin = createAdminClient();
@@ -134,19 +134,32 @@ export async function getReportRows(_filters: ReportFilters): Promise<ReportRow[
   }));
 }
 
-export function exportToExcel(rows: ReportRow[]): ArrayBuffer {
-  const data = rows.map((r) => ({
-    Tanggal: r.visit_date,
-    Petugas: r.user_name,
-    Kabupaten: r.kabupaten_name,
-    Kecamatan: r.kecamatan_name,
-    Desa: r.desa_name,
-    Status: r.status,
-    "Waktu Kunjungan": r.visit_time ?? "",
-  }));
+export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet("Laporan");
 
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Laporan");
-  return XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  ws.columns = [
+    { header: "Tanggal", key: "Tanggal" },
+    { header: "Petugas", key: "Petugas" },
+    { header: "Kabupaten", key: "Kabupaten" },
+    { header: "Kecamatan", key: "Kecamatan" },
+    { header: "Desa", key: "Desa" },
+    { header: "Status", key: "Status" },
+    { header: "Waktu Kunjungan", key: "Waktu Kunjungan" },
+  ];
+
+  for (const r of rows) {
+    ws.addRow({
+      Tanggal: r.visit_date,
+      Petugas: r.user_name,
+      Kabupaten: r.kabupaten_name,
+      Kecamatan: r.kecamatan_name,
+      Desa: r.desa_name,
+      Status: r.status,
+      "Waktu Kunjungan": r.visit_time ?? "",
+    });
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return buffer as ArrayBuffer;
 }
