@@ -25,3 +25,5 @@ export type {
   ProfileInput,
 } from "./schema/auth-schema";
 export type { AuthState, AuthError } from "./types";
+export { UsersTable } from "./components/users-table";
+export { UserForm } from "./components/user-form";

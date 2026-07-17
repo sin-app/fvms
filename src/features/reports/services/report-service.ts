@@ -1,0 +1,152 @@
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import type { ReportFilters, ReportData } from "../types";
+import type { ReportRow } from "../types/report-data";
+import * as XLSX from "xlsx";
+
+export async function getReportData(filters: ReportFilters): Promise<ReportData> {
+  const admin = createAdminClient();
+  let query = admin
+    .from("schedules")
+    .select("id, status, visit_date, user_id, kabupaten_id, user!inner(name), kabupaten!inner(name), visit_time", { count: "exact" })
+    .is("deleted_at", null);
+
+  if (filters.date_from) query = query.gte("visit_date", filters.date_from);
+  if (filters.date_to) query = query.lte("visit_date", filters.date_to);
+  if (filters.user_id) query = query.eq("user_id", filters.user_id);
+  if (filters.kabupaten_id) query = query.eq("kabupaten_id", filters.kabupaten_id);
+  if (filters.status) query = query.eq("status", filters.status);
+
+  const { data: schedules } = await query;
+
+  if (!schedules) {
+    return {
+      total_schedules: 0, completed: 0, cancelled: 0, pending: 0,
+      on_the_way: 0, in_progress: 0, completion_rate: 0, late_count: 0,
+      by_officer: [], by_kabupaten: [], daily_data: [],
+    };
+  }
+
+  const total = schedules.length;
+  const completed = schedules.filter((s) => s.status === "completed").length;
+  const cancelled = schedules.filter((s) => s.status === "cancelled").length;
+  const pending = schedules.filter((s) => s.status === "pending").length;
+  const on_the_way = schedules.filter((s) => s.status === "on_the_way").length;
+  const in_progress = schedules.filter((s) => s.status === "in_progress").length;
+
+  const today = new Date().toISOString().split("T")[0];
+  const late_count = schedules.filter(
+    (s) => s.visit_date < today && !["completed", "cancelled"].includes(s.status),
+  ).length;
+
+  // By officer
+  const officerMap = new Map<string, { name: string; total: number; completed: number }>();
+  schedules.forEach((s) => {
+    const uid = s.user_id;
+    const uname = (s as unknown as { user?: { name: string } }).user?.name ?? "Unknown";
+    const existing = officerMap.get(uid) ?? { name: uname, total: 0, completed: 0 };
+    existing.total++;
+    if (s.status === "completed") existing.completed++;
+    officerMap.set(uid, existing);
+  });
+
+  const by_officer = Array.from(officerMap.entries()).map(([user_id, d]) => ({
+    user_id,
+    user_name: d.name,
+    total: d.total,
+    completed: d.completed,
+    completion_rate: d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0,
+  }));
+
+  // By kabupaten
+  const kabMap = new Map<string, { name: string; total: number; completed: number }>();
+  schedules.forEach((s) => {
+    const kid = s.kabupaten_id;
+    const kname = (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "Unknown";
+    const existing = kabMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
+    existing.total++;
+    if (s.status === "completed") existing.completed++;
+    kabMap.set(kid, existing);
+  });
+
+  const by_kabupaten = Array.from(kabMap.entries()).map(([kabupaten_id, d]) => ({
+    kabupaten_id,
+    kabupaten_name: d.name,
+    total: d.total,
+    completed: d.completed,
+  }));
+
+  // Daily data
+  const dayMap = new Map<string, { total: number; completed: number }>();
+  schedules.forEach((s) => {
+    const date = s.visit_date;
+    const existing = dayMap.get(date) ?? { total: 0, completed: 0 };
+    existing.total++;
+    if (s.status === "completed") existing.completed++;
+    dayMap.set(date, existing);
+  });
+
+  const daily_data = Array.from(dayMap.entries())
+    .map(([date, d]) => ({ date, total: d.total, completed: d.completed }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    total_schedules: total,
+    completed,
+    cancelled,
+    pending,
+    on_the_way,
+    in_progress,
+    completion_rate: total > 0 ? Math.round((completed / total) * 100) : 0,
+    late_count,
+    by_officer,
+    by_kabupaten,
+    daily_data,
+  };
+}
+
+export async function getReportRows(_filters: ReportFilters): Promise<ReportRow[]> {
+  const admin = createAdminClient();
+  let query = admin
+    .from("schedules")
+    .select("id, visit_date, status, visit_time, user!inner(name), kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
+    .is("deleted_at", null)
+    .order("visit_date", { ascending: true });
+
+  if (_filters.date_from) query = query.gte("visit_date", _filters.date_from);
+  if (_filters.date_to) query = query.lte("visit_date", _filters.date_to);
+  if (_filters.user_id) query = query.eq("user_id", _filters.user_id);
+  if (_filters.kabupaten_id) query = query.eq("kabupaten_id", _filters.kabupaten_id);
+
+  const { data } = await query;
+
+  if (!data) return [];
+
+  return data.map((s) => ({
+    id: s.id,
+    visit_date: s.visit_date,
+    user_name: (s as unknown as { user?: { name: string } }).user?.name ?? "—",
+    kabupaten_name: (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—",
+    kecamatan_name: (s as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—",
+    desa_name: (s as unknown as { desa?: { name: string } }).desa?.name ?? "—",
+    status: s.status,
+    visit_time: s.visit_time,
+    has_notes: false,
+  }));
+}
+
+export function exportToExcel(rows: ReportRow[]): ArrayBuffer {
+  const data = rows.map((r) => ({
+    Tanggal: r.visit_date,
+    Petugas: r.user_name,
+    Kabupaten: r.kabupaten_name,
+    Kecamatan: r.kecamatan_name,
+    Desa: r.desa_name,
+    Status: r.status,
+    "Waktu Kunjungan": r.visit_time ?? "",
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+  return XLSX.write(wb, { bookType: "xlsx", type: "array" });
+}

@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/components/auth-context";
+import { NotificationBell } from "@/features/notifications";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -36,9 +37,7 @@ export function AppHeader() {
       <h1 className="flex-1 text-lg font-semibold sm:text-xl">{title}</h1>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-        </Button>
+        <NotificationBell />
         <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
           <span>{user?.name}</span>
         </div>

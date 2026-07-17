@@ -1,0 +1,86 @@
+"use client";
+
+import { useAllKabupaten } from "@/features/master-data";
+import { useAllUsers } from "@/features/schedules/hooks/use-users";
+
+interface ReportFiltersProps {
+  dateFrom: string;
+  dateTo: string;
+  userId: string;
+  kabupatenId: string;
+  onDateFromChange: (v: string) => void;
+  onDateToChange: (v: string) => void;
+  onUserChange: (v: string) => void;
+  onKabupatenChange: (v: string) => void;
+  onReset: () => void;
+}
+
+export function ReportFiltersView({
+  dateFrom,
+  dateTo,
+  userId,
+  kabupatenId,
+  onDateFromChange,
+  onDateToChange,
+  onUserChange,
+  onKabupatenChange,
+  onReset,
+}: ReportFiltersProps) {
+  const { data: users } = useAllUsers();
+  const { data: kabupaten } = useAllKabupaten();
+
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <div>
+        <label className="text-xs font-medium text-muted-foreground block mb-1">Dari</label>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => onDateFromChange(e.target.value)}
+          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-36"
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground block mb-1">Sampai</label>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => onDateToChange(e.target.value)}
+          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-36"
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground block mb-1">Petugas</label>
+        <select
+          value={userId}
+          onChange={(e) => onUserChange(e.target.value)}
+          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-40"
+        >
+          <option value="">Semua</option>
+          {users?.map((u) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground block mb-1">Kabupaten</label>
+        <select
+          value={kabupatenId}
+          onChange={(e) => onKabupatenChange(e.target.value)}
+          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-40"
+        >
+          <option value="">Semua</option>
+          {kabupaten?.map((k) => (
+            <option key={k.id} value={k.id}>{k.name}</option>
+          ))}
+        </select>
+      </div>
+      <button
+        onClick={onReset}
+        className="h-9 px-3 rounded-lg border border-input text-sm hover:bg-muted transition-colors"
+      >
+        Reset
+      </button>
+    </div>
+  );
+}
