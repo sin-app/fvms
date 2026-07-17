@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { NotificationBell } from "@/features/notifications";
+import { ThemeToggle } from "./theme-toggle";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -36,9 +37,10 @@ export function AppHeader() {
 
       <h1 className="flex-1 text-lg font-semibold sm:text-xl">{title}</h1>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
         <NotificationBell />
-        <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground ml-1">
           <span>{user?.name}</span>
         </div>
       </div>
