@@ -23,9 +23,9 @@ function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
   return rows;
 }
 
-export async function parseExcelFile(file: ArrayBuffer): Promise<ImportPreview> {
+export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(file);
+  await workbook.xlsx.load(file as unknown as ArrayBuffer);
 
   const ws = workbook.worksheets[0];
   if (!ws) {
@@ -47,9 +47,9 @@ export async function parseExcelFile(file: ArrayBuffer): Promise<ImportPreview> 
   };
 }
 
-export async function getFullData(file: ArrayBuffer): Promise<ExcelRow[]> {
+export async function getFullData(file: Buffer): Promise<ExcelRow[]> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(file);
+  await workbook.xlsx.load(file as unknown as ArrayBuffer);
 
   const ws = workbook.worksheets[0];
   if (!ws) return [];
