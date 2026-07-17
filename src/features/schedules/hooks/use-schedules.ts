@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fetchScheduleList, fetchScheduleById } from "../api/schedule-client";
-import { createScheduleAction, updateScheduleAction, deleteScheduleAction, updateVisitStatusAction } from "../actions/schedule-actions";
+import { createScheduleAction, updateScheduleAction, deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules } from "../actions/schedule-actions";
 import type { ScheduleFilters } from "../types";
 import type { ScheduleInput } from "../schema/schedule-schema";
 
@@ -70,6 +70,24 @@ export function useDeleteSchedule() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       toast.success("Jadwal berhasil dihapus");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useBulkAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { ids: string[]; action: string }) => {
+      const fd = new FormData();
+      fd.set("ids", JSON.stringify(data.ids));
+      fd.set("bulkAction", data.action);
+      const result = await bulkActionSchedules({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      toast.success("Aksi berhasil diproses");
     },
     onError: (err: Error) => toast.error(err.message),
   });

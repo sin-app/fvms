@@ -98,6 +98,72 @@ export async function deleteScheduleAction(formData: FormData): Promise<void> {
   revalidatePath("/schedules");
 }
 
+export async function bulkActionSchedules(
+  _prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  const idsJson = formData.get("ids") as string;
+  const action = formData.get("bulkAction") as string;
+
+  if (!idsJson || !action) return { success: false, error: "Data tidak lengkap" };
+
+  let ids: string[];
+  try {
+    ids = JSON.parse(idsJson);
+  } catch {
+    return { success: false, error: "ID tidak valid" };
+  }
+
+  if (!ids.length) return { success: false, error: "Tidak ada data dipilih" };
+
+  const admin = createAdminClient();
+
+  try {
+    if (action === "delete") {
+      const { error } = await admin
+        .from("schedules")
+        .update({ deleted_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+    } else if (action === "approve") {
+      const { error } = await admin
+        .from("schedules")
+        .update({ status: "on_the_way" })
+        .in("id", ids)
+        .eq("status", "pending");
+      if (error) throw error;
+    } else if (action === "cancel") {
+      const { error } = await admin
+        .from("schedules")
+        .update({ status: "cancelled" })
+        .in("id", ids)
+        .in("status", ["pending", "on_the_way"]);
+      if (error) throw error;
+    } else {
+      return { success: false, error: "Aksi tidak dikenal" };
+    }
+
+    const logs = ids.map((id) => ({
+      user_id: user.id,
+      action: "bulk_status_changed",
+      entity_type: "schedules",
+      entity_id: id,
+      metadata: { bulkAction: action },
+    }));
+    await admin.from("activity_logs").insert(logs);
+
+    revalidatePath("/schedules");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal memproses aksi";
+    return { success: false, error: msg };
+  }
+}
+
 export async function updateVisitStatusAction(
   prevState: ActionResponse,
   formData: FormData,

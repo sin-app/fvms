@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, FileDown } from "lucide-react";
 import { STATUS_LABELS } from "@/lib/constants/status";
 import { formatDate } from "@/lib/utils/date";
+import { exportPdf } from "@/lib/export/pdf";
 import type { ReportRow } from "../types/report-data";
 
 interface ReportTableProps {
@@ -13,16 +14,47 @@ interface ReportTableProps {
 }
 
 export function ReportTable({ rows, onDownload, downloading }: ReportTableProps) {
+  function handleDownloadPdf() {
+    if (!rows.length) return;
+    const pdfRows = rows.map((r) => ({
+      date: r.visit_date,
+      user: r.user_name,
+      kabupaten: r.kabupaten_name,
+      kecamatan: r.kecamatan_name,
+      desa: r.desa_name,
+      status: STATUS_LABELS[r.status as keyof typeof STATUS_LABELS] ?? r.status,
+    }));
+    exportPdf(
+      "Laporan Kunjungan Lapangan",
+      [
+        { header: "Tanggal", dataKey: "date" },
+        { header: "Petugas", dataKey: "user" },
+        { header: "Kabupaten", dataKey: "kabupaten" },
+        { header: "Kecamatan", dataKey: "kecamatan" },
+        { header: "Desa", dataKey: "desa" },
+        { header: "Status", dataKey: "status" },
+      ],
+      pdfRows,
+      `laporan-${new Date().toISOString().split("T")[0]}.pdf`,
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-muted-foreground">
           {rows.length} baris data
         </p>
-        <Button variant="outline" size="sm" onClick={onDownload} disabled={downloading}>
-          <Download className="h-4 w-4 mr-1.5" />
-          {downloading ? "Mengunduh..." : "Download Excel"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+            <FileDown className="h-4 w-4 mr-1.5" />
+            Download PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={onDownload} disabled={downloading}>
+            <Download className="h-4 w-4 mr-1.5" />
+            {downloading ? "Mengunduh..." : "Download Excel"}
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border overflow-hidden">

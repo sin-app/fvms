@@ -2,27 +2,65 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Calendar, FileDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { ScheduleTable, ScheduleForm, ScheduleFilters } from "@/features/schedules";
 import { createScheduleAction } from "@/features/schedules/actions/schedule-actions";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useSchedules } from "@/features/schedules/hooks/use-schedules";
+import { exportPdf } from "@/lib/export/pdf";
 
 export default function SchedulesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [kabupatenId, setKabupatenId] = useState("");
+  const [kecamatanId, setKecamatanId] = useState("");
+  const [dateRange, setDateRange] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
+  const { data } = useSchedules({
+    search: debouncedSearch || undefined,
+    status: status !== "all" ? status : undefined,
+    kabupaten_id: kabupatenId || undefined,
+    kecamatan_id: kecamatanId || undefined,
+    date_from: dateFrom || undefined,
+    date_to: dateTo || undefined,
+    pageSize: 1000,
+  });
+
+  function handleDownloadPdf() {
+    if (!data?.data?.length) return;
+    const rows = data.data.map((s) => ({
+      date: s.visit_date,
+      kabupaten: (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—",
+      kecamatan: (s as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—",
+      desa: (s as unknown as { desa?: { name: string } }).desa?.name ?? "—",
+      status: s.status,
+    }));
+    exportPdf(
+      "Daftar Jadwal Kunjungan",
+      [
+        { header: "Tanggal", dataKey: "date" },
+        { header: "Kabupaten", dataKey: "kabupaten" },
+        { header: "Kecamatan", dataKey: "kecamatan" },
+        { header: "Desa", dataKey: "desa" },
+        { header: "Status", dataKey: "status" },
+      ],
+      rows,
+      `jadwal-${new Date().toISOString().split("T")[0]}.pdf`,
+    );
+  }
+
   const filters = {
     search: debouncedSearch || undefined,
     status: status !== "all" ? status : undefined,
     kabupaten_id: kabupatenId || undefined,
+    kecamatan_id: kecamatanId || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
   };
@@ -34,6 +72,10 @@ export default function SchedulesPage() {
         description="Kelola jadwal kunjungan lapangan"
         actions={
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+              <FileDown className="h-4 w-4 mr-1.5" />
+              PDF
+            </Button>
             <Link href="/schedules/calendar">
               <Button variant="outline" size="sm">
                 <Calendar className="h-4 w-4 mr-1.5" />
@@ -55,6 +97,10 @@ export default function SchedulesPage() {
         onStatusChange={setStatus}
         kabupatenId={kabupatenId}
         onKabupatenChange={setKabupatenId}
+        kecamatanId={kecamatanId}
+        onKecamatanChange={setKecamatanId}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
         dateFrom={dateFrom}
         dateTo={dateTo}
         onDateFromChange={setDateFrom}

@@ -12,6 +12,7 @@ import {
   BarChart3,
   Bell,
   Users,
+  Settings,
   ChevronDown,
   MapPin,
   LogOut,
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { href: "/reports", label: "Laporan", icon: BarChart3 },
   { href: "/notifications", label: "Notifikasi", icon: Bell },
   { href: "/users", label: "Users", icon: Users, adminOnly: true },
+  { href: "/settings", label: "Pengaturan", icon: Settings },
 ];
 
 export function AppSidebar() {

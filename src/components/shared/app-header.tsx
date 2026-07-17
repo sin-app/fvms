@@ -19,6 +19,7 @@ const pageTitles: Record<string, string> = {
   "/reports": "Laporan",
   "/notifications": "Notifikasi",
   "/profile": "Profile",
+  "/settings": "Pengaturan",
   "/users": "Users",
 };
 
