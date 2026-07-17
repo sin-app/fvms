@@ -69,7 +69,7 @@ export function AppSidebar() {
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          if ("children" in item) {
+          if ("children" in item && item.children) {
             const isExpanded = expandedMenus.has(item.label);
             return (
               <div key={item.label}>
