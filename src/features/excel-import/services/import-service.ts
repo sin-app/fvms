@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { createMasterUpserter } from "./master-upsert";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
 
 function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
@@ -97,18 +98,12 @@ export async function bulkImportSchedules(
   if (createError) throw createError;
   result.id = importRecord.id;
 
-  // Get all users, kabupaten, kecamatan, desa for lookup
-  const [usersRes, kabRes, kecRes, desaRes] = await Promise.all([
-    admin.from("users").select("id, name"),
-    admin.from("kabupaten").select("id, name"),
-    admin.from("kecamatan").select("id, name, kabupaten_id"),
-    admin.from("desa").select("id, name, kecamatan_id"),
-  ]);
+  // Get all users for lookup (master data is auto-created on demand)
+  const [usersRes] = await Promise.all([admin.from("users").select("id, name")]);
 
   const users = usersRes.data ?? [];
-  const kabupatenList = kabRes.data ?? [];
-  const kecamatanList = kecRes.data ?? [];
-  const desaList = desaRes.data ?? [];
+
+  const upsert = createMasterUpserter();
 
   const errors: Array<{ row: number; message: string }> = [];
   const schedulesToInsert: Array<{
@@ -146,33 +141,20 @@ export async function bulkImportSchedules(
       continue;
     }
 
-    const kab = kabupatenList.find((k) => k.name.toLowerCase() === kabName.toLowerCase());
-    if (!kab) {
-      errors.push({ row: rowNum, message: `Kabupaten "${kabName}" tidak ditemukan` });
-      continue;
-    }
-
-    const kec = kecamatanList.find(
-      (k) => k.name.toLowerCase() === kecName.toLowerCase() && k.kabupaten_id === kab.id,
-    );
-    if (!kec) {
-      errors.push({ row: rowNum, message: `Kecamatan "${kecName}" tidak ditemukan di ${kabName}` });
-      continue;
-    }
-
-    const desa = desaList.find(
-      (d) => d.name.toLowerCase() === desaName.toLowerCase() && d.kecamatan_id === kec.id,
-    );
-    if (!desa) {
-      errors.push({ row: rowNum, message: `Desa "${desaName}" tidak ditemukan di ${kecName}` });
+    const ids = await upsert.resolve(kabName, kecName, desaName);
+    if (!ids) {
+      errors.push({
+        row: rowNum,
+        message: `Gagal membuat/master data untuk ${kabName} / ${kecName} / ${desaName}`,
+      });
       continue;
     }
 
     schedulesToInsert.push({
       user_id: user.id,
-      kabupaten_id: kab.id,
-      kecamatan_id: kec.id,
-      desa_id: desa.id,
+      kabupaten_id: ids.kabupaten_id,
+      kecamatan_id: ids.kecamatan_id,
+      desa_id: ids.desa_id,
       visit_date: visitDate,
       created_by: userId,
     });
@@ -197,6 +179,7 @@ export async function bulkImportSchedules(
 
   result.errors = errors.length;
   result.errorRows = errors;
+  result.created = upsert.created;
 
   await admin
     .from("excel_imports")

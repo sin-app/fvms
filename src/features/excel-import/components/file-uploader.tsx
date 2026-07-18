@@ -5,7 +5,7 @@ import { Upload, FileSpreadsheet, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FileUploaderProps {
-  onFileSelect: (file: File, base64: string) => void;
+  onFileSelect: (file: File) => void;
   loading?: boolean;
 }
 
@@ -14,7 +14,7 @@ export function FileUploader({ onFileSelect, loading }: FileUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  async function handleFile(file: File) {
+  function handleFile(file: File) {
     const allowedExt = [".xlsx"];
     const lowerName = file.name.toLowerCase();
     const validExt = allowedExt.some((ext) => lowerName.endsWith(ext));
@@ -33,12 +33,7 @@ export function FileUploader({ onFileSelect, loading }: FileUploaderProps) {
     }
 
     setSelectedFile(file);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      onFileSelect(file, base64);
-    };
-    reader.readAsDataURL(file);
+    onFileSelect(file);
   }
 
   function handleDrop(e: React.DragEvent) {

@@ -22,7 +22,7 @@ export default function ImportPage() {
   const allMapped = Object.keys(mapping).length >= 5;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-auto max-w-5xl">
       <PageHeader
         title="Import Excel"
         description="Import jadwal kunjungan dari file Excel"
@@ -77,12 +77,18 @@ export default function ImportPage() {
           ) : (
             <AlertCircle className="h-12 w-12 mx-auto text-amber-500" />
           )}
-          <div>
-            <h3 className="text-lg font-semibold">Import Selesai</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {result.success} berhasil, {result.errors} gagal
-            </p>
-          </div>
+           <div>
+             <h3 className="text-lg font-semibold">Import Selesai</h3>
+             <p className="text-sm text-muted-foreground mt-1">
+               {result.success} berhasil, {result.errors} gagal
+             </p>
+             {result.created && (result.created.kabupaten > 0 || result.created.kecamatan > 0 || result.created.desa > 0) && (
+               <p className="text-xs text-muted-foreground mt-2">
+                 Master data otomatis dibuat: {result.created.kabupaten} kabupaten,{" "}
+                 {result.created.kecamatan} kecamatan, {result.created.desa} desa
+               </p>
+             )}
+           </div>
           <div className="flex justify-center gap-2">
             <Button variant="outline" onClick={reset}>
               Import Lagi

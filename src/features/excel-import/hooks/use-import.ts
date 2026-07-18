@@ -11,17 +11,23 @@ export function useExcelImport() {
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [fileBase64, setFileBase64] = useState<string | null>(null);
-  const [result, setResult] = useState<{ success: number; errors: number } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [result, setResult] = useState<{
+    success: number;
+    errors: number;
+    created?: { kabupaten: number; kecamatan: number; desa: number };
+  } | null>(null);
   const queryClient = useQueryClient();
 
-  async function handleFileSelect(_file: File, base64: string) {
-    setFileBase64(base64);
+  async function handleFileSelect(file: File) {
+    setSelectedFile(file);
     setLoading(true);
     setResult(null);
 
     try {
-      const res = await previewExcelFileAction(base64);
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await previewExcelFileAction(fd);
       if (res.success && res.data) {
         setPreview(res.data);
         // Auto-map columns
@@ -53,21 +59,26 @@ export function useExcelImport() {
   }
 
   async function handleImport() {
-    if (!fileBase64 || Object.keys(mapping).length < 5) {
+    if (!selectedFile || Object.keys(mapping).length < 5) {
       toast.error("Lengkapi mapping kolom terlebih dahulu");
       return;
     }
 
     setImporting(true);
     const fd = new FormData();
-    fd.set("file", fileBase64);
+    fd.set("file", selectedFile);
     fd.set("mapping", JSON.stringify(mapping));
 
     try {
       const res = await executeImportAction({ success: false }, fd);
       if (res.success && res.data) {
-        setResult({ success: res.data.success, errors: res.data.errors });
+        setResult({
+          success: res.data.success,
+          errors: res.data.errors,
+          created: res.data.created,
+        });
         queryClient.invalidateQueries({ queryKey: ["schedules"] });
+        queryClient.invalidateQueries({ queryKey: ["master-data"] });
         toast.success(`Import berhasil: ${res.data.success} jadwal ditambahkan`);
       } else {
         toast.error(res.error ?? "Gagal import");
@@ -82,7 +93,7 @@ export function useExcelImport() {
   function reset() {
     setPreview(null);
     setMapping({});
-    setFileBase64(null);
+    setSelectedFile(null);
     setResult(null);
   }
 

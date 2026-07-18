@@ -5,19 +5,27 @@ import { parseExcelFile, getFullData, bulkImportSchedules } from "../services/im
 import { columnMappingSchema } from "../schema/import-schema";
 import type { ColumnMapping, ImportPreview } from "../types";
 import { getAuthContext, isPrivileged } from "@/lib/auth/authorization";
-import { MAX_EXCEL_ROWS, MAX_EXCEL_BASE64_LENGTH } from "@/lib/constants/import";
+import { MAX_EXCEL_ROWS, MAX_EXCEL_FILE_SIZE } from "@/lib/constants/import";
 
-export async function previewExcelFileAction(fileBase64: string): Promise<{
+async function fileFromForm(formData: FormData): Promise<Buffer> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    throw new Error("File tidak ditemukan");
+  }
+  if (file.size > MAX_EXCEL_FILE_SIZE) {
+    throw new Error("File terlalu besar (maksimal 10MB)");
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+export async function previewExcelFileAction(formData: FormData): Promise<{
   success: boolean;
   data?: ImportPreview;
   error?: string;
 }> {
-  if (!fileBase64 || fileBase64.length > MAX_EXCEL_BASE64_LENGTH) {
-    return { success: false, error: "File terlalu besar (maksimal 10MB)" };
-  }
-
   try {
-    const buffer = Buffer.from(fileBase64, "base64");
+    const buffer = await fileFromForm(formData);
     const preview = await parseExcelFile(buffer);
     if (preview.totalRows > MAX_EXCEL_ROWS) {
       return { success: false, error: `Jumlah baris melebihi batas maksimal (${MAX_EXCEL_ROWS})` };
@@ -32,22 +40,26 @@ export async function previewExcelFileAction(fileBase64: string): Promise<{
 export async function executeImportAction(
   prevState: { success: boolean; error?: string; data?: { id: string; success: number; errors: number } },
   formData: FormData,
-): Promise<{ success: boolean; error?: string; data?: { id: string; success: number; errors: number } }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    id: string;
+    success: number;
+    errors: number;
+    created?: { kabupaten: number; kecamatan: number; desa: number };
+  };
+}> {
   const ctx = await getAuthContext();
   if (!ctx) return { success: false, error: "Unauthorized" };
   if (!isPrivileged(ctx.role)) {
     return { success: false, error: "Hanya admin/supervisor yang dapat mengimport" };
   }
 
-  const fileBase64 = formData.get("file") as string;
   const mappingJson = formData.get("mapping") as string;
 
-  if (!fileBase64 || !mappingJson) {
+  if (!mappingJson) {
     return { success: false, error: "Data tidak lengkap" };
-  }
-
-  if (fileBase64.length > MAX_EXCEL_BASE64_LENGTH) {
-    return { success: false, error: "File terlalu besar (maksimal 10MB)" };
   }
 
   const parsedMapping = columnMappingSchema.safeParse(JSON.parse(mappingJson));
@@ -63,13 +75,18 @@ export async function executeImportAction(
   }
 
   try {
-    const buffer = Buffer.from(fileBase64, "base64");
+    const buffer = await fileFromForm(formData);
     const data = await getFullData(buffer);
     const result = await bulkImportSchedules(data, mapping, ctx.userId);
     revalidatePath("/schedules");
     return {
       success: true,
-      data: { id: result.id, success: result.success, errors: result.errors },
+      data: {
+        id: result.id,
+        success: result.success,
+        errors: result.errors,
+        created: result.created,
+      },
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal import";
