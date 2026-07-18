@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import Link from "next/link";
 import { Eye, Trash2, CheckCheck, XCircle } from "lucide-react";
 import { useSchedules, useDeleteSchedule } from "../hooks/use-schedules";
@@ -11,7 +11,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatDateShort } from "@/lib/utils/date";
+import { formatDateDay, isTodayDate } from "@/lib/utils/date";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { useBulkAction } from "../hooks/use-schedules";
 import type { Schedule } from "@/types";
@@ -131,7 +131,6 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                     aria-label="Pilih semua"
                   />
                 </th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Tanggal</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
@@ -144,66 +143,85 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
               </tr>
             </thead>
             <tbody>
-              {data.data.map((schedule) => (
-                <tr
-                  key={schedule.id}
-                  className="border-b last:border-0 hover:bg-muted/50 transition-colors"
-                >
-                  <td className="p-3">
-                    <Checkbox
-                      checked={selectedIds.has(schedule.id)}
-                      onCheckedChange={() => toggleSelect(schedule.id)}
-                      aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
-                    />
-                  </td>
-                  <td className="p-3 text-sm whitespace-nowrap">
-                    {formatDateShort(schedule.visit_date)}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {(schedule as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—"}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {(schedule as unknown as { desa?: { name: string } }).desa?.name ?? "—"}
-                  </td>
-                  <td className="p-3 text-sm whitespace-nowrap">
-                    {schedule.cgr ?? "—"}
-                    {schedule.cgr_code ? <span className="text-muted-foreground text-xs block">{schedule.cgr_code}</span> : null}
-                  </td>
-                  <td className="p-3 text-sm whitespace-nowrap">
-                    {schedule.block_no ?? "—"}
-                    {schedule.no_plot ? <span className="text-muted-foreground text-xs block">Plot: {schedule.no_plot}</span> : null}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {schedule.member_name ?? "—"}
-                  </td>
-                  <td className="p-3 text-sm text-right whitespace-nowrap">
-                    {schedule.real_tanam_ha ?? "—"}
-                  </td>
-                  <td className="p-3">
-                    <StatusBadge status={schedule.status} size="sm" />
-                  </td>
-                  <td className="p-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Link
-                        href={`/visits/${schedule.id}`}
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-muted transition-colors"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleting(schedule)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {data.data.map((schedule, idx) => {
+                const prev = data.data[idx - 1];
+                const showGroup = !prev || prev.visit_date !== schedule.visit_date;
+                return (
+                  <Fragment key={schedule.id}>
+                    {showGroup && (
+                      <tr className="bg-muted/70">
+                        <td colSpan={10} className="p-2.5 px-3">
+                          <div className="flex items-center gap-2 text-sm font-semibold">
+                            {formatDateDay(schedule.visit_date)}
+                            {isTodayDate(schedule.visit_date) && (
+                              <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-0.5">
+                                Hari ini
+                              </span>
+                            )}
+                            <span className="text-xs font-normal text-muted-foreground">
+                              ({data.data.filter((s) => s.visit_date === schedule.visit_date).length} jadwal)
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    <tr
+                      className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                    >
+                      <td className="p-3">
+                        <Checkbox
+                          checked={selectedIds.has(schedule.id)}
+                          onCheckedChange={() => toggleSelect(schedule.id)}
+                          aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
+                        />
+                      </td>
+                      <td className="p-3 text-sm">
+                        {(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {(schedule as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {(schedule as unknown as { desa?: { name: string } }).desa?.name ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm whitespace-nowrap">
+                        {schedule.cgr ?? "—"}
+                        {schedule.cgr_code ? <span className="text-muted-foreground text-xs block">{schedule.cgr_code}</span> : null}
+                      </td>
+                      <td className="p-3 text-sm whitespace-nowrap">
+                        {schedule.block_no ?? "—"}
+                        {schedule.no_plot ? <span className="text-muted-foreground text-xs block">Plot: {schedule.no_plot}</span> : null}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {schedule.member_name ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm text-right whitespace-nowrap">
+                        {schedule.real_tanam_ha ?? "—"}
+                      </td>
+                      <td className="p-3">
+                        <StatusBadge status={schedule.status} size="sm" />
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/visits/${schedule.id}`}
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-muted transition-colors"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleting(schedule)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

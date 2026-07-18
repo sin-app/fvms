@@ -14,6 +14,12 @@ export function formatDateShort(date: string | Date | null | undefined): string 
   return format(d, "dd MMM yyyy", { locale: id });
 }
 
+export function formatDateDay(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? parseISO(date) : date;
+  return format(d, "EEEE, dd MMMM yyyy", { locale: id });
+}
+
 export function formatDateTime(date: string | Date | null | undefined): string {
   if (!date) return "";
   const d = typeof date === "string" ? parseISO(date) : date;
