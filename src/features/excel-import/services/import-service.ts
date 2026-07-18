@@ -218,10 +218,7 @@ export async function bulkImportSchedules(
       errors.push({ row: 0, message: `Gagal insert: ${insertError.message}` });
     } else {
       result.success = unique.length;
-      const duplicateCount = schedulesToInsert.length - unique.length;
-      if (duplicateCount > 0) {
-        errors.push({ row: 0, message: `${duplicateCount} baris duplikat dilewati` });
-      }
+      result.duplicates = schedulesToInsert.length - unique.length;
     }
   }
   result.errors = errors.length;

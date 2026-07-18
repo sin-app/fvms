@@ -80,7 +80,16 @@ export default function ImportPage() {
            <div>
              <h3 className="text-lg font-semibold">Import Selesai</h3>
              <p className="text-sm text-muted-foreground mt-1">
-               {result.success} berhasil, {result.errors} gagal
+               {result.success} berhasil
+               {result.errors > 0 && (
+                 <>, {result.errors} gagal</>
+               )}
+               {result.duplicates ? (
+                 <>, {result.duplicates} duplikat dilewati</>
+               ) : null}
+               {result.replaced ? (
+                 <>, {result.replaced} jadwal lama direplace</>
+               ) : null}
              </p>
               {result.created && (result.created.kabupaten > 0 || result.created.kecamatan > 0 || result.created.desa > 0 || result.created.users > 0) && (
                 <p className="text-xs text-muted-foreground mt-2">
@@ -91,7 +100,7 @@ export default function ImportPage() {
                   )}
                 </p>
               )}
-           </div>
+            </div>
           <div className="flex justify-center gap-2">
             <Button variant="outline" onClick={reset}>
               Import Lagi

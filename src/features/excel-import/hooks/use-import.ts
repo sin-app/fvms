@@ -15,6 +15,8 @@ export function useExcelImport() {
   const [result, setResult] = useState<{
     success: number;
     errors: number;
+    duplicates?: number;
+    replaced?: number;
     created?: { kabupaten: number; kecamatan: number; desa: number; users: number };
   } | null>(null);
   const queryClient = useQueryClient();
@@ -75,6 +77,8 @@ export function useExcelImport() {
         setResult({
           success: res.data.success,
           errors: res.data.errors,
+          duplicates: res.data.duplicates,
+          replaced: res.data.replaced,
           created: res.data.created,
         });
         queryClient.invalidateQueries({ queryKey: ["schedules"] });
