@@ -7,7 +7,6 @@ export async function getUsers(): Promise<User[]> {
   const { data } = await admin
     .from("users")
     .select("*")
-    .is("deleted_at", null)
     .order("name", { ascending: true });
 
   return (data ?? []) as unknown as User[];
