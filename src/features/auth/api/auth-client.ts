@@ -36,9 +36,17 @@ export async function getCurrentUser(): Promise<User | null> {
     .from("users")
     .select("*")
     .eq("id", session.user.id)
-    .single();
+    .maybeSingle();
 
-  return data;
+  if (data) return data;
+
+  const meta = session.user.user_metadata ?? {};
+  return {
+    id: session.user.id,
+    email: session.user.email ?? "",
+    name: (meta.name as string) ?? (meta.full_name as string) ?? "",
+    role: (meta.role as User["role"]) ?? "field_officer",
+  } as User;
 }
 
 export async function updateProfile(input: ProfileInput) {

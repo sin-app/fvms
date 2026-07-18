@@ -19,25 +19,35 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const monthStart = startOfMonth(now).toISOString().split("T")[0];
   const monthEnd = endOfMonth(now).toISOString().split("T")[0];
 
-  const baseQuery = admin.from("schedules").select("*", { count: "exact", head: true });
+  const baseQuery = () =>
+    admin.from("schedules").select("*", { count: "exact", head: true });
 
-  const todayQuery = baseQuery.eq("user_id", userId).eq("visit_date", today);
-  const tomorrowQuery = baseQuery.eq("user_id", userId).eq("visit_date", tomorrow);
-  const weekQuery = baseQuery.eq("user_id", userId).gte("visit_date", weekStart).lte("visit_date", weekEnd);
-  const lateQuery = baseQuery.eq("user_id", userId).lt("visit_date", today).not("status", "in", '("completed","cancelled")');
-  const completedQuery = baseQuery.eq("user_id", userId).eq("status", "completed").gte("visit_date", monthStart).lte("visit_date", monthEnd);
-  const pendingQuery = baseQuery.eq("user_id", userId).eq("status", "pending").gte("visit_date", today).lte("visit_date", monthEnd);
-  const monthQuery = baseQuery.eq("user_id", userId).gte("visit_date", monthStart).lte("visit_date", monthEnd);
+  const todayQuery = baseQuery().eq("user_id", userId).eq("visit_date", today);
+  const tomorrowQuery = baseQuery().eq("user_id", userId).eq("visit_date", tomorrow);
+  const weekQuery = baseQuery()
+    .eq("user_id", userId)
+    .gte("visit_date", weekStart)
+    .lte("visit_date", weekEnd);
+  const lateQuery = baseQuery()
+    .eq("user_id", userId)
+    .lt("visit_date", today)
+    .not("status", "in", "(completed,cancelled)");
+  const completedQuery = baseQuery()
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .gte("visit_date", monthStart)
+    .lte("visit_date", monthEnd);
+  const pendingQuery = baseQuery()
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .gte("visit_date", today)
+    .lte("visit_date", monthEnd);
+  const monthQuery = baseQuery()
+    .eq("user_id", userId)
+    .gte("visit_date", monthStart)
+    .lte("visit_date", monthEnd);
 
-  const [
-    { count: todayCount },
-    { count: tomorrowCount },
-    { count: weekCount },
-    { count: lateCount },
-    { count: completedCount },
-    { count: pendingCount },
-    { count: totalThisMonth },
-  ] = await Promise.all([
+  const counts = await Promise.all([
     todayQuery,
     tomorrowQuery,
     weekQuery,
@@ -48,13 +58,13 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   ]);
 
   const stats: DashboardStats = {
-    todayCount: todayCount ?? 0,
-    tomorrowCount: tomorrowCount ?? 0,
-    weekCount: weekCount ?? 0,
-    lateCount: lateCount ?? 0,
-    completedCount: completedCount ?? 0,
-    pendingCount: pendingCount ?? 0,
-    totalThisMonth: totalThisMonth ?? 0,
+    todayCount: counts[0].count ?? 0,
+    tomorrowCount: counts[1].count ?? 0,
+    weekCount: counts[2].count ?? 0,
+    lateCount: counts[3].count ?? 0,
+    completedCount: counts[4].count ?? 0,
+    pendingCount: counts[5].count ?? 0,
+    totalThisMonth: counts[6].count ?? 0,
   };
 
   const [todaySchedulesRes, upcomingSchedulesRes, recentActivityRes] = await Promise.all([
