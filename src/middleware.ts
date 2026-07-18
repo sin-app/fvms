@@ -15,6 +15,10 @@ function requiredEnv(name: string): string {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname.startsWith("/api/diag")) {
+    return NextResponse.next();
+  }
+
   const isPublicRoute = PUBLIC_ROUTES.some((route) =>
     pathname.startsWith(route),
   );
