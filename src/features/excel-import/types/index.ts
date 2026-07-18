@@ -16,6 +16,7 @@ export interface ImportResult {
   id: string;
   success: number;
   errors: number;
+  replaced?: number;
   created?: { kabupaten: number; kecamatan: number; desa: number; users: number };
   errorRows: Array<{ row: number; message: string }>;
 }

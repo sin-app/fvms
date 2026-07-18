@@ -4,6 +4,26 @@ import { createMasterUpserter } from "./master-upsert";
 import { createUserUpserter } from "./user-upsert";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
 
+function cellToString(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (value instanceof Date) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (obj.text !== undefined) return String(obj.text);
+    if (obj.result !== undefined) return cellToString(obj.result);
+    if (obj.value !== undefined) return cellToString(obj.value);
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
 function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
   const rows: ExcelRow[] = [];
   const headers: string[] = [];
@@ -12,13 +32,13 @@ function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
     const values = (row.values as unknown[]).slice(1);
 
     if (rowNumber === 1) {
-      values.forEach((v) => headers.push(String(v ?? "")));
+      values.forEach((v) => headers.push(cellToString(v)));
       return;
     }
 
     const obj: ExcelRow = {};
     values.forEach((v, i) => {
-      obj[headers[i] ?? `col${i}`] = String(v ?? "");
+      obj[headers[i] ?? `col${i}`] = cellToString(v);
     });
     rows.push(obj);
   });
@@ -104,6 +124,20 @@ export async function bulkImportSchedules(
   const userUpsert = createUserUpserter();
 
   const errors: Array<{ row: number; message: string }> = [];
+
+  // Replace data lapang: soft-delete jadwal yang belum dikerjakan (pending).
+  // Jadwal yang sudah dikerjakan (on_the_way/in_progress/completed/cancelled) dilindungi.
+  const { count: replacedCount, error: replaceError } = await admin
+    .from("schedules")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("status", "pending")
+    .is("deleted_at", null);
+
+  if (replaceError) {
+    errors.push({ row: 0, message: `Gagal replace data lama: ${replaceError.message}` });
+  }
+  const replaced = replacedCount ?? 0;
+
   const schedulesToInsert: Array<{
     user_id: string;
     kabupaten_id: string;
@@ -177,6 +211,7 @@ export async function bulkImportSchedules(
 
   result.errors = errors.length;
   result.errorRows = errors;
+  result.replaced = replaced;
   result.created = { ...upsert.created, users: userUpsert.created };
 
   await admin

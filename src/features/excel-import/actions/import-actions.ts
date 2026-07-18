@@ -47,6 +47,7 @@ export async function executeImportAction(
     id: string;
     success: number;
     errors: number;
+    replaced?: number;
     created?: { kabupaten: number; kecamatan: number; desa: number; users: number };
   };
 }> {
