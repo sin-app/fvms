@@ -15,13 +15,16 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
   if (!user) return null;
 
+  const meta = user.user_metadata ?? {};
+  const metaRole = (meta.role ?? user.app_metadata?.role) as UserRole | undefined;
+
   const { data } = await supabase
     .from("users")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  const role = (data?.role ?? "field_officer") as UserRole;
+  const role = metaRole ?? (data?.role as UserRole | undefined) ?? "field_officer";
 
   return { userId: user.id, role };
 }
