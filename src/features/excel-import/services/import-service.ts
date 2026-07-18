@@ -24,7 +24,21 @@ function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
   return rows;
 }
 
+function assertValidXlsx(file: Buffer) {
+  if (!file || file.length < 4) {
+    throw new Error("File Excel kosong atau rusak");
+  }
+  const isZip =
+    file[0] === 0x50 && file[1] === 0x4b && file[2] === 0x03 && file[3] === 0x04;
+  if (!isZip) {
+    throw new Error(
+      "File bukan .xlsx yang valid. Gunakan format .xlsx (Excel 2007+), bukan .xls",
+    );
+  }
+}
+
 export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
+  assertValidXlsx(file);
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(file as unknown as ArrayBuffer);
 
@@ -49,6 +63,7 @@ export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
 }
 
 export async function getFullData(file: Buffer): Promise<ExcelRow[]> {
+  assertValidXlsx(file);
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(file as unknown as ArrayBuffer);
 

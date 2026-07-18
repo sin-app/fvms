@@ -15,16 +15,15 @@ export function FileUploader({ onFileSelect, loading }: FileUploaderProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   async function handleFile(file: File) {
-    const allowedExt = [".xlsx", ".xls"];
+    const allowedExt = [".xlsx"];
     const lowerName = file.name.toLowerCase();
     const validExt = allowedExt.some((ext) => lowerName.endsWith(ext));
     const validType =
       file.type === "" ||
-      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-      file.type === "application/vnd.ms-excel";
+      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     if (!validExt || !validType) {
-      alert("Hanya file Excel (.xlsx, .xls) yang didukung");
+      alert("Hanya file Excel .xlsx (Excel 2007+) yang didukung");
       return;
     }
 
@@ -63,7 +62,7 @@ export function FileUploader({ onFileSelect, loading }: FileUploaderProps) {
         <input
           ref={inputRef}
           type="file"
-          accept=".xlsx,.xls"
+          accept=".xlsx"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
