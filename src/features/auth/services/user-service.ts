@@ -18,7 +18,7 @@ export async function createUser(data: UserInput) {
 
   const { data: invite, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     data.email,
-    { data: { name: data.name, role: data.role } },
+    { data: { name: data.name, role: data.role }, app_metadata: { role: data.role } },
   );
 
   if (inviteError) throw inviteError;
@@ -42,6 +42,13 @@ export async function updateUser(id: string, data: Partial<UserInput>) {
 
   if (data.email) {
     await admin.auth.admin.updateUserById(id, { email: data.email });
+  }
+
+  if (data.role) {
+    await admin.auth.admin.updateUserById(id, {
+      app_metadata: { role: data.role },
+      user_metadata: { role: data.role },
+    });
   }
 
   const { error } = await admin
