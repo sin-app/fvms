@@ -7,6 +7,7 @@ export interface MasterLookup {
   kabupaten: Map<string, string>;
   kecamatan: Map<string, string>;
   desa: Map<string, string>;
+  debug?: string;
 }
 
 interface MasterUpsertResult {
@@ -20,6 +21,7 @@ function generateCode(prefix: string): string {
 export function createMasterUpserter(): MasterUpsertResult {
   const admin = createAdminClient();
   const created = { kabupaten: 0, kecamatan: 0, desa: 0 };
+  let lastError = "";
 
   async function loadExisting(
     table: Table,
@@ -48,6 +50,7 @@ export function createMasterUpserter(): MasterUpsertResult {
     const { data, error } = await admin.from(table).insert(payload).select("id, name");
     if (error || !data) {
       console.error(`[master-upsert] insert ${table} failed:`, error?.message);
+      lastError = `[${table}] ${error?.message ?? "no data"} | payload=${JSON.stringify(payload).slice(0, 200)}`;
       return { inserted, count: 0 };
     }
     for (const row of data) inserted.set(row.name.toLowerCase(), row.id);
@@ -105,6 +108,7 @@ export function createMasterUpserter(): MasterUpsertResult {
       kabupaten: kab,
       kecamatan: kec,
       desa: des,
+      debug: lastError,
     };
   }
 
