@@ -1,119 +1,107 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 
+type Table = "kabupaten" | "kecamatan" | "desa";
+
+export interface MasterLookup {
+  created: { kabupaten: number; kecamatan: number; desa: number };
+  kabupaten: Map<string, string>;
+  kecamatan: Map<string, string>;
+  desa: Map<string, string>;
+}
+
+interface MasterUpsertResult {
+  resolveAll: (rows: Array<{ kab: string; kec: string; desa: string }>) => Promise<MasterLookup>;
+}
+
 function generateCode(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-async function findByName(
-  table: "kabupaten" | "kecamatan" | "desa",
-  name: string,
-  extra?: { column: string; value: string },
-): Promise<string | null> {
-  const admin = createAdminClient();
-  let query = admin.from(table).select("id").eq("name", name).is("deleted_at", null);
-  if (extra) query = query.eq(extra.column, extra.value);
-  const { data } = await query.maybeSingle();
-  return data?.id ?? null;
-}
-
-interface UpsertResult {
-  created: { kabupaten: number; kecamatan: number; desa: number };
-  resolve: (
-    kabName: string,
-    kecName: string,
-    desaName: string,
-  ) => Promise<{ kabupaten_id: string; kecamatan_id: string; desa_id: string } | null>;
-}
-
-export function createMasterUpserter(): UpsertResult {
+export function createMasterUpserter(): MasterUpsertResult {
   const admin = createAdminClient();
   const created = { kabupaten: 0, kecamatan: 0, desa: 0 };
-  const kabCache = new Map<string, string>();
-  const kecCache = new Map<string, string>();
-  const desaCache = new Map<string, string>();
 
-  async function ensureKabupaten(name: string): Promise<string | null> {
-    const key = name.toLowerCase();
-    if (kabCache.has(key)) return kabCache.get(key)!;
-
-    const existing = await findByName("kabupaten", name);
-    if (existing) {
-      kabCache.set(key, existing);
-      return existing;
-    }
-
-    const { data, error } = await admin
-      .from("kabupaten")
-      .insert({ name, code: generateCode("KAB") })
-      .select("id")
-      .single();
-    if (error || !data) return null;
-
-    created.kabupaten += 1;
-    kabCache.set(key, data.id);
-    return data.id;
+  async function loadExisting(
+    table: Table,
+    names: string[],
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (names.length === 0) return map;
+    const { data } = await admin
+      .from(table)
+      .select("id, name")
+      .in("name", names)
+      .is("deleted_at", null);
+    for (const row of data ?? []) map.set(row.name.toLowerCase(), row.id);
+    return map;
   }
 
-  async function ensureKecamatan(name: string, kabupatenId: string): Promise<string | null> {
-    const key = `${kabupatenId}:${name.toLowerCase()}`;
-    if (kecCache.has(key)) return kecCache.get(key)!;
+  async function createMissing(
+    table: Table,
+    names: string[],
+    build: (name: string) => Record<string, unknown>,
+  ): Promise<{ inserted: Map<string, string>; count: number }> {
+    const inserted = new Map<string, string>();
+    if (names.length === 0) return { inserted, count: 0 };
 
-    const existing = await findByName("kecamatan", name, {
-      column: "kabupaten_id",
-      value: kabupatenId,
-    });
-    if (existing) {
-      kecCache.set(key, existing);
-      return existing;
-    }
-
-    const { data, error } = await admin
-      .from("kecamatan")
-      .insert({ name, kabupaten_id: kabupatenId, code: generateCode("KEC") })
-      .select("id")
-      .single();
-    if (error || !data) return null;
-
-    created.kecamatan += 1;
-    kecCache.set(key, data.id);
-    return data.id;
+    const payload = names.map((name) => ({ id: crypto.randomUUID(), ...build(name) }));
+    const { data, error } = await admin.from(table).insert(payload).select("id, name");
+    if (error || !data) return { inserted, count: 0 };
+    for (const row of data) inserted.set(row.name.toLowerCase(), row.id);
+    return { inserted, count: data.length };
   }
 
-  async function ensureDesa(name: string, kecamatanId: string): Promise<string | null> {
-    const key = `${kecamatanId}:${name.toLowerCase()}`;
-    if (desaCache.has(key)) return desaCache.get(key)!;
+  async function resolveAll(
+    rows: Array<{ kab: string; kec: string; desa: string }>,
+  ): Promise<MasterLookup> {
+    const kabNames = Array.from(new Set(rows.map((r) => r.kab.trim()).filter(Boolean)));
+    const kecNames = Array.from(new Set(rows.map((r) => r.kec.trim()).filter(Boolean)));
+    const desaNames = Array.from(new Set(rows.map((r) => r.desa.trim()).filter(Boolean)));
 
-    const existing = await findByName("desa", name, {
-      column: "kecamatan_id",
-      value: kecamatanId,
-    });
-    if (existing) {
-      desaCache.set(key, existing);
-      return existing;
-    }
+    const kab = new Map(kabNames.map((n) => [n.toLowerCase(), ""]));
+    const kec = new Map(kecNames.map((n) => [n.toLowerCase(), ""]));
+    const des = new Map(desaNames.map((n) => [n.toLowerCase(), ""]));
 
-    const { data, error } = await admin
-      .from("desa")
-      .insert({ name, kecamatan_id: kecamatanId, code: generateCode("DES") })
-      .select("id")
-      .single();
-    if (error || !data) return null;
+    const kabExisting = await loadExisting("kabupaten", kabNames);
+    const kecExisting = await loadExisting("kecamatan", kecNames);
+    const desaExisting = await loadExisting("desa", desaNames);
 
-    created.desa += 1;
-    desaCache.set(key, data.id);
-    return data.id;
+    for (const [k, v] of kabExisting) kab.set(k, v);
+    for (const [k, v] of kecExisting) kec.set(k, v);
+    for (const [k, v] of desaExisting) des.set(k, v);
+
+    const kabMissing = kabNames.filter((n) => !kab.get(n.toLowerCase()));
+    const kecMissing = kecNames.filter((n) => !kec.get(n.toLowerCase()));
+    const desaMissing = desaNames.filter((n) => !des.get(n.toLowerCase()));
+
+    const kabNew = await createMissing("kabupaten", kabMissing, (name) => ({
+      name,
+      code: generateCode("KAB"),
+    }));
+    const kecNew = await createMissing("kecamatan", kecMissing, (name) => ({
+      name,
+      code: generateCode("KEC"),
+    }));
+    const desaNew = await createMissing("desa", desaMissing, (name) => ({
+      name,
+      code: generateCode("DES"),
+    }));
+
+    for (const [k, v] of kabNew.inserted) kab.set(k, v);
+    for (const [k, v] of kecNew.inserted) kec.set(k, v);
+    for (const [k, v] of desaNew.inserted) des.set(k, v);
+
+    created.kabupaten += kabNew.count;
+    created.kecamatan += kecNew.count;
+    created.desa += desaNew.count;
+
+    return {
+      created: { ...created },
+      kabupaten: kab,
+      kecamatan: kec,
+      desa: des,
+    };
   }
 
-  return {
-    created,
-    resolve: async (kabName, kecName, desaName) => {
-      const kabupaten_id = await ensureKabupaten(kabName);
-      if (!kabupaten_id) return null;
-      const kecamatan_id = await ensureKecamatan(kecName, kabupaten_id);
-      if (!kecamatan_id) return null;
-      const desa_id = await ensureDesa(desaName, kecamatan_id);
-      if (!desa_id) return null;
-      return { kabupaten_id, kecamatan_id, desa_id };
-    },
-  };
+  return { resolveAll };
 }

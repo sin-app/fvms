@@ -138,15 +138,16 @@ export async function bulkImportSchedules(
   }
   const replaced = replacedCount ?? 0;
 
-  const schedulesToInsert: Array<{
-    user_id: string;
-    kabupaten_id: string;
-    kecamatan_id: string;
-    desa_id: string;
-    visit_date: string;
-    created_by: string;
-  }> = [];
-
+  // Validate rows & collect unique names for batch resolution.
+  interface ValidRow {
+    rowNum: number;
+    user: string;
+    kab: string;
+    kec: string;
+    desa: string;
+    date: string;
+  }
+  const valid: ValidRow[] = [];
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     const rowNum = i + 2;
@@ -161,33 +162,48 @@ export async function bulkImportSchedules(
       errors.push({ row: rowNum, message: "Data tidak lengkap" });
       continue;
     }
-
     if (!isValidDate(visitDate)) {
       errors.push({ row: rowNum, message: `Tanggal kunjungan tidak valid: ${visitDate}` });
       continue;
     }
+    valid.push({ rowNum, user: userName, kab: kabName, kec: kecName, desa: desaName, date: visitDate });
+  }
 
-    const ids = await upsert.resolve(kabName, kecName, desaName);
-    if (!ids) {
+  // Batch-resolve master data & officers (few queries instead of per-row).
+  const master = await upsert.resolveAll(
+    valid.map((r) => ({ kab: r.kab, kec: r.kec, desa: r.desa })),
+  );
+  const userOut = await userUpsert.resolveAll(valid.map((r) => r.user));
+
+  const schedulesToInsert: Array<{
+    user_id: string;
+    kabupaten_id: string;
+    kecamatan_id: string;
+    desa_id: string;
+    visit_date: string;
+    created_by: string;
+  }> = [];
+
+  for (const r of valid) {
+    const kabupaten_id = master.kabupaten.get(r.kab.toLowerCase());
+    const kecamatan_id = master.kecamatan.get(r.kec.toLowerCase());
+    const desa_id = master.desa.get(r.desa.toLowerCase());
+    const user_id = userOut.map.get(r.user.toLowerCase());
+
+    if (!kabupaten_id || !kecamatan_id || !desa_id || !user_id) {
       errors.push({
-        row: rowNum,
-        message: `Gagal membuat/master data untuk ${kabName} / ${kecName} / ${desaName}`,
+        row: r.rowNum,
+        message: `Gagal resolve data untuk ${r.kab} / ${r.kec} / ${r.desa} / ${r.user}`,
       });
       continue;
     }
 
-    const userId_res = await userUpsert.resolve(userName);
-    if (!userId_res) {
-      errors.push({ row: rowNum, message: `Gagal membuat petugas "${userName}"` });
-      continue;
-    }
-
     schedulesToInsert.push({
-      user_id: userId_res,
-      kabupaten_id: ids.kabupaten_id,
-      kecamatan_id: ids.kecamatan_id,
-      desa_id: ids.desa_id,
-      visit_date: visitDate,
+      user_id,
+      kabupaten_id,
+      kecamatan_id,
+      desa_id,
+      visit_date: r.date,
       created_by: userId,
     });
   }
@@ -208,11 +224,10 @@ export async function bulkImportSchedules(
       }
     }
   }
-
   result.errors = errors.length;
   result.errorRows = errors;
   result.replaced = replaced;
-  result.created = { ...upsert.created, users: userUpsert.created };
+  result.created = { ...master.created, users: userOut.created };
 
   await admin
     .from("excel_imports")
