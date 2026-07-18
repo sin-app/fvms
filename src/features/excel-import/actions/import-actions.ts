@@ -53,7 +53,7 @@ export async function executeImportAction(
   const ctx = await getAuthContext();
   if (!ctx) return { success: false, error: "Unauthorized" };
   if (!isPrivileged(ctx.role)) {
-    return { success: false, error: "Hanya admin/supervisor yang dapat mengimport" };
+    return { success: false, error: `Hanya admin/supervisor yang dapat mengimport (role: ${ctx.role}, userId: ${ctx.userId})` };
   }
 
   const mappingJson = formData.get("mapping") as string;
