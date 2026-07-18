@@ -39,7 +39,7 @@ export function useExcelImport() {
           kabupaten_name: ["kab", "kabupaten", "kota", "city"],
           kecamatan_name: ["kec", "kecamatan", "district"],
           desa_name: ["desa", "village", "kelurahan"],
-          visit_date: ["detaseling", "tanggal kunjungan", "tanggal", "date", "tgl", "visit date", "kunjungan", "visit_date"],
+          visit_date: ["detaseling", "tanggal kunjungan", "visit date", "visit_date"],
           tgl_tanam: ["tgl tanam", "tanggal tanam", "planting date"],
           cgr: ["cgr"],
           cgr_code: ["cgr code", "cgr_code"],
