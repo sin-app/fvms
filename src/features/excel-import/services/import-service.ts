@@ -146,6 +146,15 @@ export async function bulkImportSchedules(
     kec: string;
     desa: string;
     date: string;
+    tgl_tanam?: string;
+    cgr?: string;
+    cgr_code?: string;
+    block_no?: string;
+    no_plot?: string;
+    member_name?: string;
+    real_tanam_ha?: number;
+    gagal_tanam?: number;
+    sisa_di_lahan_ha?: number;
     latitude?: number;
     longitude?: number;
     accuracy?: number;
@@ -195,6 +204,28 @@ export async function bulkImportSchedules(
       if (txt) v.notes = txt;
     }
 
+    if (mapping.tgl_tanam) {
+      const d = row[mapping.tgl_tanam]?.trim();
+      if (d && isValidDate(d)) v.tgl_tanam = d;
+    }
+    if (mapping.cgr) v.cgr = row[mapping.cgr]?.trim() || undefined;
+    if (mapping.cgr_code) v.cgr_code = row[mapping.cgr_code]?.trim() || undefined;
+    if (mapping.block_no) v.block_no = row[mapping.block_no]?.trim() || undefined;
+    if (mapping.no_plot) v.no_plot = row[mapping.no_plot]?.trim() || undefined;
+    if (mapping.member_name) v.member_name = row[mapping.member_name]?.trim() || undefined;
+    if (mapping.real_tanam_ha) {
+      const n = parseNumber(row[mapping.real_tanam_ha]);
+      if (n !== null) v.real_tanam_ha = n;
+    }
+    if (mapping.gagal_tanam) {
+      const n = parseNumber(row[mapping.gagal_tanam]);
+      if (n !== null) v.gagal_tanam = n;
+    }
+    if (mapping.sisa_di_lahan_ha) {
+      const n = parseNumber(row[mapping.sisa_di_lahan_ha]);
+      if (n !== null) v.sisa_di_lahan_ha = n;
+    }
+
     valid.push(v);
   }
 
@@ -211,6 +242,15 @@ export async function bulkImportSchedules(
     desa_id: string;
     visit_date: string;
     created_by: string;
+    tgl_tanam?: string;
+    cgr?: string;
+    cgr_code?: string;
+    block_no?: string;
+    no_plot?: string;
+    member_name?: string;
+    real_tanam_ha?: number;
+    gagal_tanam?: number;
+    sisa_di_lahan_ha?: number;
     latitude?: number;
     longitude?: number;
     accuracy?: number;
@@ -239,6 +279,15 @@ export async function bulkImportSchedules(
       desa_id,
       visit_date: r.date,
       created_by: userId,
+      ...(r.tgl_tanam !== undefined ? { tgl_tanam: r.tgl_tanam } : {}),
+      ...(r.cgr !== undefined ? { cgr: r.cgr } : {}),
+      ...(r.cgr_code !== undefined ? { cgr_code: r.cgr_code } : {}),
+      ...(r.block_no !== undefined ? { block_no: r.block_no } : {}),
+      ...(r.no_plot !== undefined ? { no_plot: r.no_plot } : {}),
+      ...(r.member_name !== undefined ? { member_name: r.member_name } : {}),
+      ...(r.real_tanam_ha !== undefined ? { real_tanam_ha: r.real_tanam_ha } : {}),
+      ...(r.gagal_tanam !== undefined ? { gagal_tanam: r.gagal_tanam } : {}),
+      ...(r.sisa_di_lahan_ha !== undefined ? { sisa_di_lahan_ha: r.sisa_di_lahan_ha } : {}),
       ...(r.latitude !== undefined ? { latitude: r.latitude } : {}),
       ...(r.longitude !== undefined ? { longitude: r.longitude } : {}),
       ...(r.accuracy !== undefined ? { accuracy: r.accuracy } : {}),
