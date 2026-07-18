@@ -7,6 +7,12 @@ export async function GET() {
   const ups = createMasterUpserter();
   const res = await ups.resolveAll([
     { kab: "KEDIRI", kec: "NGADILUWIH", desa: "BADAL PANDEAN" },
+    { kab: "KEDIRI", kec: "PESANTREN", desa: "TOSAREN" },
   ]);
-  return NextResponse.json({ debug: res.debug, created: res.created });
+  return NextResponse.json({
+    created: res.created,
+    kabCount: res.kabupaten.size,
+    kecCount: res.kecamatan.size,
+    desaCount: res.desa.size,
+  });
 }
