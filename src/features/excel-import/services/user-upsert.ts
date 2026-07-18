@@ -33,15 +33,16 @@ export function createUserUpserter(): UserUpsertResult {
       needed.delete(row.name.toLowerCase());
     }
 
-    for (const name of needed) {
-      const slug = name
+    for (const lowerName of needed) {
+      const original = unique.find((n) => n.toLowerCase() === lowerName) ?? lowerName;
+      const slug = lowerName
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "")
         .slice(0, 40);
       toInsert.push({
         id: crypto.randomUUID(),
         email: `${slug}@fvms.com`,
-        name,
+        name: original,
         role: "field_officer",
         is_active: true,
       });

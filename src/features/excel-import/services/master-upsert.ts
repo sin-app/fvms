@@ -28,8 +28,7 @@ export function createMasterUpserter(): MasterUpsertResult {
     const { data } = await admin
       .from(table)
       .select("id, name")
-      .in("name", names)
-      .is("deleted_at", null);
+      .in("name", names);
     for (const row of data ?? []) map.set(row.name.toLowerCase(), row.id);
     return map;
   }
@@ -37,16 +36,24 @@ export function createMasterUpserter(): MasterUpsertResult {
   async function insertRows(
     table: "kabupaten" | "kecamatan" | "desa",
     payload: Array<Record<string, unknown>>,
+    names: string[],
   ): Promise<Map<string, string>> {
     const map = new Map<string, string>();
     if (payload.length === 0) return map;
     const { data, error } = await admin.from(table).insert(payload).select("id, name");
-    if (error || !data) {
+    if (error) {
       console.error(`[master-upsert] insert ${table} failed:`, error?.message);
-      return map;
     }
-    created[table] += data.length;
-    for (const row of data) map.set(row.name.toLowerCase(), row.id);
+    for (const row of data ?? []) map.set(row.name.toLowerCase(), row.id);
+    // Re-fetch to capture rows that already existed or were just inserted.
+    if (names.length > 0) {
+      const { data: after } = await admin
+        .from(table)
+        .select("id, name")
+        .in("name", names);
+      for (const row of after ?? []) map.set(row.name.toLowerCase(), row.id);
+      created[table] += data?.length ?? 0;
+    }
     return map;
   }
 
@@ -75,7 +82,7 @@ export function createMasterUpserter(): MasterUpsertResult {
       code: shortCode("KAB"),
       is_active: true,
     }));
-    const kabNew = await insertRows("kabupaten", kabPayload);
+    const kabNew = await insertRows("kabupaten", kabPayload, kabMissing);
     for (const [k, v] of kabNew) kab.set(k, v);
 
     // Kecamatan: parent = kabupaten id (resolved from the row's kabupaten).
@@ -95,7 +102,7 @@ export function createMasterUpserter(): MasterUpsertResult {
         });
       }
     }
-    const kecNew = await insertRows("kecamatan", kecPayload);
+    const kecNew = await insertRows("kecamatan", kecPayload, kecNames);
     for (const [k, v] of kecNew) kec.set(k, v);
 
     // Desa: parent = kecamatan id (now resolved above).
@@ -115,7 +122,7 @@ export function createMasterUpserter(): MasterUpsertResult {
         });
       }
     }
-    const desaNew = await insertRows("desa", desaPayload);
+    const desaNew = await insertRows("desa", desaPayload, desaNames);
     for (const [k, v] of desaNew) des.set(k, v);
 
     return { created: { ...created }, kabupaten: kab, kecamatan: kec, desa: des };
