@@ -27,23 +27,24 @@ export async function resetPassword(input: ResetPasswordInput) {
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (!session) return null;
+  if (error || !user) return null;
 
   const { data } = await supabase
     .from("users")
     .select("*")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .maybeSingle();
 
   if (data) return data;
 
-  const meta = session.user.user_metadata ?? {};
+  const meta = user.user_metadata ?? {};
   return {
-    id: session.user.id,
-    email: session.user.email ?? "",
+    id: user.id,
+    email: user.email ?? "",
     name: (meta.name as string) ?? (meta.full_name as string) ?? "",
     role: (meta.role as User["role"]) ?? "field_officer",
   } as User;
