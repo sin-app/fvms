@@ -91,14 +91,27 @@ export async function updateKabupatenAction(
   }
 }
 
-export async function deleteKabupatenAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+export async function deleteKabupatenAction(
+  _prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const id = formData.get("id") as string;
-  if (!id) throw new Error("ID tidak valid");
+  if (!id) return { success: false, error: "ID tidak valid" };
 
-  await deleteKabupaten(id);
-  revalidatePath("/master-data/kabupaten");
+  try {
+    await deleteKabupaten(id);
+    revalidatePath("/master-data/kabupaten");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menghapus kabupaten";
+    return { success: false, error: msg };
+  }
 }
 
 export async function createKecamatanAction(
@@ -174,14 +187,27 @@ export async function updateKecamatanAction(
   }
 }
 
-export async function deleteKecamatanAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+export async function deleteKecamatanAction(
+  _prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const id = formData.get("id") as string;
-  if (!id) throw new Error("ID tidak valid");
+  if (!id) return { success: false, error: "ID tidak valid" };
 
-  await deleteKecamatan(id);
-  revalidatePath("/master-data/kecamatan");
+  try {
+    await deleteKecamatan(id);
+    revalidatePath("/master-data/kecamatan");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menghapus kecamatan";
+    return { success: false, error: msg };
+  }
 }
 
 export async function createDesaAction(
@@ -257,12 +283,25 @@ export async function updateDesaAction(
   }
 }
 
-export async function deleteDesaAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+export async function deleteDesaAction(
+  _prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const id = formData.get("id") as string;
-  if (!id) throw new Error("ID tidak valid");
+  if (!id) return { success: false, error: "ID tidak valid" };
 
-  await deleteDesa(id);
-  revalidatePath("/master-data/desa");
+  try {
+    await deleteDesa(id);
+    revalidatePath("/master-data/desa");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menghapus desa";
+    return { success: false, error: msg };
+  }
 }

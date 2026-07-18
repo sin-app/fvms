@@ -104,12 +104,15 @@ export async function updateScheduleAction(
   }
 }
 
-export async function deleteScheduleAction(formData: FormData): Promise<void> {
+export async function deleteScheduleAction(
+  _prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
   const ctx = await getAuthContext();
-  if (!ctx) throw new Error("Unauthorized");
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const id = formData.get("id") as string;
-  if (!id) throw new Error("ID tidak valid");
+  if (!id) return { success: false, error: "ID tidak valid" };
 
   if (!isPrivileged(ctx.role)) {
     const { data } = await createAdminClient()
@@ -117,11 +120,17 @@ export async function deleteScheduleAction(formData: FormData): Promise<void> {
       .select("user_id")
       .eq("id", id)
       .maybeSingle();
-    if (data?.user_id !== ctx.userId) throw new Error("Tidak memiliki akses");
+    if (data?.user_id !== ctx.userId) return { success: false, error: "Tidak memiliki akses" };
   }
 
-  await deleteSchedule(id);
-  revalidatePath("/schedules");
+  try {
+    await deleteSchedule(id);
+    revalidatePath("/schedules");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal";
+    return { success: false, error: msg };
+  }
 }
 
 export async function bulkActionSchedules(

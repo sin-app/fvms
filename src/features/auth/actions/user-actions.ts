@@ -79,14 +79,23 @@ export async function updateUserAction(
   }
 }
 
-export async function toggleUserActiveAction(formData: FormData): Promise<void> {
+export async function toggleUserActiveAction(
+  _prev: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
   const ctx = await getAuthContext();
-  if (!ctx) throw new Error("Unauthorized");
-  if (ctx.role !== "admin") throw new Error("Hanya admin yang diizinkan");
+  if (!ctx) return { success: false, error: "Unauthorized" };
+  if (ctx.role !== "admin") return { success: false, error: "Hanya admin yang diizinkan" };
 
   const id = formData.get("id") as string;
   const isActive = formData.get("is_active") === "true";
 
-  await toggleUserActive(id, isActive);
-  revalidatePath("/users");
+  try {
+    await toggleUserActive(id, isActive);
+    revalidatePath("/users");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal mengubah status pengguna";
+    return { success: false, error: msg };
+  }
 }

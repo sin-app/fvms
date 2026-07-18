@@ -122,7 +122,8 @@ export function KecamatanTable() {
     const formData = new FormData();
     formData.set("id", deleting.id);
     try {
-      await deleteKecamatanAction(formData);
+      const result = await deleteKecamatanAction({ success: false }, formData);
+      if (!result.success) throw new Error(result.error);
       refetch();
     } catch { /* noop */ }
     setDeleting(null);

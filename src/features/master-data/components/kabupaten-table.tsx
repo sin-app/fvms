@@ -31,7 +31,8 @@ export function KabupatenTable() {
     const formData = new FormData();
     formData.set("id", deletingKabupaten.id);
     try {
-      await deleteKabupatenAction(formData);
+      const result = await deleteKabupatenAction({ success: false }, formData);
+      if (!result.success) throw new Error(result.error);
       refetch();
     } catch {
       // error handled

@@ -126,7 +126,11 @@ export function DesaTable() {
     if (!deleting) return;
     const fd = new FormData();
     fd.set("id", deleting.id);
-    try { await deleteDesaAction(fd); refetch(); } catch { /* noop */ }
+    try {
+      const result = await deleteDesaAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
+      refetch();
+    } catch { /* noop */ }
     setDeleting(null);
   }
 

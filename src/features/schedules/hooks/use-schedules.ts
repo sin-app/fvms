@@ -65,7 +65,8 @@ export function useDeleteSchedule() {
     mutationFn: async (id: string) => {
       const fd = new FormData();
       fd.set("id", id);
-      await deleteScheduleAction(fd);
+      const result = await deleteScheduleAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });

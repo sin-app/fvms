@@ -93,22 +93,31 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
   }
 }
 
-export async function deletePhotoAction(formData: FormData): Promise<void> {
+export async function deletePhotoAction(
+  _prev: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
   const ctx = await getAuthContext();
-  if (!ctx) throw new Error("Unauthorized");
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const photoId = formData.get("photo_id") as string;
   const scheduleId = formData.get("schedule_id") as string;
 
-  if (!photoId || !scheduleId) throw new Error("Data tidak lengkap");
+  if (!photoId || !scheduleId) return { success: false, error: "Data tidak lengkap" };
 
   if (!(await canAccessSchedule(scheduleId, ctx))) {
-    throw new Error("Tidak memiliki akses ke jadwal ini");
+    return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
   }
 
   const owned = await getOwnedPhoto(photoId, scheduleId);
-  if (!owned) throw new Error("Foto tidak ditemukan");
+  if (!owned) return { success: false, error: "Foto tidak ditemukan" };
 
-  await deleteVisitPhoto(photoId);
-  revalidatePath(`/visits/${scheduleId}`);
+  try {
+    await deleteVisitPhoto(photoId);
+    revalidatePath(`/visits/${scheduleId}`);
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menghapus foto";
+    return { success: false, error: msg };
+  }
 }

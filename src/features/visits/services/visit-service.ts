@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { getConfig } from "@/lib/config";
 
 export async function getVisitDetail(scheduleId: string) {
   const admin = createAdminClient();
@@ -123,7 +124,7 @@ export async function deleteVisitPhoto(photoId: string) {
     .single();
 
   if (photo?.url) {
-    const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/visit-photos/`;
+    const prefix = `${getConfig().supabaseUrl}/storage/v1/object/public/visit-photos/`;
     const path = photo.url.startsWith(prefix)
       ? photo.url.slice(prefix.length)
       : photo.url.split("/").pop() ?? "";

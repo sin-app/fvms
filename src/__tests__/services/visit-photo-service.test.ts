@@ -4,6 +4,14 @@ vi.mock("@/lib/supabase/admin-client", () => ({
   createAdminClient: vi.fn(),
 }));
 
+vi.mock("@/lib/config", () => ({
+  getConfig: () => ({
+    supabaseUrl: "https://example.com",
+    supabaseAnonKey: "anon",
+    supabaseServiceRoleKey: "service",
+  }),
+}));
+
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { uploadVisitPhoto, deleteVisitPhoto } from "@/features/visits/services/visit-service";
 

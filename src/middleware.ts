@@ -4,6 +4,14 @@ import { createServerClient } from "@supabase/ssr";
 const PUBLIC_ROUTES = ["/login", "/reset-password"];
 const AUTH_ROUTES = ["/login"];
 
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -14,8 +22,8 @@ export async function middleware(request: NextRequest) {
   const cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[] = [];
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       cookies: {
         getAll() {

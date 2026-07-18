@@ -64,7 +64,8 @@ export function useToggleUserActive() {
       const fd = new FormData();
       fd.set("id", data.id);
       fd.set("is_active", String(data.is_active));
-      await toggleUserActiveAction(fd);
+      const result = await toggleUserActiveAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-admin"] });

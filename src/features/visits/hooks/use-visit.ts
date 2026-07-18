@@ -68,7 +68,8 @@ export function useDeletePhoto() {
       const fd = new FormData();
       fd.set("photo_id", data.photo_id);
       fd.set("schedule_id", data.schedule_id);
-      await deletePhotoAction(fd);
+      const result = await deletePhotoAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
