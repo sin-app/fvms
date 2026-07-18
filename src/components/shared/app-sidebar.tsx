@@ -43,7 +43,7 @@ export function AppSidebar() {
   });
 
   return (
-    <aside className="hidden sm:flex flex-col w-60 border-r bg-card shrink-0">
+    <aside className="hidden md:flex flex-col w-60 border-r bg-card shrink-0">
       <div className="p-5 border-b">
         <Link href="/dashboard" className="flex items-center gap-2">
           <MapPin className="h-6 w-6 text-primary" />

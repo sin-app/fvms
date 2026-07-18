@@ -27,7 +27,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 sm:hidden">
+    <div className="fixed inset-0 z-50 md:hidden">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <aside className="absolute left-0 top-0 h-full w-64 bg-card border-r p-3 space-y-1 overflow-y-auto">
         <div className="flex items-center justify-between p-2 border-b mb-2">

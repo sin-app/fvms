@@ -6,15 +6,15 @@ import { PageHeader } from "@/components/shared/page-header";
 export default async function ProfilePage() {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
-  if (!session) redirect("/login");
+  if (!authUser) redirect("/login");
 
   const { data: user } = await supabase
     .from("users")
     .select("*")
-    .eq("id", session.user.id)
+    .eq("id", authUser.id)
     .single();
 
   if (!user) redirect("/login");

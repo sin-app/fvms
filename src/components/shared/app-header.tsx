@@ -38,7 +38,7 @@ export function AppHeader() {
       <Button
         variant="ghost"
         size="icon"
-        className="sm:hidden"
+        className="md:hidden"
         aria-label="Buka menu"
         onClick={() => setMobileNavOpen(true)}
       >
