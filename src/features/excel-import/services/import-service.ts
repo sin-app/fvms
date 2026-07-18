@@ -307,6 +307,13 @@ export async function bulkImportSchedules(
     } else {
       result.success = unique.length;
       result.duplicates = schedulesToInsert.length - unique.length;
+      // Purge jadwal pending yang telah di-soft-delete oleh replace agar
+      // hanya data terbaru yang tersimpan (import = update data, tanpa duplikat).
+      await admin
+        .from("schedules")
+        .delete()
+        .eq("status", "pending")
+        .not("deleted_at", "is", null);
     }
   }
   result.errors = errors.length;
