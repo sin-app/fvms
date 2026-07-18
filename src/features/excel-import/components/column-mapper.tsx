@@ -3,11 +3,16 @@
 import type { ImportPreview } from "../types";
 
 const TARGET_FIELDS = [
-  { key: "user_name", label: "Nama Petugas" },
-  { key: "kabupaten_name", label: "Kabupaten" },
-  { key: "kecamatan_name", label: "Kecamatan" },
-  { key: "desa_name", label: "Desa" },
-  { key: "visit_date", label: "Tanggal Kunjungan" },
+  { key: "user_name", label: "Nama Petugas *" },
+  { key: "kabupaten_name", label: "Kabupaten *" },
+  { key: "kecamatan_name", label: "Kecamatan *" },
+  { key: "desa_name", label: "Desa *" },
+  { key: "visit_date", label: "Tanggal Kunjungan *" },
+  { key: "visit_time", label: "Jam Kunjungan" },
+  { key: "latitude", label: "Latitude" },
+  { key: "longitude", label: "Longitude" },
+  { key: "accuracy", label: "Akurasi (m)" },
+  { key: "notes", label: "Catatan" },
 ];
 
 interface ColumnMapperProps {

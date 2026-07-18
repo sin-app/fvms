@@ -40,6 +40,11 @@ export function useExcelImport() {
           kecamatan_name: ["kecamatan", "kec", "district"],
           desa_name: ["desa", "village", "kelurahan"],
           visit_date: ["tanggal", "date", "tgl", "visit date", "kunjungan", "visit_date"],
+          visit_time: ["jam", "waktu", "time", "visit time", "pukul"],
+          latitude: ["latitude", "lat", "ls", "lintang"],
+          longitude: ["longitude", "lng", "lon", "long", "bt", "bujur"],
+          accuracy: ["accuracy", "akurasi", "presisi"],
+          notes: ["catatan", "keterangan", "notes", "note", "keterangan tambahan"],
         };
 
         for (const [target, keywords] of Object.entries(targetLabels)) {

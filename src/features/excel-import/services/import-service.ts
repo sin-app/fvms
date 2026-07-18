@@ -146,6 +146,11 @@ export async function bulkImportSchedules(
     kec: string;
     desa: string;
     date: string;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    visit_time?: string;
+    notes?: string;
   }
   const valid: ValidRow[] = [];
   for (let i = 0; i < data.length; i++) {
@@ -166,7 +171,31 @@ export async function bulkImportSchedules(
       errors.push({ row: rowNum, message: `Tanggal kunjungan tidak valid: ${visitDate}` });
       continue;
     }
-    valid.push({ rowNum, user: userName, kab: kabName, kec: kecName, desa: desaName, date: visitDate });
+
+    const v: ValidRow = { rowNum, user: userName, kab: kabName, kec: kecName, desa: desaName, date: visitDate };
+
+    if (mapping.latitude) {
+      const n = parseNumber(row[mapping.latitude]);
+      if (n !== null) v.latitude = n;
+    }
+    if (mapping.longitude) {
+      const n = parseNumber(row[mapping.longitude]);
+      if (n !== null) v.longitude = n;
+    }
+    if (mapping.accuracy) {
+      const n = parseNumber(row[mapping.accuracy]);
+      if (n !== null) v.accuracy = n;
+    }
+    if (mapping.visit_time) {
+      const t = parseVisitTime(visitDate, row[mapping.visit_time]);
+      if (t) v.visit_time = t;
+    }
+    if (mapping.notes) {
+      const txt = row[mapping.notes]?.trim();
+      if (txt) v.notes = txt;
+    }
+
+    valid.push(v);
   }
 
   // Batch-resolve master data & officers (few queries instead of per-row).
@@ -182,6 +211,11 @@ export async function bulkImportSchedules(
     desa_id: string;
     visit_date: string;
     created_by: string;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    visit_time?: string;
+    notes?: string;
   }> = [];
 
   for (const r of valid) {
@@ -205,6 +239,11 @@ export async function bulkImportSchedules(
       desa_id,
       visit_date: r.date,
       created_by: userId,
+      ...(r.latitude !== undefined ? { latitude: r.latitude } : {}),
+      ...(r.longitude !== undefined ? { longitude: r.longitude } : {}),
+      ...(r.accuracy !== undefined ? { accuracy: r.accuracy } : {}),
+      ...(r.visit_time !== undefined ? { visit_time: r.visit_time } : {}),
+      ...(r.notes !== undefined ? { notes: r.notes } : {}),
     });
   }
 
@@ -249,6 +288,23 @@ function isValidDate(value: string): boolean {
   if (Number.isNaN(d.getTime())) return false;
   const [y, m, day] = value.split("-").map(Number);
   return d.getUTCFullYear() === y && d.getUTCMonth() + 1 === m && d.getUTCDate() === day;
+}
+
+function parseNumber(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(String(value).replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseVisitTime(date: string, value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  const raw = String(value).trim();
+  const timeMatch = raw.match(/(\d{1,2})[:.\s]?(\d{2})?/);
+  if (!timeMatch) return null;
+  const hh = timeMatch[1].padStart(2, "0");
+  const mm = (timeMatch[2] ?? "00").padStart(2, "0");
+  const iso = `${date}T${hh}:${mm}:00+00:00`;
+  return Number.isNaN(new Date(iso).getTime()) ? null : iso;
 }
 
 function dedupeSchedules(
