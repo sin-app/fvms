@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createMasterUpserter } from "./master-upsert";
+import { createUserUpserter } from "./user-upsert";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
 
 function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
@@ -98,12 +99,9 @@ export async function bulkImportSchedules(
   if (createError) throw createError;
   result.id = importRecord.id;
 
-  // Get all users for lookup (master data is auto-created on demand)
-  const [usersRes] = await Promise.all([admin.from("users").select("id, name")]);
-
-  const users = usersRes.data ?? [];
-
+  // Get all users for lookup (master data and officers are auto-created on demand)
   const upsert = createMasterUpserter();
+  const userUpsert = createUserUpserter();
 
   const errors: Array<{ row: number; message: string }> = [];
   const schedulesToInsert: Array<{
@@ -135,12 +133,6 @@ export async function bulkImportSchedules(
       continue;
     }
 
-    const user = users.find((u) => u.name.toLowerCase() === userName.toLowerCase());
-    if (!user) {
-      errors.push({ row: rowNum, message: `Petugas "${userName}" tidak ditemukan` });
-      continue;
-    }
-
     const ids = await upsert.resolve(kabName, kecName, desaName);
     if (!ids) {
       errors.push({
@@ -150,8 +142,14 @@ export async function bulkImportSchedules(
       continue;
     }
 
+    const userId_res = await userUpsert.resolve(userName);
+    if (!userId_res) {
+      errors.push({ row: rowNum, message: `Gagal membuat petugas "${userName}"` });
+      continue;
+    }
+
     schedulesToInsert.push({
-      user_id: user.id,
+      user_id: userId_res,
       kabupaten_id: ids.kabupaten_id,
       kecamatan_id: ids.kecamatan_id,
       desa_id: ids.desa_id,
@@ -179,7 +177,7 @@ export async function bulkImportSchedules(
 
   result.errors = errors.length;
   result.errorRows = errors;
-  result.created = upsert.created;
+  result.created = { ...upsert.created, users: userUpsert.created };
 
   await admin
     .from("excel_imports")

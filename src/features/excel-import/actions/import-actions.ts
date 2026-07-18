@@ -47,7 +47,7 @@ export async function executeImportAction(
     id: string;
     success: number;
     errors: number;
-    created?: { kabupaten: number; kecamatan: number; desa: number };
+    created?: { kabupaten: number; kecamatan: number; desa: number; users: number };
   };
 }> {
   const ctx = await getAuthContext();

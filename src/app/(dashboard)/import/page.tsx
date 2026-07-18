@@ -82,12 +82,15 @@ export default function ImportPage() {
              <p className="text-sm text-muted-foreground mt-1">
                {result.success} berhasil, {result.errors} gagal
              </p>
-             {result.created && (result.created.kabupaten > 0 || result.created.kecamatan > 0 || result.created.desa > 0) && (
-               <p className="text-xs text-muted-foreground mt-2">
-                 Master data otomatis dibuat: {result.created.kabupaten} kabupaten,{" "}
-                 {result.created.kecamatan} kecamatan, {result.created.desa} desa
-               </p>
-             )}
+              {result.created && (result.created.kabupaten > 0 || result.created.kecamatan > 0 || result.created.desa > 0 || result.created.users > 0) && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Otomatis dibuat: {result.created.kabupaten} kabupaten,{" "}
+                  {result.created.kecamatan} kecamatan, {result.created.desa} desa
+                  {result.created.users > 0 && (
+                    <>, {result.created.users} petugas</>
+                  )}
+                </p>
+              )}
            </div>
           <div className="flex justify-center gap-2">
             <Button variant="outline" onClick={reset}>

@@ -15,7 +15,7 @@ export function useExcelImport() {
   const [result, setResult] = useState<{
     success: number;
     errors: number;
-    created?: { kabupaten: number; kecamatan: number; desa: number };
+    created?: { kabupaten: number; kecamatan: number; desa: number; users: number };
   } | null>(null);
   const queryClient = useQueryClient();
 
