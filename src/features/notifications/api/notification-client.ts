@@ -35,11 +35,16 @@ export async function fetchUnreadCount() {
 }
 
 export async function markAsReadAction(notificationId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
   const admin = createAdminClient();
   await admin
     .from("notifications")
     .update({ is_read: true })
-    .eq("id", notificationId);
+    .eq("id", notificationId)
+    .eq("user_id", user.id);
 }
 
 export async function markAllAsReadAction(): Promise<void> {

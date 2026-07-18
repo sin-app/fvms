@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Plus, Calendar, FileDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -8,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { ScheduleTable, ScheduleForm, ScheduleFilters } from "@/features/schedules";
 import { createScheduleAction } from "@/features/schedules/actions/schedule-actions";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useSchedules } from "@/features/schedules/hooks/use-schedules";
 import { exportPdf } from "@/lib/export/pdf";
+import type { Schedule } from "@/types";
 
 export default function SchedulesPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [kabupatenId, setKabupatenId] = useState("");
@@ -23,25 +25,25 @@ export default function SchedulesPage() {
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data } = useSchedules({
-    search: debouncedSearch || undefined,
-    status: status !== "all" ? status : undefined,
-    kabupaten_id: kabupatenId || undefined,
-    kecamatan_id: kecamatanId || undefined,
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
-    pageSize: 1000,
-  });
-
   function handleDownloadPdf() {
-    if (!data?.data?.length) return;
-    const rows = data.data.map((s) => ({
+    const qfilters = {
+      search: debouncedSearch || undefined,
+      status: status !== "all" ? status : undefined,
+      kabupaten_id: kabupatenId || undefined,
+      kecamatan_id: kecamatanId || undefined,
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
+      page: 1,
+    };
+    const cached = queryClient.getQueryData<{ data: Schedule[] }>(["schedules", qfilters]);
+    const rows = (cached?.data ?? []).map((s) => ({
       date: s.visit_date,
       kabupaten: (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—",
       kecamatan: (s as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—",
       desa: (s as unknown as { desa?: { name: string } }).desa?.name ?? "—",
       status: s.status,
     }));
+    if (!rows.length) return;
     exportPdf(
       "Daftar Jadwal Kunjungan",
       [

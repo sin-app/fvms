@@ -11,6 +11,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route),
   );
 
+  const cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[] = [];
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,10 +21,10 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
+        setAll(toSet) {
+          toSet.forEach(({ name, value, options }) => {
+            cookiesToSet.push({ name, value, options });
+          });
         },
       },
     },
@@ -35,14 +37,31 @@ export async function middleware(request: NextRequest) {
   if (!session && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    applyCookiesToResponse(request, redirectResponse, cookiesToSet);
+    return redirectResponse;
   }
 
   if (session && AUTH_ROUTES.some((route) => pathname.startsWith(route))) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const dashboardResponse = NextResponse.redirect(new URL("/dashboard", request.url));
+    applyCookiesToResponse(request, dashboardResponse, cookiesToSet);
+    return dashboardResponse;
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next({ request });
+  applyCookiesToResponse(request, response, cookiesToSet);
+  return response;
+}
+
+function applyCookiesToResponse(
+  request: NextRequest,
+  response: NextResponse,
+  cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[],
+) {
+  cookiesToSet.forEach(({ name, value, options }) => {
+    request.cookies.set(name, value);
+    response.cookies.set(name, value, options);
+  });
 }
 
 export const config = {

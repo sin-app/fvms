@@ -2,19 +2,28 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
+import { SCHEDULE_STATUSES } from "@/lib/constants/status";
 
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
   const admin = createAdminClient();
+
+  // Date range is required to avoid unbounded full-table scans.
+  if (!filters.date_from || !filters.date_to) {
+    throw new Error("Rentang tanggal wajib diisi untuk membuat laporan");
+  }
+
   let query = admin
     .from("schedules")
     .select("id, status, visit_date, user_id, kabupaten_id, user!inner(name), kabupaten!inner(name), visit_time", { count: "exact" })
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .gte("visit_date", filters.date_from)
+    .lte("visit_date", filters.date_to);
 
-  if (filters.date_from) query = query.gte("visit_date", filters.date_from);
-  if (filters.date_to) query = query.lte("visit_date", filters.date_to);
   if (filters.user_id) query = query.eq("user_id", filters.user_id);
   if (filters.kabupaten_id) query = query.eq("kabupaten_id", filters.kabupaten_id);
-  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.status && SCHEDULE_STATUSES.includes(filters.status as (typeof SCHEDULE_STATUSES)[number])) {
+    query = query.eq("status", filters.status);
+  }
 
   const { data: schedules } = await query;
 
@@ -41,8 +50,8 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   // By officer
   const officerMap = new Map<string, { name: string; total: number; completed: number }>();
   schedules.forEach((s) => {
-    const uid = s.user_id;
-    const uname = (s as unknown as { user?: { name: string } }).user?.name ?? "Unknown";
+    const uid = (s as unknown as ReportRowRelation).user_id;
+    const uname = (s as unknown as ReportRowRelation).user?.name ?? "Unknown";
     const existing = officerMap.get(uid) ?? { name: uname, total: 0, completed: 0 };
     existing.total++;
     if (s.status === "completed") existing.completed++;
@@ -60,8 +69,8 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   // By kabupaten
   const kabMap = new Map<string, { name: string; total: number; completed: number }>();
   schedules.forEach((s) => {
-    const kid = s.kabupaten_id;
-    const kname = (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "Unknown";
+    const kid = (s as unknown as ReportRowRelation).kabupaten_id;
+    const kname = (s as unknown as ReportRowRelation).kabupaten?.name ?? "Unknown";
     const existing = kabMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
     existing.total++;
     if (s.status === "completed") existing.completed++;
@@ -104,30 +113,51 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   };
 }
 
-export async function getReportRows(_filters: ReportFilters): Promise<ReportRow[]> {
+interface ReportRowRelation {
+  id: string;
+  visit_date: string;
+  status: string;
+  user_id: string;
+  kabupaten_id: string;
+  visit_time: string | null;
+  user?: { name: string } | null;
+  kabupaten?: { name: string } | null;
+  kecamatan?: { name: string } | null;
+  desa?: { name: string } | null;
+}
+
+export const MAX_REPORT_ROWS = 10000;
+
+export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]> {
   const admin = createAdminClient();
+
+  if (!filters.date_from || !filters.date_to) {
+    throw new Error("Rentang tanggal wajib diisi untuk membuat laporan");
+  }
+
   let query = admin
     .from("schedules")
     .select("id, visit_date, status, visit_time, user!inner(name), kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
     .is("deleted_at", null)
-    .order("visit_date", { ascending: true });
+    .gte("visit_date", filters.date_from)
+    .lte("visit_date", filters.date_to)
+    .order("visit_date", { ascending: true })
+    .limit(MAX_REPORT_ROWS);
 
-  if (_filters.date_from) query = query.gte("visit_date", _filters.date_from);
-  if (_filters.date_to) query = query.lte("visit_date", _filters.date_to);
-  if (_filters.user_id) query = query.eq("user_id", _filters.user_id);
-  if (_filters.kabupaten_id) query = query.eq("kabupaten_id", _filters.kabupaten_id);
+  if (filters.user_id) query = query.eq("user_id", filters.user_id);
+  if (filters.kabupaten_id) query = query.eq("kabupaten_id", filters.kabupaten_id);
 
   const { data } = await query;
 
   if (!data) return [];
 
-  return data.map((s) => ({
+  return (data as unknown as ReportRowRelation[]).map((s) => ({
     id: s.id,
     visit_date: s.visit_date,
-    user_name: (s as unknown as { user?: { name: string } }).user?.name ?? "—",
-    kabupaten_name: (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—",
-    kecamatan_name: (s as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—",
-    desa_name: (s as unknown as { desa?: { name: string } }).desa?.name ?? "—",
+    user_name: s.user?.name ?? "—",
+    kabupaten_name: s.kabupaten?.name ?? "—",
+    kecamatan_name: s.kecamatan?.name ?? "—",
+    desa_name: s.desa?.name ?? "—",
     status: s.status,
     visit_time: s.visit_time,
     has_notes: false,

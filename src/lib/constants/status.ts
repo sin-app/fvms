@@ -1,5 +1,13 @@
 import type { VisitStatus } from "@/types";
 
+export const SCHEDULE_STATUSES: VisitStatus[] = [
+  "pending",
+  "on_the_way",
+  "in_progress",
+  "completed",
+  "cancelled",
+];
+
 export const STATUS_TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
   pending: ["on_the_way", "cancelled"],
   on_the_way: ["in_progress", "cancelled"],

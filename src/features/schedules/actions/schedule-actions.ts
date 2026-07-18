@@ -1,23 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server-client";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { scheduleSchema } from "../schema/schedule-schema";
 import {
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  getScheduleOwnerIds,
 } from "../services/schedule-service";
 import type { ActionResponse } from "@/types/common";
-import { createAdminClient } from "@/lib/supabase/admin-client";
+import { getAuthContext, isPrivileged } from "@/lib/auth/authorization";
 
 export async function createScheduleAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const raw = {
     user_id: formData.get("user_id") as string,
@@ -37,6 +37,11 @@ export async function createScheduleAction(
     };
   }
 
+  // Non-privileged users can only create schedules assigned to themselves.
+  if (!isPrivileged(ctx.role) && parsed.data.user_id !== ctx.userId) {
+    return { success: false, error: "Tidak dapat membuat jadwal untuk user lain" };
+  }
+
   try {
     await createSchedule(parsed.data);
     revalidatePath("/schedules");
@@ -51,9 +56,8 @@ export async function updateScheduleAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID tidak valid" };
@@ -76,6 +80,20 @@ export async function updateScheduleAction(
     };
   }
 
+  if (!isPrivileged(ctx.role)) {
+    const { data } = await createAdminClient()
+      .from("schedules")
+      .select("user_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (data?.user_id !== ctx.userId) {
+      return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
+    }
+    if (parsed.data.user_id !== ctx.userId) {
+      return { success: false, error: "Tidak dapat mengubah jadwal untuk user lain" };
+    }
+  }
+
   try {
     await updateSchedule(id, parsed.data);
     revalidatePath("/schedules");
@@ -87,12 +105,20 @@ export async function updateScheduleAction(
 }
 
 export async function deleteScheduleAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
 
   const id = formData.get("id") as string;
   if (!id) throw new Error("ID tidak valid");
+
+  if (!isPrivileged(ctx.role)) {
+    const { data } = await createAdminClient()
+      .from("schedules")
+      .select("user_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (data?.user_id !== ctx.userId) throw new Error("Tidak memiliki akses");
+  }
 
   await deleteSchedule(id);
   revalidatePath("/schedules");
@@ -102,9 +128,8 @@ export async function bulkActionSchedules(
   _prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const idsJson = formData.get("ids") as string;
   const action = formData.get("bulkAction") as string;
@@ -120,35 +145,51 @@ export async function bulkActionSchedules(
 
   if (!ids.length) return { success: false, error: "Tidak ada data dipilih" };
 
+  // Non-privileged users may only act on schedules they own.
+  if (!isPrivileged(ctx.role)) {
+    const owned = await getScheduleOwnerIds(ids);
+    const ownedIds = new Set(owned.map((o) => o.id));
+    const unauthorized = ids.filter((id) => !ownedIds.has(id));
+    if (unauthorized.length > 0) {
+      return { success: false, error: "Tidak memiliki akses ke beberapa jadwal" };
+    }
+  }
+
   const admin = createAdminClient();
 
   try {
     if (action === "delete") {
-      const { error } = await admin
+      const query = admin
         .from("schedules")
         .update({ deleted_at: new Date().toISOString() })
         .in("id", ids);
+      if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
+      const { error } = await query;
       if (error) throw error;
     } else if (action === "approve") {
-      const { error } = await admin
+      const query = admin
         .from("schedules")
         .update({ status: "on_the_way" })
         .in("id", ids)
         .eq("status", "pending");
+      if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
+      const { error } = await query;
       if (error) throw error;
     } else if (action === "cancel") {
-      const { error } = await admin
+      const query = admin
         .from("schedules")
         .update({ status: "cancelled" })
         .in("id", ids)
         .in("status", ["pending", "on_the_way"]);
+      if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
+      const { error } = await query;
       if (error) throw error;
     } else {
       return { success: false, error: "Aksi tidak dikenal" };
     }
 
     const logs = ids.map((id) => ({
-      user_id: user.id,
+      user_id: ctx.userId,
       action: "bulk_status_changed",
       entity_type: "schedules",
       entity_id: id,
@@ -168,9 +209,8 @@ export async function updateVisitStatusAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
@@ -184,6 +224,17 @@ export async function updateVisitStatusAction(
   const validStatuses = ["pending", "on_the_way", "in_progress", "completed", "cancelled"];
   if (!validStatuses.includes(status)) {
     return { success: false, error: "Status tidak valid" };
+  }
+
+  if (!isPrivileged(ctx.role)) {
+    const { data } = await createAdminClient()
+      .from("schedules")
+      .select("user_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (data?.user_id !== ctx.userId) {
+      return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
+    }
   }
 
   try {
@@ -202,7 +253,7 @@ export async function updateVisitStatusAction(
     await admin.from("schedules").update(updateData).eq("id", id);
 
     await admin.from("activity_logs").insert({
-      user_id: user.id,
+      user_id: ctx.userId,
       action: "status_changed",
       entity_type: "schedules",
       entity_id: id,

@@ -1,19 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server-client";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";
 import { visitNotesSchema } from "../schema/visit-schema";
-import { saveVisitNotes, uploadVisitPhoto, deleteVisitPhoto } from "../services/visit-service";
+import { saveVisitNotes, uploadVisitPhoto, deleteVisitPhoto, getOwnedPhoto } from "../services/visit-service";
 import type { ActionResponse } from "@/types/common";
 
 export async function saveVisitNotesAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const raw = {
     schedule_id: formData.get("schedule_id") as string,
@@ -32,10 +31,14 @@ export async function saveVisitNotesAction(
     };
   }
 
+  if (!(await canAccessSchedule(raw.schedule_id, ctx))) {
+    return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
+  }
+
   try {
     await saveVisitNotes(parsed.data);
     await createAdminClient().from("activity_logs").insert({
-      user_id: user.id,
+      user_id: ctx.userId,
       action: "notes_saved",
       entity_type: "schedules",
       entity_id: raw.schedule_id,
@@ -50,15 +53,18 @@ export async function saveVisitNotesAction(
 }
 
 export async function uploadPhotoAction(formData: FormData): Promise<ActionResponse<{ url: string; file_size: number; mime_type: string }>> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
 
   const scheduleId = formData.get("schedule_id") as string;
   const file = formData.get("file") as File;
 
   if (!scheduleId || !file) {
     return { success: false, error: "Data tidak lengkap" };
+  }
+
+  if (!(await canAccessSchedule(scheduleId, ctx))) {
+    return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
   }
 
   if (file.size > 10 * 1024 * 1024) {
@@ -73,7 +79,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
   try {
     const result = await uploadVisitPhoto(scheduleId, file);
     await createAdminClient().from("activity_logs").insert({
-      user_id: user.id,
+      user_id: ctx.userId,
       action: "photo_uploaded",
       entity_type: "schedules",
       entity_id: scheduleId,
@@ -88,12 +94,20 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
 }
 
 export async function deletePhotoAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
 
   const photoId = formData.get("photo_id") as string;
   const scheduleId = formData.get("schedule_id") as string;
+
+  if (!photoId || !scheduleId) throw new Error("Data tidak lengkap");
+
+  if (!(await canAccessSchedule(scheduleId, ctx))) {
+    throw new Error("Tidak memiliki akses ke jadwal ini");
+  }
+
+  const owned = await getOwnedPhoto(photoId, scheduleId);
+  if (!owned) throw new Error("Foto tidak ditemukan");
 
   await deleteVisitPhoto(photoId);
   revalidatePath(`/visits/${scheduleId}`);

@@ -51,7 +51,7 @@ describe("report-service", () => {
         from: vi.fn(() => buildQuery({ data: null })),
       });
 
-      const result = await getReportData({});
+      const result = await getReportData({ date_from: "2024-01-01", date_to: "2024-12-31" });
       expect(result.total_schedules).toBe(0);
       expect(result.completed).toBe(0);
     });
@@ -63,7 +63,7 @@ describe("report-service", () => {
         from: vi.fn(() => buildQuery({ data: null })),
       });
 
-      const result = await getReportRows({});
+      const result = await getReportRows({ date_from: "2024-01-01", date_to: "2024-12-31" });
       expect(result).toEqual([]);
     });
 
@@ -72,7 +72,7 @@ describe("report-service", () => {
         from: vi.fn(() => buildQuery({ data: [] })),
       });
 
-      const result = await getReportRows({});
+      const result = await getReportRows({ date_from: "2024-01-01", date_to: "2024-12-31" });
       expect(result).toEqual([]);
     });
   });

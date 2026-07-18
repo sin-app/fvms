@@ -15,8 +15,21 @@ export function FileUploader({ onFileSelect, loading }: FileUploaderProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   async function handleFile(file: File) {
-    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+    const allowedExt = [".xlsx", ".xls"];
+    const lowerName = file.name.toLowerCase();
+    const validExt = allowedExt.some((ext) => lowerName.endsWith(ext));
+    const validType =
+      file.type === "" ||
+      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.type === "application/vnd.ms-excel";
+
+    if (!validExt || !validType) {
       alert("Hanya file Excel (.xlsx, .xls) yang didukung");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Ukuran file maksimal 10MB");
       return;
     }
 

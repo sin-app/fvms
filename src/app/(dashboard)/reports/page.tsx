@@ -40,12 +40,7 @@ export default function ReportsPage() {
     const { default: fileSaver } = await import("file-saver");
     const { downloadExcelAction } = await import("@/features/reports/api/report-client");
     const result = await downloadExcelAction(filters);
-    const byteCharacters = atob(result.data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
+    const byteArray = Uint8Array.from(atob(result.data), (c) => c.charCodeAt(0));
     const blob = new Blob([byteArray], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     fileSaver.saveAs(blob, result.filename);
   };

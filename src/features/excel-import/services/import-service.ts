@@ -120,6 +120,11 @@ export async function bulkImportSchedules(
       continue;
     }
 
+    if (!isValidDate(visitDate)) {
+      errors.push({ row: rowNum, message: `Tanggal kunjungan tidak valid: ${visitDate}` });
+      continue;
+    }
+
     const user = users.find((u) => u.name.toLowerCase() === userName.toLowerCase());
     if (!user) {
       errors.push({ row: rowNum, message: `Petugas "${userName}" tidak ditemukan` });
@@ -159,14 +164,19 @@ export async function bulkImportSchedules(
   }
 
   if (schedulesToInsert.length > 0) {
+    const unique = dedupeSchedules(schedulesToInsert);
     const { error: insertError } = await admin
       .from("schedules")
-      .insert(schedulesToInsert);
+      .insert(unique);
 
     if (insertError) {
       errors.push({ row: 0, message: `Gagal insert: ${insertError.message}` });
     } else {
-      result.success = schedulesToInsert.length;
+      result.success = unique.length;
+      const duplicateCount = schedulesToInsert.length - unique.length;
+      if (duplicateCount > 0) {
+        errors.push({ row: 0, message: `${duplicateCount} baris duplikat dilewati` });
+      }
     }
   }
 
@@ -183,5 +193,31 @@ export async function bulkImportSchedules(
     })
     .eq("id", importRecord.id);
 
+  return result;
+}
+
+function isValidDate(value: string): boolean {
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  if (!iso.test(value)) {
+    const parsed = new Date(value);
+    return !Number.isNaN(parsed.getTime());
+  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return false;
+  const [y, m, day] = value.split("-").map(Number);
+  return d.getUTCFullYear() === y && d.getUTCMonth() + 1 === m && d.getUTCDate() === day;
+}
+
+function dedupeSchedules(
+  rows: Array<{ user_id: string; kabupaten_id: string; kecamatan_id: string; desa_id: string; visit_date: string; created_by: string }>,
+): typeof rows {
+  const seen = new Set<string>();
+  const result: typeof rows = [];
+  for (const r of rows) {
+    const key = `${r.user_id}|${r.desa_id}|${r.visit_date}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(r);
+  }
   return result;
 }

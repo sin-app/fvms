@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, Calendar, User, MapPin } from "lucide-react";
-import { useVisitDetail } from "../hooks/use-visit";
+import { useVisitDetail, useDeletePhoto } from "../hooks/use-visit";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -20,6 +20,7 @@ interface VisitDetailProps {
 
 export function VisitDetail({ id }: VisitDetailProps) {
   const { data: schedule, isLoading, isError, refetch } = useVisitDetail(id);
+  const deletePhoto = useDeletePhoto();
 
   if (isLoading) return <LoadingState variant="card" />;
   if (isError) return <ErrorState onRetry={refetch} />;
@@ -101,7 +102,8 @@ export function VisitDetail({ id }: VisitDetailProps) {
             <VisitPhotos
               scheduleId={id}
               photos={schedule.visit_photos ?? []}
-              onDelete={() => {}}
+              onDelete={(photoId) => deletePhoto.mutate({ photo_id: photoId, schedule_id: id })}
+              deleting={deletePhoto.isPending}
             />
           </div>
         </div>

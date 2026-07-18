@@ -102,18 +102,33 @@ export async function uploadVisitPhoto(
   return inserted;
 }
 
+export async function getOwnedPhoto(photoId: string, scheduleId: string) {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("visit_photos")
+    .select("id, url, schedule_id")
+    .eq("id", photoId)
+    .eq("schedule_id", scheduleId)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
 export async function deleteVisitPhoto(photoId: string) {
   const admin = createAdminClient();
   const { data: photo } = await admin
     .from("visit_photos")
-    .select("url")
+    .select("url, schedule_id")
     .eq("id", photoId)
     .single();
 
   if (photo?.url) {
-    const path = photo.url.split("/").pop();
+    const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/visit-photos/`;
+    const path = photo.url.startsWith(prefix)
+      ? photo.url.slice(prefix.length)
+      : photo.url.split("/").pop() ?? "";
     if (path) {
-      await admin.storage.from("visit-photos").remove([`visits/*/${path}`]);
+      await admin.storage.from("visit-photos").remove([path]);
     }
   }
 

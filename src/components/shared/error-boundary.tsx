@@ -23,6 +23,12 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, info: unknown) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("ErrorBoundary caught:", error, info);
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
@@ -33,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="text-4xl">⚠️</div>
             <h2 className="text-lg font-semibold">Terjadi Kesalahan</h2>
             <p className="text-sm text-muted-foreground">
-              {this.state.error?.message ?? "Something went wrong"}
+              Terjadi kesalahan tak terduga. Silakan coba lagi.
             </p>
             <Button
               variant="outline"

@@ -1,7 +1,3 @@
-[project]
-name = "fvms"
-id = "nzpjoxndqhcvphydiyaq"
-
 [auth]
 enabled = true
 
@@ -22,4 +18,4 @@ enabled = false
 enabled = true
 
 [auth.external.email]
-enabled = true
+enabled = false

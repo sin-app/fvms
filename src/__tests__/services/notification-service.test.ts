@@ -72,7 +72,8 @@ describe("notification-client", () => {
 
   describe("markAsReadAction", () => {
     it("updates notification as read", async () => {
-      const mockEq = vi.fn().mockResolvedValue({ error: null });
+      const mockEq2 = vi.fn().mockResolvedValue({ error: null });
+      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
       const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
       (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({

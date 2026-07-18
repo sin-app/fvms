@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server-client";
 import {
   kabupatenSchema,
   kecamatanSchema,
@@ -19,14 +18,17 @@ import {
   deleteDesa,
 } from "../services/master-data-service";
 import type { ActionResponse } from "@/types/common";
+import { requireAdmin } from "@/lib/auth/authorization";
 
 export async function createKabupatenAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const raw = {
     name: formData.get("name") as string,
@@ -56,9 +58,11 @@ export async function updateKabupatenAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID tidak valid" };
@@ -88,9 +92,7 @@ export async function updateKabupatenAction(
 }
 
 export async function deleteKabupatenAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  await requireAdmin();
 
   const id = formData.get("id") as string;
   if (!id) throw new Error("ID tidak valid");
@@ -103,9 +105,11 @@ export async function createKecamatanAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const raw = {
     kabupaten_id: formData.get("kabupaten_id") as string,
@@ -136,9 +140,11 @@ export async function updateKecamatanAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID tidak valid" };
@@ -169,9 +175,7 @@ export async function updateKecamatanAction(
 }
 
 export async function deleteKecamatanAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  await requireAdmin();
 
   const id = formData.get("id") as string;
   if (!id) throw new Error("ID tidak valid");
@@ -184,9 +188,11 @@ export async function createDesaAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const raw = {
     kecamatan_id: formData.get("kecamatan_id") as string,
@@ -217,9 +223,11 @@ export async function updateDesaAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID tidak valid" };
@@ -250,9 +258,7 @@ export async function updateDesaAction(
 }
 
 export async function deleteDesaAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  await requireAdmin();
 
   const id = formData.get("id") as string;
   if (!id) throw new Error("ID tidak valid");

@@ -156,3 +156,16 @@ export async function getCalendarEvents(
   const { data } = await query;
   return (data ?? []) as unknown as Schedule[];
 }
+
+export async function getScheduleOwnerIds(
+  ids: string[],
+): Promise<{ id: string; user_id: string }[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("schedules")
+    .select("id, user_id")
+    .in("id", ids)
+    .is("deleted_at", null);
+
+  return (data ?? []) as { id: string; user_id: string }[];
+}

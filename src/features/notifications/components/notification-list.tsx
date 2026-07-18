@@ -100,9 +100,13 @@ function NotificationItem({
     </div>
   );
 
-  if (notification.link) {
+  if (notification.link && isValidInternalPath(notification.link)) {
     return <Link href={notification.link}>{content}</Link>;
   }
 
   return content;
+}
+
+function isValidInternalPath(link: string): boolean {
+  return link.startsWith("/") && !link.startsWith("//");
 }

@@ -1,18 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server-client";
 import { createUser, updateUser, toggleUserActive } from "../services/user-service";
 import { userSchema } from "../schema/user-schema";
 import type { ActionResponse } from "@/types/common";
+import { getAuthContext } from "@/lib/auth/authorization";
 
 export async function createUserAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+  if (ctx.role !== "admin") return { success: false, error: "Hanya admin yang diizinkan" };
 
   const raw = {
     name: formData.get("name") as string,
@@ -45,9 +45,9 @@ export async function updateUserAction(
   prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+  if (ctx.role !== "admin") return { success: false, error: "Hanya admin yang diizinkan" };
 
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID tidak valid" };
@@ -80,9 +80,9 @@ export async function updateUserAction(
 }
 
 export async function toggleUserActiveAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
+  if (ctx.role !== "admin") throw new Error("Hanya admin yang diizinkan");
 
   const id = formData.get("id") as string;
   const isActive = formData.get("is_active") === "true";

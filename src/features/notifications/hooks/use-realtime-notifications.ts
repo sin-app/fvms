@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/features/auth/components/auth-context";
@@ -9,32 +9,28 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 export function useRealtimeNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const queryClientRef = useRef(queryClient);
 
   useEffect(() => {
     if (!user) return;
+    queryClientRef.current = queryClient;
 
     const supabase = createClient();
-    let channel: RealtimeChannel;
-
-    try {
-      channel = supabase
-        .channel("notifications-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            queryClient.invalidateQueries({ queryKey: ["notifications"] });
-          },
-        )
-        .subscribe();
-    } catch {
-      return;
-    }
+    const channel: RealtimeChannel = supabase
+      .channel(`notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClientRef.current.invalidateQueries({ queryKey: ["notifications"] });
+        },
+      )
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);

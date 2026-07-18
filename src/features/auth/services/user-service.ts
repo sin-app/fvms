@@ -16,17 +16,15 @@ export async function getUsers(): Promise<User[]> {
 export async function createUser(data: UserInput) {
   const admin = createAdminClient();
 
-  const { data: authUser, error: authError } = await admin.auth.admin.createUser({
-    email: data.email,
-    password: "Welcome123!",
-    email_confirm: true,
-    user_metadata: { name: data.name, role: data.role },
-  });
+  const { data: invite, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+    data.email,
+    { data: { name: data.name, role: data.role } },
+  );
 
-  if (authError) throw authError;
+  if (inviteError) throw inviteError;
 
   const { error: dbError } = await admin.from("users").insert({
-    id: authUser.user.id,
+    id: invite.user.id,
     email: data.email,
     name: data.name,
     role: data.role,
@@ -36,7 +34,7 @@ export async function createUser(data: UserInput) {
 
   if (dbError) throw dbError;
 
-  return authUser.user;
+  return invite.user;
 }
 
 export async function updateUser(id: string, data: Partial<UserInput>) {

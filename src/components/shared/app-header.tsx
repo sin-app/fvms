@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { NotificationBell } from "@/features/notifications";
 import { ThemeToggle } from "./theme-toggle";
+import { MobileNav } from "./mobile-nav";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -26,15 +28,24 @@ const pageTitles: Record<string, string> = {
 export function AppHeader() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const title = Object.entries(pageTitles).find(([path]) =>
     pathname.startsWith(path),
   )?.[1] ?? "FVMS";
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
-      <Button variant="ghost" size="icon" className="sm:hidden">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="sm:hidden"
+        aria-label="Buka menu"
+        onClick={() => setMobileNavOpen(true)}
+      >
         <Menu className="h-5 w-5" />
       </Button>
+
+      <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
       <h1 className="flex-1 text-lg font-semibold sm:text-xl">{title}</h1>
 
