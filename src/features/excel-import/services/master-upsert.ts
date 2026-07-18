@@ -44,9 +44,12 @@ export function createMasterUpserter(): MasterUpsertResult {
     const inserted = new Map<string, string>();
     if (names.length === 0) return { inserted, count: 0 };
 
-    const payload = names.map((name) => ({ id: crypto.randomUUID(), ...build(name) }));
+    const payload = names.map((name) => ({ id: crypto.randomUUID(), is_active: true, ...build(name) }));
     const { data, error } = await admin.from(table).insert(payload).select("id, name");
-    if (error || !data) return { inserted, count: 0 };
+    if (error || !data) {
+      console.error(`[master-upsert] insert ${table} failed:`, error?.message);
+      return { inserted, count: 0 };
+    }
     for (const row of data) inserted.set(row.name.toLowerCase(), row.id);
     return { inserted, count: data.length };
   }
@@ -81,10 +84,12 @@ export function createMasterUpserter(): MasterUpsertResult {
     const kecNew = await createMissing("kecamatan", kecMissing, (name) => ({
       name,
       code: generateCode("KEC"),
+      kabupaten_id: kab.get(name.toLowerCase()) || "",
     }));
     const desaNew = await createMissing("desa", desaMissing, (name) => ({
       name,
       code: generateCode("DES"),
+      kecamatan_id: kec.get(name.toLowerCase()) || "",
     }));
 
     for (const [k, v] of kabNew.inserted) kab.set(k, v);
