@@ -18,10 +18,16 @@ export async function createUser(data: UserInput) {
 
   const { data: invite, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     data.email,
-    { data: { name: data.name, role: data.role }, app_metadata: { role: data.role } },
+    { data: { name: data.name, role: data.role } },
   );
 
   if (inviteError) throw inviteError;
+
+  const { error: metaError } = await admin.auth.admin.updateUserById(invite.user.id, {
+    app_metadata: { role: data.role },
+    user_metadata: { role: data.role, name: data.name },
+  });
+  if (metaError) throw metaError;
 
   const { error: dbError } = await admin.from("users").insert({
     id: invite.user.id,
