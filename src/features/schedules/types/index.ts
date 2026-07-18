@@ -3,6 +3,7 @@ import type { Schedule } from "@/types";
 export interface ScheduleFilters {
   search?: string;
   status?: string;
+  user_id?: string;
   kabupaten_id?: string;
   kecamatan_id?: string;
   date_from?: string;

@@ -2,6 +2,7 @@
 
 import { SearchInput } from "@/components/shared/search-input";
 import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
+import { useAllUsers } from "../hooks/use-users";
 import { STATUS_LABELS } from "@/lib/constants/status";
 
 interface ScheduleFiltersProps {
@@ -9,6 +10,8 @@ interface ScheduleFiltersProps {
   onSearchChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
+  userId: string;
+  onUserIdChange: (value: string) => void;
   kabupatenId: string;
   onKabupatenChange: (value: string) => void;
   kecamatanId: string;
@@ -66,6 +69,8 @@ export function ScheduleFilters({
   onSearchChange,
   status,
   onStatusChange,
+  userId,
+  onUserIdChange,
   kabupatenId,
   onKabupatenChange,
   kecamatanId,
@@ -79,6 +84,7 @@ export function ScheduleFilters({
 }: ScheduleFiltersProps) {
   const { data: kabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
+  const { data: users } = useAllUsers();
 
   function handleDateRange(value: string) {
     onDateRangeChange(value);
@@ -112,6 +118,16 @@ export function ScheduleFilters({
           <option value="all">Semua Status</option>
           {Object.entries(STATUS_LABELS).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+        <select
+          value={userId}
+          onChange={(e) => onUserIdChange(e.target.value)}
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
+        >
+          <option value="">Semua Petugas</option>
+          {users?.map((u) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
           ))}
         </select>
         <select

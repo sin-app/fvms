@@ -71,6 +71,15 @@ export interface Schedule {
   accuracy: number | null;
   visit_time: string | null;
   notes: string | null;
+  tgl_tanam: string | null;
+  cgr: string | null;
+  cgr_code: string | null;
+  block_no: string | null;
+  no_plot: string | null;
+  member_name: string | null;
+  real_tanam_ha: number | null;
+  gagal_tanam: number | null;
+  sisa_di_lahan_ha: number | null;
   created_by: string;
   created_at: string;
   updated_at: string;

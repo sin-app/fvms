@@ -16,6 +16,7 @@ export default function SchedulesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [userId, setUserId] = useState("");
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
   const [dateRange, setDateRange] = useState("");
@@ -31,6 +32,7 @@ export default function SchedulesPage() {
       status: status !== "all" ? status : undefined,
       kabupaten_id: kabupatenId || undefined,
       kecamatan_id: kecamatanId || undefined,
+      user_id: userId || undefined,
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
       page: 1,
@@ -61,6 +63,7 @@ export default function SchedulesPage() {
   const filters = {
     search: debouncedSearch || undefined,
     status: status !== "all" ? status : undefined,
+    user_id: userId || undefined,
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
     date_from: dateFrom || undefined,
@@ -97,6 +100,8 @@ export default function SchedulesPage() {
         onSearchChange={setSearch}
         status={status}
         onStatusChange={setStatus}
+        userId={userId}
+        onUserIdChange={setUserId}
         kabupatenId={kabupatenId}
         onKabupatenChange={setKabupatenId}
         kecamatanId={kecamatanId}

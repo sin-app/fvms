@@ -16,6 +16,7 @@ export async function getScheduleList(
     date_to,
     page = 1,
     pageSize = 20,
+    user_id,
   } = filters;
 
   let query = admin
@@ -25,8 +26,12 @@ export async function getScheduleList(
       { count: "exact" },
     );
 
-  if (userId !== "all") {
+  if (userId !== "all" && !user_id) {
     query = query.eq("user_id", userId);
+  }
+
+  if (user_id) {
+    query = query.eq("user_id", user_id);
   }
 
   if (status && status !== "all") {

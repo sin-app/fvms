@@ -135,6 +135,10 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">CGR</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Block/Plot</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Member</th>
+                <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Tanam (HA)</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Aksi</th>
               </tr>
@@ -163,6 +167,20 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                   </td>
                   <td className="p-3 text-sm">
                     {(schedule as unknown as { desa?: { name: string } }).desa?.name ?? "—"}
+                  </td>
+                  <td className="p-3 text-sm whitespace-nowrap">
+                    {schedule.cgr ?? "—"}
+                    {schedule.cgr_code ? <span className="text-muted-foreground text-xs block">{schedule.cgr_code}</span> : null}
+                  </td>
+                  <td className="p-3 text-sm whitespace-nowrap">
+                    {schedule.block_no ?? "—"}
+                    {schedule.no_plot ? <span className="text-muted-foreground text-xs block">Plot: {schedule.no_plot}</span> : null}
+                  </td>
+                  <td className="p-3 text-sm">
+                    {schedule.member_name ?? "—"}
+                  </td>
+                  <td className="p-3 text-sm text-right whitespace-nowrap">
+                    {schedule.real_tanam_ha ?? "—"}
                   </td>
                   <td className="p-3">
                     <StatusBadge status={schedule.status} size="sm" />
