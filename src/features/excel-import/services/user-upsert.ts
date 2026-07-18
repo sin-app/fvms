@@ -40,7 +40,7 @@ export function createUserUpserter(): UserUpsertResult {
         .slice(0, 40);
       toInsert.push({
         id: crypto.randomUUID(),
-        email: `${slug}@fvms.local`,
+        email: `${slug}@fvms.com`,
         name,
         role: "field_officer",
         is_active: true,
