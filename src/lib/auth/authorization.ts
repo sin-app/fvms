@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server-client";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 
 export type UserRole = "admin" | "supervisor" | "field_officer";
 
@@ -18,13 +19,25 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   const meta = user.user_metadata ?? {};
   const metaRole = (meta.role ?? user.app_metadata?.role) as UserRole | undefined;
 
-  const { data } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  let dbRole: UserRole | undefined;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    dbRole = data?.role as UserRole | undefined;
+  } catch {
+    const { data } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    dbRole = data?.role as UserRole | undefined;
+  }
 
-  const role = metaRole ?? (data?.role as UserRole | undefined) ?? "field_officer";
+  const role = metaRole ?? dbRole ?? "field_officer";
 
   return { userId: user.id, role };
 }
