@@ -22,7 +22,7 @@ export async function getScheduleList(
   let query = admin
     .from("schedules")
     .select(
-      "*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), user!inner(name, email)",
+      "*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name, email)",
       { count: "exact" },
     );
 
@@ -83,7 +83,7 @@ export async function getScheduleById(id: string): Promise<Schedule | null> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("schedules")
-    .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), user!inner(name, email), visit_notes(*), visit_photos(*)")
+    .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name, email), visit_notes(*), visit_photos(*)")
     .eq("id", id)
     .single();
 

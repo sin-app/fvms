@@ -22,8 +22,7 @@ export function createUserUpserter(): UserUpsertResult {
     const { data: existing } = await admin
       .from("users")
       .select("id, name")
-      .in("name", unique)
-      .is("deleted_at", null);
+      .in("name", unique);
 
     let created = 0;
     const toInsert: Array<{ id: string; email: string; name: string; role: string; is_active: boolean }> = [];
@@ -35,10 +34,13 @@ export function createUserUpserter(): UserUpsertResult {
     }
 
     for (const name of needed) {
-      const id = crypto.randomUUID();
+      const slug = name
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+        .slice(0, 40);
       toInsert.push({
-        id,
-        email: `${name.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${id.slice(0, 6)}@fvms.local`,
+        id: crypto.randomUUID(),
+        email: `${slug}@fvms.local`,
         name,
         role: "field_officer",
         is_active: true,
@@ -47,10 +49,13 @@ export function createUserUpserter(): UserUpsertResult {
 
     if (toInsert.length > 0) {
       const { error } = await admin.from("users").insert(toInsert);
-      if (!error) {
-        created = toInsert.length;
-        for (const u of toInsert) map.set(u.name.toLowerCase(), u.id);
-      }
+      if (!error) created = toInsert.length;
+      // Re-fetch to capture any rows that already existed (race / prior import).
+      const { data: after } = await admin
+        .from("users")
+        .select("id, name")
+        .in("name", unique);
+      for (const row of after ?? []) map.set(row.name.toLowerCase(), row.id);
     }
 
     return { map, created };

@@ -10,7 +10,6 @@ export async function fetchAllFieldOfficers(): Promise<User[]> {
     .select("id, name, email, role")
     .in("role", ["field_officer", "supervisor"])
     .eq("is_active", true)
-    .is("deleted_at", null)
     .order("name");
 
   return (data ?? []) as unknown as User[];
