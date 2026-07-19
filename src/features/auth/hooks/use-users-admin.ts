@@ -2,13 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getUsers } from "../services/user-service";
+import { getUsersAction } from "../actions/user-actions";
 import { createUserAction, updateUserAction, toggleUserActiveAction } from "../actions/user-actions";
 import type { UserInput } from "../schema/user-schema";
 export function useUsersAdmin() {
   return useQuery({
     queryKey: ["users-admin"],
-    queryFn: getUsers,
+    queryFn: getUsersAction,
   });
 }
 

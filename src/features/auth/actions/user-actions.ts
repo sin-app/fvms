@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createUser, updateUser, toggleUserActive } from "../services/user-service";
+import { createUser, updateUser, toggleUserActive, getUsers } from "../services/user-service";
 import { userSchema } from "../schema/user-schema";
 import type { ActionResponse } from "@/types/common";
 import { getAuthContext } from "@/lib/auth/authorization";
+import type { User } from "@/types";
 
 export async function createUserAction(
   prevState: ActionResponse,
@@ -98,4 +99,11 @@ export async function toggleUserActiveAction(
     const msg = err instanceof Error ? err.message : "Gagal mengubah status pengguna";
     return { success: false, error: msg };
   }
+}
+
+export async function getUsersAction(): Promise<User[]> {
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
+  if (ctx.role !== "admin") throw new Error("Hanya admin yang diizinkan");
+  return getUsers();
 }
