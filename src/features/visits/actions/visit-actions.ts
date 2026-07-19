@@ -88,8 +88,11 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
     revalidatePath(`/visits/${scheduleId}`);
     return { success: true, data: result };
   } catch (err: unknown) {
+    const name = err instanceof Error ? err.name : "Error";
     const msg = err instanceof Error ? err.message : "Gagal mengupload foto";
-    return { success: false, error: msg };
+    const stack = err instanceof Error ? err.stack : "";
+    console.error("[uploadPhotoAction]", name, msg, stack);
+    return { success: false, error: `${name}: ${msg}` };
   }
 }
 

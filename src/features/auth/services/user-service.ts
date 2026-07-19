@@ -109,21 +109,24 @@ export async function getUsers(): Promise<User[]> {
 export async function createUser(data: UserInput) {
   const admin = createAdminClient();
 
-  const { data: invite, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    data.email,
-    { data: { name: data.name, role: data.role } },
-  );
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email: data.email,
+    password: randomPassword(),
+    email_confirm: true,
+    user_metadata: { name: data.name, role: data.role },
+    app_metadata: { role: data.role },
+  });
 
-  if (inviteError) throw inviteError;
+  if (createError) throw createError;
 
-  const { error: metaError } = await admin.auth.admin.updateUserById(invite.user.id, {
+  const { error: metaError } = await admin.auth.admin.updateUserById(created.user.id, {
     app_metadata: { role: data.role },
     user_metadata: { role: data.role, name: data.name },
   });
   if (metaError) throw metaError;
 
   const { error: dbError } = await admin.from("users").insert({
-    id: invite.user.id,
+    id: created.user.id,
     email: data.email,
     name: data.name,
     role: data.role,
@@ -133,7 +136,7 @@ export async function createUser(data: UserInput) {
 
   if (dbError) throw dbError;
 
-  return invite.user;
+  return created.user;
 }
 
 export async function updateUser(id: string, data: Partial<UserInput>) {

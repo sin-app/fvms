@@ -80,12 +80,23 @@ export async function canAccessSchedule(
 ): Promise<boolean> {
   if (isPrivileged(ctx.role)) return true;
 
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("schedules")
-    .select("user_id")
-    .eq("id", scheduleId)
-    .maybeSingle();
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("schedules")
+      .select("user_id")
+      .eq("id", scheduleId)
+      .maybeSingle();
 
-  return data?.user_id === ctx.userId;
+    if (error) {
+      console.error("[canAccessSchedule]", error.message, error.details, error.hint);
+      return false;
+    }
+
+    return data?.user_id === ctx.userId;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[canAccessSchedule] throw", msg);
+    return false;
+  }
 }
