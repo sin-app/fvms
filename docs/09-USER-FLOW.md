@@ -37,6 +37,8 @@ Any Page → Click Profile → Logout
 
 ## 2. Produksi Flows
 
+Produksi is responsible for the full field cycle: from **land application** through to **harvest** (pengajuan lahan sampai panen).
+
 ### 2.1 Daily Workflow
 ```
 Login → Dashboard
@@ -172,12 +174,15 @@ Master Data → Desa
 
 ## 4. QC Flows
 
+QC is responsible for verification across the full field cycle: from **checking land applications** through to **harvest** (pengecekan pengajuan lahan sampai dengan panen). QC can view all Produksi schedules to perform inspection and land assessment.
+
 ### 4.1 Monitoring Flow
 ```
 Dashboard
-  → View all field officers' stats
+  → View all Produksi (field officers) stats
+  → Filter/select by stage: Land Application → ... → Harvest
   → Tap officer name → Officer Detail
-    → Their schedule list
+    → Their schedule list (all stages)
     → Their completion rate
     → Their late visits
     → Their recent activity

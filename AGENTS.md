@@ -9,8 +9,8 @@ Modern web application for Field Officers (Produksi) to manage field visit sched
 | Role | Enum value | Capabilities |
 |------|-----------|--------------|
 | Admin | `admin` | Full access: manage users, master data, import, view all schedules |
-| QC | `qc` | Quality Control — can view **all** Produksi schedules for inspection & land assessment; no user management |
-| Produksi | `produksi` | Field Officers — manage their own schedules, visits, photos, notes |
+| QC | `qc` | Quality Control — can view **all** Produksi schedules; verifies the full cycle from land-application check through harvest; no user management |
+| Produksi | `produksi` | Field Officers — own the full field cycle from land application through harvest; manage their own schedules, visits, photos, notes |
 
 Notes:
 - `qc` and `admin` are "privileged" (`isPrivileged` in `src/lib/auth/authorization.ts`) → see all schedules.

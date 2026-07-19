@@ -74,6 +74,7 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 - View statistics and dashboards across all Produksi
 - Export reports
 - Cannot modify schedules or master data
+- **Scope:** conducts checks starting from **land application verification** through to **harvest** (pengecekan pengajuan lahan sampai dengan panen)
 
 ### Produksi (Field Officer)
 - View personal schedule
@@ -82,6 +83,7 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 - Upload photo documentation
 - Capture GPS location
 - View visit history
+- **Scope:** responsible for the full field cycle starting from **land application** through to **harvest** (pengajuan lahan sampai panen)
 
 ## 6. Functional Requirements
 
