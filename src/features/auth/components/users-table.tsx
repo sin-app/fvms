@@ -47,19 +47,19 @@ export function UsersTable() {
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Nama</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Email</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Role</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Terdaftar</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Nama</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Email</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Role</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Terdaftar</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
                 <tr key={user.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                  <td className="p-3 text-sm font-medium">{user.name}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{user.email}</td>
+                  <td className="p-3 text-sm whitespace-nowrap font-medium">{user.name}</td>
+                  <td className="p-3 text-sm whitespace-nowrap text-muted-foreground">{user.email}</td>
                   <td className="p-3">
                     <span className={cn(
                       "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
@@ -79,7 +79,7 @@ export function UsersTable() {
                       {user.is_active ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>
-                  <td className="p-3 text-sm text-muted-foreground">{formatDate(user.created_at)}</td>
+                  <td className="p-3 text-sm whitespace-nowrap text-muted-foreground">{formatDate(user.created_at)}</td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button

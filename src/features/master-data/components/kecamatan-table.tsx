@@ -169,22 +169,22 @@ export function KecamatanTable() {
         />
       ) : (
         <>
-          <div className="rounded-xl border">
+          <div className="rounded-xl border overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Kode</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Nama</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Kabupaten</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Aksi</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kode</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Nama</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {data.data.map((item) => (
                   <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                    <td className="p-3 text-sm font-mono">{item.code}</td>
-                    <td className="p-3 text-sm">{item.name}</td>
-                    <td className="p-3 text-sm text-muted-foreground">
+                    <td className="p-3 text-sm whitespace-nowrap font-mono">{item.code}</td>
+                    <td className="p-3 text-sm whitespace-nowrap">{item.name}</td>
+                    <td className="p-3 text-sm whitespace-nowrap text-muted-foreground">
                       {(item as unknown as { kabupaten?: { name: string } }).kabupaten?.name}
                     </td>
                     <td className="p-3 text-right">

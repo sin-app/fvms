@@ -62,23 +62,23 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Tanggal</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Petugas</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Kabupaten</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Kecamatan</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Desa</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Tanggal</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Petugas</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="border-b last:border-0">
-                  <td className="p-3 text-sm">{formatDate(row.visit_date)}</td>
-                  <td className="p-3 text-sm">{row.user_name}</td>
-                  <td className="p-3 text-sm">{row.kabupaten_name}</td>
-                  <td className="p-3 text-sm">{row.kecamatan_name}</td>
-                  <td className="p-3 text-sm">{row.desa_name}</td>
-                  <td className="p-3 text-sm">{STATUS_LABELS[row.status as keyof typeof STATUS_LABELS] ?? row.status}</td>
+                  <td className="p-3 text-sm whitespace-nowrap">{formatDate(row.visit_date)}</td>
+                  <td className="p-3 text-sm whitespace-nowrap">{row.user_name}</td>
+                  <td className="p-3 text-sm whitespace-nowrap">{row.kabupaten_name}</td>
+                  <td className="p-3 text-sm whitespace-nowrap">{row.kecamatan_name}</td>
+                  <td className="p-3 text-sm whitespace-nowrap">{row.desa_name}</td>
+                  <td className="p-3 text-sm whitespace-nowrap">{STATUS_LABELS[row.status as keyof typeof STATUS_LABELS] ?? row.status}</td>
                 </tr>
               ))}
             </tbody>
