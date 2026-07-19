@@ -42,11 +42,13 @@ export async function getCurrentUser(): Promise<User | null> {
   if (data) return data;
 
   const meta = user.user_metadata ?? {};
+  const appMeta = user.app_metadata ?? {};
+  const role = (meta.role ?? appMeta.role) as User["role"] | undefined;
   return {
     id: user.id,
     email: user.email ?? "",
     name: (meta.name as string) ?? (meta.full_name as string) ?? "",
-    role: (meta.role as User["role"]) ?? "field_officer",
+    role: role ?? "field_officer",
   } as User;
 }
 
