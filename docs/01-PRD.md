@@ -4,11 +4,11 @@
 
 **Product Name:** Field Visit Management System (FVMS)
 
-**Objective:** Replace manual Excel-based field visit scheduling with a centralized, mobile-first web application that enables Field Officers to manage, track, and report their field visit activities efficiently.
+**Objective:** Replace manual Excel-based field visit scheduling with a centralized, mobile-first web application that enables Produksi (field staff) to manage, track, and report their field visit activities efficiently.
 
 **Target Users:**
-- Field Officers (primary)
-- Supervisors (secondary)
+- Produksi / Field Officers (primary)
+- QC / Quality Control (secondary, for inspection & land assessment)
 - Administrators (system management)
 
 ## 2. Problem Statement
@@ -43,8 +43,8 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 - GPS location capture
 
 ### Phase 2 - Enhanced
-- Role-based access control (Admin, Supervisor, Field Officer)
-- Supervisor dashboard and monitoring
+- Role-based access control (Admin, QC, Produksi)
+- QC dashboard and monitoring
 - Reports (daily/weekly/monthly with Excel/PDF export)
 - Notifications (upcoming, today, late schedules)
 - Activity logs
@@ -68,14 +68,14 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 - View all reports
 - Export data
 
-### Supervisor
-- View all field officers' schedules
-- Monitor field officer activities
-- View statistics and dashboards
+### QC (Quality Control)
+- View **all** Produksi schedules (inspection & land assessment)
+- Monitor all Produksi activities
+- View statistics and dashboards across all Produksi
 - Export reports
 - Cannot modify schedules or master data
 
-### Field Officer
+### Produksi (Field Officer)
 - View personal schedule
 - Update visit status
 - Write visit notes
@@ -167,7 +167,7 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 ### Scalability
 - Support up to 1000 concurrent users
 - Handle up to 100,000 schedules per year
-- Support up to 500 field officers
+- Support up to 500 Produksi (field officers)
 
 ### Security
 - HTTPS only
@@ -199,7 +199,7 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 
 ## 8. Constraints
 
-- Must use Next.js 15 with App Router
+- Must use Next.js 16 with App Router
 - Must use Supabase for backend (DB, Auth, Storage)
 - Must be deployable to Vercel
 - Must be open-source (MIT license)

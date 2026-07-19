@@ -109,7 +109,7 @@ User → Login Page → Supabase Auth → Session Token → RLS Policy
 
 ### 6.2 Authorization (RLS Policies)
 - **Users table:** Users can read own record; admins can read all
-- **Schedules table:** Field Officers see own; Supervisors see assigned; Admins see all
+- **Schedules table:** Produksis see own; QCs see assigned; Admins see all
 - **Visit notes:** Same as schedules
 - **Photos:** Same as schedules
 

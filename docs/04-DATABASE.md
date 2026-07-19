@@ -18,7 +18,7 @@ PostgreSQL 15 hosted on Supabase.
 ## 3. Enums
 
 ```sql
-CREATE TYPE user_role AS ENUM ('admin', 'supervisor', 'field_officer');
+CREATE TYPE user_role AS ENUM ('admin', 'qc', 'produksi');
 CREATE TYPE visit_status AS ENUM ('pending', 'on_the_way', 'in_progress', 'completed', 'cancelled');
 CREATE TYPE notification_type AS ENUM ('info', 'warning', 'success', 'error');
 CREATE TYPE import_status AS ENUM ('processing', 'completed', 'failed');
@@ -33,7 +33,7 @@ CREATE TABLE users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email           VARCHAR(255) NOT NULL UNIQUE,
   name            VARCHAR(255) NOT NULL,
-  role            user_role NOT NULL DEFAULT 'field_officer',
+  role            user_role NOT NULL DEFAULT 'produksi',
   avatar_url      TEXT,
   phone           VARCHAR(20),
   is_active       BOOLEAN NOT NULL DEFAULT true,
@@ -252,37 +252,37 @@ ALTER TABLE excel_imports ENABLE ROW LEVEL SECURITY;
 
 **users**
 - Admin: read all, update all
-- Supervisor: read all
-- Field Officer: read own
+- QC: read all
+- Produksi: read own
 
 **kabupaten, kecamatan, desa**
 - Admin: all CRUD
-- Supervisor: read only
-- Field Officer: read only
+- QC: read only
+- Produksi: read only
 
 **schedules**
 - Admin: all CRUD
-- Supervisor: read all
-- Field Officer: read own, update own (limited)
+- QC: read all
+- Produksi: read own, update own (limited)
 
 **visit_notes, visit_photos**
 - Admin: all CRUD
-- Supervisor: read all
-- Field Officer: read own, create own, update own
+- QC: read all
+- Produksi: read own, create own, update own
 
 **activity_logs**
 - Admin: read all, create
-- Supervisor: read all
-- Field Officer: read own
+- QC: read all
+- Produksi: read own
 
 **notifications**
 - Admin: create all, read all
-- Supervisor: read own
-- Field Officer: read own, update own (mark read)
+- QC: read own
+- Produksi: read own, update own (mark read)
 
 **excel_imports**
 - Admin: all CRUD
-- Field Officer: create, read own
+- Produksi: create, read own
 
 ## 6. Database Functions & Triggers
 

@@ -13,7 +13,7 @@
 - Web Push API integration
 - Real-time schedule reminders
 - Status change alerts
-- Supervisor notifications
+- QC notifications
 - Estimated effort: 2-3 weeks
 
 ### Advanced Reporting & Analytics

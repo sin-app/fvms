@@ -10,7 +10,7 @@
 - Set up CI/CD pipeline
 
 ### Tasks
-- [ ] Initialize Next.js 15 project with TypeScript
+- [ ] Initialize Next.js 16 project with TypeScript
 - [ ] Configure Tailwind CSS + shadcn/ui
 - [ ] Set up Supabase project (DB, Auth, Storage)
 - [ ] Create database migrations (all tables, RLS, indexes)

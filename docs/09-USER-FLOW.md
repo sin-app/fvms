@@ -35,7 +35,7 @@ Any Page → Click Profile → Logout
     → No → Stay on page
 ```
 
-## 2. Field Officer Flows
+## 2. Produksi Flows
 
 ### 2.1 Daily Workflow
 ```
@@ -170,7 +170,7 @@ Master Data → Desa
   → Same edit/delete pattern
 ```
 
-## 4. Supervisor Flows
+## 4. QC Flows
 
 ### 4.1 Monitoring Flow
 ```

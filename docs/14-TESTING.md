@@ -231,7 +231,7 @@ export const createUser = (overrides = {}) => ({
   id: faker.string.uuid(),
   email: faker.internet.email(),
   name: faker.person.fullName(),
-  role: 'field_officer',
+  role: 'produksi',
   is_active: true,
   created_at: faker.date.recent().toISOString(),
   updated_at: faker.date.recent().toISOString(),

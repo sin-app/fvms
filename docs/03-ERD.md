@@ -163,4 +163,4 @@
 6. Soft delete (deleted_at) for all master data tables
 7. Unique constraint on kabupaten.code, kecamatan.code, desa.code
 8. Status enum: 'pending', 'on_the_way', 'in_progress', 'completed', 'cancelled'
-9. Role enum: 'admin', 'supervisor', 'field_officer'
+9. Role enum: 'admin', 'qc', 'produksi'
