@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getUsersAction } from "../actions/user-actions";
-import { createUserAction, updateUserAction, toggleUserActiveAction } from "../actions/user-actions";
+import { createUserAction, updateUserAction, toggleUserActiveAction, setPasswordAction } from "../actions/user-actions";
 import type { UserInput } from "../schema/user-schema";
 export function useUsersAdmin() {
   return useQuery({
@@ -70,6 +70,24 @@ export function useToggleUserActive() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-admin"] });
       toast.success("Status pengguna berhasil diubah");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useSetPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { id: string; password: string }) => {
+      const fd = new FormData();
+      fd.set("id", data.id);
+      fd.set("password", data.password);
+      const result = await setPasswordAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-admin"] });
+      toast.success("Password berhasil diatur");
     },
     onError: (err: Error) => toast.error(err.message),
   });

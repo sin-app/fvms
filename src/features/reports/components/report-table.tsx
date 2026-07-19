@@ -58,7 +58,7 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
       </div>
 
       <div className="rounded-xl border overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-w-0">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">

@@ -2,6 +2,100 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { User } from "@/types";
 import type { UserInput } from "../schema/user-schema";
 
+function randomPassword(length = 16): string {
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+  let out = "";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  for (let i = 0; i < length; i++) out += chars[bytes[i] % chars.length];
+  return out;
+}
+
+export async function createAuthUser(params: {
+  id: string;
+  email: string;
+  name: string;
+  role: UserInput["role"];
+  password?: string;
+}): Promise<void> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.createUser({
+    id: params.id,
+    email: params.email,
+    password: params.password ?? randomPassword(),
+    email_confirm: true,
+    user_metadata: { name: params.name, role: params.role },
+    app_metadata: { role: params.role },
+  });
+  if (error) throw error;
+  if (data.user) {
+    await admin.auth.admin.updateUserById(data.user.id, {
+      app_metadata: { role: params.role },
+    });
+  }
+}
+
+export async function userHasAuthAccount(id: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.getUserById(id);
+  if (error) return false;
+  return !!data.user;
+}
+
+export async function setPassword(id: string, password: string): Promise<void> {
+  const admin = createAdminClient();
+  // Ensure the auth account exists; if not, create one from the DB user row.
+  const { data: existing, error } = await admin.auth.admin.getUserById(id);
+  if (error || !existing.user) {
+    const { data: dbUser } = await admin
+      .from("users")
+      .select("email, name, role")
+      .eq("id", id)
+      .single();
+    if (!dbUser) throw new Error("Pengguna tidak ditemukan");
+    await createAuthUser({
+      id,
+      email: dbUser.email,
+      name: dbUser.name,
+      role: dbUser.role as UserInput["role"],
+      password,
+    });
+    return;
+  }
+  const { error: updErr } = await admin.auth.admin.updateUserById(id, {
+    password,
+  });
+  if (updErr) throw updErr;
+}
+
+export async function createUserWithPassword(
+  data: UserInput & { password?: string },
+): Promise<{ id: string }> {
+  const admin = createAdminClient();
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email: data.email,
+    password: data.password ?? randomPassword(),
+    email_confirm: true,
+    user_metadata: { name: data.name, role: data.role },
+    app_metadata: { role: data.role },
+  });
+  if (error) throw error;
+  const id = created.user.id;
+
+  const { error: dbError } = await admin.from("users").insert({
+    id,
+    email: data.email,
+    name: data.name,
+    role: data.role,
+    phone: data.phone ?? null,
+    is_active: data.is_active,
+  });
+  if (dbError) throw dbError;
+
+  return { id };
+}
+
 export async function getUsers(): Promise<User[]> {
   const admin = createAdminClient();
   const { data } = await admin

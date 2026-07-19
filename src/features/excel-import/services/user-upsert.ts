@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { createAuthUser } from "@/features/auth/services/user-service";
 
 interface ResolveOutput {
   map: Map<string, string>;
@@ -50,7 +51,22 @@ export function createUserUpserter(): UserUpsertResult {
 
     if (toInsert.length > 0) {
       const { error } = await admin.from("users").insert(toInsert);
-      if (!error) created = toInsert.length;
+      if (!error) {
+        created = toInsert.length;
+        // Create auth accounts so petugas can log in (password set later by admin).
+        for (const row of toInsert) {
+          try {
+            await createAuthUser({
+              id: row.id,
+              email: row.email,
+              name: row.name,
+              role: "field_officer",
+            });
+          } catch {
+            // Auth account may already exist; ignore.
+          }
+        }
+      }
       // Re-fetch to capture any rows that already existed (race / prior import).
       const { data: after } = await admin
         .from("users")

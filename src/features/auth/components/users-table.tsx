@@ -1,14 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, ToggleLeft, ToggleRight, Shield } from "lucide-react";
-import { useUsersAdmin, useToggleUserActive } from "../hooks/use-users-admin";
+import { Pencil, ToggleLeft, ToggleRight, Shield, KeyRound } from "lucide-react";
+import { useUsersAdmin, useToggleUserActive, useSetPassword } from "../hooks/use-users-admin";
 import { createUserAction, updateUserAction } from "../actions/user-actions";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { UserForm } from "./user-form";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/date";
@@ -23,9 +33,12 @@ const ROLE_LABELS: Record<string, string> = {
 export function UsersTable() {
   const { data: users, isLoading, isError, refetch } = useUsersAdmin();
   const toggleActive = useToggleUserActive();
+  const setPassword = useSetPassword();
   const [showCreate, setShowCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [toggling, setToggling] = useState<User | null>(null);
+  const [pwdUser, setPwdUser] = useState<User | null>(null);
+  const [pwdValue, setPwdValue] = useState("");
 
   if (isLoading) return <LoadingState variant="table" />;
   if (isError) return <ErrorState onRetry={refetch} />;
@@ -43,7 +56,7 @@ export function UsersTable() {
   return (
     <div>
       <div className="rounded-xl border overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-w-0">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -101,6 +114,17 @@ export function UsersTable() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setPwdValue("");
+                          setPwdUser(user);
+                        }}
+                        title="Atur Password"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -141,6 +165,43 @@ export function UsersTable() {
         }}
         loading={toggleActive.isPending}
       />
+
+      <Dialog open={!!pwdUser} onOpenChange={(o) => !o && setPwdUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atur Password</DialogTitle>
+            <DialogDescription>
+              Tetapkan password login untuk {pwdUser?.name}. Password minimal 6 karakter.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password baru</Label>
+            <Input
+              id="password"
+              type="text"
+              value={pwdValue}
+              onChange={(e) => setPwdValue(e.target.value)}
+              placeholder="Minimal 6 karakter"
+              autoComplete="new-password"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwdUser(null)}>
+              Batal
+            </Button>
+            <Button
+              disabled={pwdValue.length < 6 || setPassword.isPending}
+              onClick={async () => {
+                if (!pwdUser) return;
+                await setPassword.mutateAsync({ id: pwdUser.id, password: pwdValue });
+                setPwdUser(null);
+              }}
+            >
+              {setPassword.isPending ? "Menyimpan…" : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

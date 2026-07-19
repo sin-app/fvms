@@ -12,12 +12,12 @@ export default function DashboardLayout({
 }>) {
   return (
     <AuthGate>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen overflow-x-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 min-w-0 flex flex-col">
           <AppHeader />
           <RealtimeSubscriber />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 sm:pb-8">
+          <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-20 sm:pb-8">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
           <BottomNav />

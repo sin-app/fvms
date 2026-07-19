@@ -164,7 +164,7 @@ export function DesaTable() {
         <EmptyState title="Belum ada data" description="Belum ada desa yang ditambahkan" />
       ) : (
         <>
-          <div className="rounded-xl border overflow-x-auto">
+          <div className="rounded-xl border overflow-x-auto min-w-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">

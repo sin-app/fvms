@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createUser, updateUser, toggleUserActive, getUsers } from "../services/user-service";
+import { createUser, updateUser, toggleUserActive, getUsers, setPassword } from "../services/user-service";
 import { userSchema } from "../schema/user-schema";
 import type { ActionResponse } from "@/types/common";
 import { getAuthContext } from "@/lib/auth/authorization";
@@ -106,4 +106,30 @@ export async function getUsersAction(): Promise<User[]> {
   if (!ctx) throw new Error("Unauthorized");
   if (ctx.role !== "admin") throw new Error("Hanya admin yang diizinkan");
   return getUsers();
+}
+
+export async function setPasswordAction(
+  _prev: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+  if (ctx.role !== "admin") return { success: false, error: "Hanya admin yang diizinkan" };
+
+  const id = formData.get("id") as string;
+  const password = formData.get("password") as string;
+
+  if (!id) return { success: false, error: "ID tidak valid" };
+  if (!password || password.length < 6) {
+    return { success: false, error: "Password minimal 6 karakter" };
+  }
+
+  try {
+    await setPassword(id, password);
+    revalidatePath("/users");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal mengatur password";
+    return { success: false, error: msg };
+  }
 }
