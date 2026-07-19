@@ -1,16 +1,14 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server-client";
+import { getAuthContext } from "@/lib/auth/authorization";
 import { getScheduleList, getScheduleById, getCalendarEvents } from "../services/schedule-service";
 import type { ScheduleFilters } from "../types";
 
 export async function fetchScheduleList(filters: ScheduleFilters) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Not authenticated");
 
-  const role = (user.app_metadata?.role ?? user.user_metadata?.role) as string | undefined;
-  const userId = role === "admin" || role === "qc" ? "all" : user.id;
+  const userId = ctx.role === "admin" || ctx.role === "qc" ? "all" : ctx.userId;
 
   return getScheduleList(userId, filters);
 }
@@ -20,12 +18,10 @@ export async function fetchScheduleById(id: string) {
 }
 
 export async function fetchCalendarEvents(start: string, end: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Not authenticated");
 
-  const role = (user.app_metadata?.role ?? user.user_metadata?.role) as string | undefined;
-  const userId = role === "admin" || role === "qc" ? "all" : user.id;
+  const userId = ctx.role === "admin" || ctx.role === "qc" ? "all" : ctx.userId;
 
   return getCalendarEvents(userId, start, end);
 }
