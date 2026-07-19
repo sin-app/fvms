@@ -2,13 +2,26 @@
 
 ## Project Overview
 
-Modern web application for Field Officers to manage field visit schedules. Replaces manual Excel-based workflow with a professional, mobile-first web application.
+Modern web application for Field Officers (Produksi) to manage field visit schedules. Replaces manual Excel-based workflow with a professional, mobile-first web application.
+
+## User Roles
+
+| Role | Enum value | Capabilities |
+|------|-----------|--------------|
+| Admin | `admin` | Full access: manage users, master data, import, view all schedules |
+| QC | `qc` | Quality Control — can view **all** Produksi schedules for inspection & land assessment; no user management |
+| Produksi | `produksi` | Field Officers — manage their own schedules, visits, photos, notes |
+
+Notes:
+- `qc` and `admin` are "privileged" (`isPrivileged` in `src/lib/auth/authorization.ts`) → see all schedules.
+- Produksi accounts are auto-created during Excel import (auth account + random password set later by admin).
+- Role is read from the JWT `app_metadata.role` / `user_metadata.role` (not from `public.users` select on the client).
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript (strict) |
 | Styling | Tailwind CSS |
 | UI Library | shadcn/ui |
@@ -140,7 +153,6 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_APP_URL=
-NEXT_PUBLIC_MAPBOX_TOKEN=
 ```
 
 ## Testing Strategy
