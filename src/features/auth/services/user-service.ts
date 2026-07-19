@@ -32,6 +32,7 @@ export async function createAuthUser(params: {
   if (data.user) {
     await admin.auth.admin.updateUserById(data.user.id, {
       app_metadata: { role: params.role },
+      email_confirm: true,
     });
   }
 }
@@ -65,6 +66,7 @@ export async function setPassword(id: string, password: string): Promise<void> {
   }
   const { error: updErr } = await admin.auth.admin.updateUserById(id, {
     password,
+    email_confirm: true,
   });
   if (updErr) throw updErr;
 }
@@ -122,6 +124,7 @@ export async function createUser(data: UserInput) {
   const { error: metaError } = await admin.auth.admin.updateUserById(created.user.id, {
     app_metadata: { role: data.role },
     user_metadata: { role: data.role, name: data.name },
+    email_confirm: true,
   });
   if (metaError) throw metaError;
 
