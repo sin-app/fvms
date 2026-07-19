@@ -73,11 +73,17 @@ export async function uploadVisitPhoto(
   const ext = file.name.split(".").pop() ?? "jpg";
   const filePath = `visits/${scheduleId}/${crypto.randomUUID()}.${ext}`;
 
+  // Server-action File may not be directly streamable to Supabase storage in
+  // the Node runtime; convert to a Uint8Array to guarantee a valid upload body.
+  const buffer = new Uint8Array(await file.arrayBuffer());
+  const contentType = file.type || "image/jpeg";
+
   const { error: uploadError } = await admin.storage
     .from("visit-photos")
-    .upload(filePath, file, {
+    .upload(filePath, buffer, {
       cacheControl: "3600",
       upsert: false,
+      contentType,
     });
 
   if (uploadError) throw uploadError;
@@ -90,7 +96,7 @@ export async function uploadVisitPhoto(
     schedule_id: scheduleId,
     url: urlData.publicUrl,
     file_size: file.size,
-    mime_type: file.type,
+    mime_type: contentType,
   };
 
   const { data: inserted, error: insertError } = await admin
