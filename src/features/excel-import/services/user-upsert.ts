@@ -44,7 +44,7 @@ export function createUserUpserter(): UserUpsertResult {
         id: crypto.randomUUID(),
         email: `${slug}@fvms.com`,
         name: original,
-        role: "field_officer",
+        role: "produksi",
         is_active: true,
       });
     }
@@ -60,7 +60,7 @@ export function createUserUpserter(): UserUpsertResult {
               id: row.id,
               email: row.email,
               name: row.name,
-              role: "field_officer",
+              role: "produksi",
             });
           } catch {
             // Auth account may already exist; ignore.

@@ -26,8 +26,8 @@ import type { User } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
-  supervisor: "Supervisor",
-  field_officer: "Field Officer",
+  qc: "QC",
+  produksi: "Produksi",
 };
 
 export function UsersTable() {
@@ -77,8 +77,8 @@ export function UsersTable() {
                     <span className={cn(
                       "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
                       user.role === "admin" && "bg-purple-50 text-purple-700",
-                      user.role === "supervisor" && "bg-blue-50 text-blue-700",
-                      user.role === "field_officer" && "bg-green-50 text-green-700",
+                      user.role === "qc" && "bg-blue-50 text-blue-700",
+                      user.role === "produksi" && "bg-green-50 text-green-700",
                     )}>
                       <Shield className="h-3 w-3" />
                       {ROLE_LABELS[user.role] ?? user.role}

@@ -3,7 +3,7 @@
 import type { ImportPreview } from "../types";
 
 const TARGET_FIELDS = [
-  { key: "user_name", label: "Nama Petugas *" },
+  { key: "user_name", label: "Nama Produksi *" },
   { key: "kabupaten_name", label: "Kabupaten *" },
   { key: "kecamatan_name", label: "Kecamatan *" },
   { key: "desa_name", label: "Desa *" },

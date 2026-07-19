@@ -10,7 +10,7 @@ export async function fetchScheduleList(filters: ScheduleFilters) {
   if (!user) throw new Error("Not authenticated");
 
   const role = (user.app_metadata?.role ?? user.user_metadata?.role) as string | undefined;
-  const userId = role === "admin" || role === "supervisor" ? "all" : user.id;
+  const userId = role === "admin" || role === "qc" ? "all" : user.id;
 
   return getScheduleList(userId, filters);
 }
@@ -25,7 +25,7 @@ export async function fetchCalendarEvents(start: string, end: string) {
   if (!user) throw new Error("Not authenticated");
 
   const role = (user.app_metadata?.role ?? user.user_metadata?.role) as string | undefined;
-  const userId = role === "admin" || role === "supervisor" ? "all" : user.id;
+  const userId = role === "admin" || role === "qc" ? "all" : user.id;
 
   return getCalendarEvents(userId, start, end);
 }

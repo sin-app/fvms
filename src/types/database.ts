@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "supervisor" | "field_officer";
+export type UserRole = "admin" | "qc" | "produksi";
 
 export type VisitStatus =
   | "pending"

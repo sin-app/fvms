@@ -73,12 +73,12 @@ export function UserForm({ action, defaultValues, onSuccess, open, onOpenChange 
           <select
             id="role"
             name="role"
-            defaultValue={defaultValues?.role ?? "field_officer"}
+            defaultValue={defaultValues?.role ?? "produksi"}
             className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
           >
             <option value="admin">Admin</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="field_officer">Field Officer</option>
+            <option value="qc">QC</option>
+            <option value="produksi">Produksi</option>
           </select>
         </div>
 

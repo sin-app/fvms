@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 
-export type UserRole = "admin" | "supervisor" | "field_officer";
+export type UserRole = "admin" | "qc" | "produksi";
 
 export interface AuthContext {
   userId: string;
@@ -56,15 +56,15 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       .select("role")
       .eq("id", userId)
       .maybeSingle();
-    const role = (data?.role as UserRole | undefined) ?? "field_officer";
+    const role = (data?.role as UserRole | undefined) ?? "produksi";
     return { userId, role };
   } catch {
-    return { userId, role: "field_officer" };
+    return { userId, role: "produksi" };
   }
 }
 
 export function isPrivileged(role: UserRole): boolean {
-  return role === "admin" || role === "supervisor";
+  return role === "admin" || role === "qc";
 }
 
 export async function requireAdmin(): Promise<AuthContext> {

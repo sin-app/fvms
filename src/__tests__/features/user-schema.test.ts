@@ -6,11 +6,11 @@ describe("userSchema", () => {
     const result = userSchema.parse({
       name: "John Doe",
       email: "john@example.com",
-      role: "field_officer",
+      role: "produksi",
       is_active: true,
     });
     expect(result.name).toBe("John Doe");
-    expect(result.role).toBe("field_officer");
+    expect(result.role).toBe("produksi");
   });
 
   it("accepts optional phone", () => {

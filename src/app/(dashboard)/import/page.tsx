@@ -96,7 +96,7 @@ export default function ImportPage() {
                   Otomatis dibuat: {result.created.kabupaten} kabupaten,{" "}
                   {result.created.kecamatan} kecamatan, {result.created.desa} desa
                   {result.created.users > 0 && (
-                    <>, {result.created.users} petugas</>
+                    <>, {result.created.users} produksi</>
                   )}
                 </p>
               )}

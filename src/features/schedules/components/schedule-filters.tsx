@@ -125,7 +125,7 @@ export function ScheduleFilters({
           onChange={(e) => onUserIdChange(e.target.value)}
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
         >
-          <option value="">Semua Petugas</option>
+          <option value="">Semua Produksi</option>
           {users?.map((u) => (
             <option key={u.id} value={u.id}>{u.name}</option>
           ))}

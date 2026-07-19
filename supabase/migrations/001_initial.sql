@@ -6,7 +6,7 @@
 -- 1. ENUMS
 -- ============================================================
 
-CREATE TYPE user_role AS ENUM ('admin', 'supervisor', 'field_officer');
+CREATE TYPE user_role AS ENUM ('admin', 'qc', 'produksi');
 CREATE TYPE visit_status AS ENUM ('pending', 'on_the_way', 'in_progress', 'completed', 'cancelled');
 CREATE TYPE notification_type AS ENUM ('info', 'warning', 'success', 'error');
 CREATE TYPE import_status AS ENUM ('processing', 'completed', 'failed');
@@ -18,7 +18,7 @@ CREATE TABLE users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email           VARCHAR(255) NOT NULL UNIQUE,
   name            VARCHAR(255) NOT NULL,
-  role            user_role NOT NULL DEFAULT 'field_officer',
+  role            user_role NOT NULL DEFAULT 'produksi',
   avatar_url      TEXT,
   phone           VARCHAR(20),
   is_active       BOOLEAN NOT NULL DEFAULT true,
@@ -288,7 +288,7 @@ CREATE POLICY "Users can view own schedules"
   TO authenticated
   USING (
     user_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'supervisor'))
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'qc'))
   );
 
 CREATE POLICY "Admins can manage all schedules"
@@ -309,7 +309,7 @@ CREATE POLICY "Users can view own visit notes"
   TO authenticated
   USING (
     EXISTS (SELECT 1 FROM schedules WHERE id = schedule_id AND user_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'supervisor'))
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'qc'))
   );
 
 CREATE POLICY "Users can manage own visit notes"
@@ -325,7 +325,7 @@ CREATE POLICY "Users can view own visit photos"
   TO authenticated
   USING (
     EXISTS (SELECT 1 FROM schedules WHERE id = schedule_id AND user_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'supervisor'))
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'qc'))
   );
 
 CREATE POLICY "Users can manage own visit photos"

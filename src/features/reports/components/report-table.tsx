@@ -28,7 +28,7 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
       "Laporan Kunjungan Lapangan",
       [
         { header: "Tanggal", dataKey: "date" },
-        { header: "Petugas", dataKey: "user" },
+        { header: "Produksi", dataKey: "user" },
         { header: "Kabupaten", dataKey: "kabupaten" },
         { header: "Kecamatan", dataKey: "kecamatan" },
         { header: "Desa", dataKey: "desa" },
@@ -63,7 +63,7 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Tanggal</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Petugas</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Produksi</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>

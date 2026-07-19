@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const scheduleSchema = z.object({
-  user_id: z.string().min(1, "Petugas wajib dipilih"),
+  user_id: z.string().min(1, "Produksi wajib dipilih"),
   kabupaten_id: z.string().min(1, "Kabupaten wajib dipilih"),
   kecamatan_id: z.string().min(1, "Kecamatan wajib dipilih"),
   desa_id: z.string().min(1, "Desa wajib dipilih"),

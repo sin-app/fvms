@@ -50,7 +50,7 @@ export function ReportFiltersView({
         />
       </div>
       <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1">Petugas</label>
+        <label className="text-xs font-medium text-muted-foreground block mb-1">Produksi</label>
         <select
           value={userId}
           onChange={(e) => onUserChange(e.target.value)}

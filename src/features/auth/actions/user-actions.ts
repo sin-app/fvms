@@ -18,7 +18,7 @@ export async function createUserAction(
   const raw = {
     name: formData.get("name") as string,
     email: formData.get("email") as string,
-    role: formData.get("role") as "admin" | "supervisor" | "field_officer",
+    role: formData.get("role") as "admin" | "qc" | "produksi",
     phone: (formData.get("phone") as string) || undefined,
     is_active: formData.get("is_active") === "true",
   };
@@ -56,7 +56,7 @@ export async function updateUserAction(
   const raw = {
     name: formData.get("name") as string,
     email: formData.get("email") as string,
-    role: formData.get("role") as "admin" | "supervisor" | "field_officer",
+    role: formData.get("role") as "admin" | "qc" | "produksi",
     phone: (formData.get("phone") as string) || undefined,
     is_active: formData.get("is_active") === "true",
   };

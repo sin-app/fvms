@@ -16,7 +16,7 @@ export function createUser(overrides: Partial<User> = {}): User {
     id: faker.string.uuid(),
     email: faker.internet.email(),
     name: faker.person.fullName(),
-    role: faker.helpers.arrayElement(["admin", "supervisor", "field_officer"]),
+    role: faker.helpers.arrayElement(["admin", "qc", "produksi"]),
     avatar_url: null,
     phone: faker.phone.number(),
     is_active: true,

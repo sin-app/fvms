@@ -170,7 +170,7 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
 
   ws.columns = [
     { header: "Tanggal", key: "Tanggal" },
-    { header: "Petugas", key: "Petugas" },
+    { header: "Produksi", key: "Produksi" },
     { header: "Kabupaten", key: "Kabupaten" },
     { header: "Kecamatan", key: "Kecamatan" },
     { header: "Desa", key: "Desa" },
@@ -181,7 +181,7 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
   for (const r of rows) {
     ws.addRow({
       Tanggal: r.visit_date,
-      Petugas: r.user_name,
+      Produksi: r.user_name,
       Kabupaten: r.kabupaten_name,
       Kecamatan: r.kecamatan_name,
       Desa: r.desa_name,

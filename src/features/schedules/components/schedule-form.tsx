@@ -56,7 +56,7 @@ export function ScheduleForm({
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="user_id">Petugas</Label>
+          <Label htmlFor="user_id">Produksi</Label>
           <select
             id="user_id"
             name="user_id"
@@ -66,7 +66,7 @@ export function ScheduleForm({
               state.fieldErrors?.user_id && "border-destructive",
             )}
           >
-            <option value="">Pilih Petugas</option>
+            <option value="">Pilih Produksi</option>
             {users?.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}

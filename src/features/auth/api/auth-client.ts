@@ -48,7 +48,7 @@ export async function getCurrentUser(): Promise<User | null> {
     id: user.id,
     email: user.email ?? "",
     name: (meta.name as string) ?? (meta.full_name as string) ?? "",
-    role: role ?? "field_officer",
+    role: role ?? "produksi",
   } as User;
 }
 

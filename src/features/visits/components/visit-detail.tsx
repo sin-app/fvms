@@ -71,7 +71,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
               <div className="flex items-start gap-3">
                 <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Petugas</p>
+                  <p className="text-xs text-muted-foreground">Produksi</p>
                   <p className="text-sm font-medium">{schedule.user?.name ?? "—"}</p>
                 </div>
               </div>

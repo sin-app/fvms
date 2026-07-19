@@ -74,9 +74,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
           value={
             user.role === "admin"
               ? "Administrator"
-              : user.role === "supervisor"
-                ? "Supervisor"
-                : "Field Officer"
+              : user.role === "qc"
+                ? "QC"
+                : "Produksi"
           }
           disabled
           className="bg-muted"

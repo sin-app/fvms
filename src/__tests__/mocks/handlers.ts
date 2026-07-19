@@ -15,7 +15,7 @@ export const handlers = [
   http.get("*/rest/v1/users*", () =>
     HttpResponse.json([
       { id: "1", name: "Admin", email: "admin@fvms.com", role: "admin", is_active: true },
-      { id: "2", name: "Officer", email: "officer@fvms.com", role: "field_officer", is_active: true },
+      { id: "2", name: "Officer", email: "officer@fvms.com", role: "produksi", is_active: true },
     ]),
   ),
 
