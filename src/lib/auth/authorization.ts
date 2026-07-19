@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server-client";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 
 export type UserRole = "admin" | "supervisor" | "field_officer";
 
@@ -9,27 +10,57 @@ export interface AuthContext {
 
 export async function getAuthContext(): Promise<AuthContext | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  let userId: string | undefined;
+  let metaRole: UserRole | undefined;
 
-  const meta = user.user_metadata ?? {};
-  const metaRole = (meta.role ?? user.app_metadata?.role) as UserRole | undefined;
-
-  if (metaRole) {
-    return { userId: user.id, role: metaRole };
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      userId = user.id;
+      const meta = user.user_metadata ?? {};
+      metaRole = (meta.role ?? user.app_metadata?.role) as UserRole | undefined;
+    }
+  } catch {
+    // getUser can intermittently fail; fall back to session below.
   }
 
-  const { data } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  const role = (data?.role as UserRole | undefined) ?? "field_officer";
+  if (!userId) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        userId = session.user.id;
+        const meta = session.user.user_metadata ?? {};
+        metaRole = (meta.role ?? session.user.app_metadata?.role) as UserRole | undefined;
+      }
+    } catch {
+      // ignore
+    }
+  }
 
-  return { userId: user.id, role };
+  if (!userId) return null;
+
+  if (metaRole) {
+    return { userId, role: metaRole };
+  }
+
+  // Fallback: read role from the database via the admin client.
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+    const role = (data?.role as UserRole | undefined) ?? "field_officer";
+    return { userId, role };
+  } catch {
+    return { userId, role: "field_officer" };
+  }
 }
 
 export function isPrivileged(role: UserRole): boolean {
@@ -49,7 +80,7 @@ export async function canAccessSchedule(
 ): Promise<boolean> {
   if (isPrivileged(ctx.role)) return true;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from("schedules")
     .select("user_id")
