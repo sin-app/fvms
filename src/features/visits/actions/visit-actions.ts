@@ -78,13 +78,17 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
 
   try {
     const result = await uploadVisitPhoto(scheduleId, file);
-    await createAdminClient().from("activity_logs").insert({
-      user_id: ctx.userId,
-      action: "photo_uploaded",
-      entity_type: "schedules",
-      entity_id: scheduleId,
-      metadata: { url: result.url },
-    });
+    try {
+      await createAdminClient().from("activity_logs").insert({
+        user_id: ctx.userId,
+        action: "photo_uploaded",
+        entity_type: "schedules",
+        entity_id: scheduleId,
+        metadata: { url: result.url },
+      });
+    } catch (logErr) {
+      console.error("[uploadPhotoAction] activity_log insert skipped", logErr);
+    }
     revalidatePath(`/visits/${scheduleId}`);
     return { success: true, data: result };
   } catch (err: unknown) {
@@ -92,7 +96,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
     const msg = err instanceof Error ? err.message : "Gagal mengupload foto";
     const stack = err instanceof Error ? err.stack : "";
     console.error("[uploadPhotoAction]", name, msg, stack);
-    return { success: false, error: `${name}: ${msg}` };
+    return { success: false, error: msg };
   }
 }
 

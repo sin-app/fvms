@@ -69,32 +69,50 @@ export async function uploadVisitPhoto(
   scheduleId: string,
   file: File,
 ): Promise<{ url: string; file_size: number; mime_type: string }> {
-  const admin = createAdminClient();
+  const config = getConfig();
   const ext = file.name.split(".").pop() ?? "jpg";
   const filePath = `visits/${scheduleId}/${crypto.randomUUID()}.${ext}`;
 
-  // Server-action File may not be directly streamable to Supabase storage in
-  // the Node runtime; convert to a Uint8Array to guarantee a valid upload body.
   const buffer = new Uint8Array(await file.arrayBuffer());
   const contentType = file.type || "image/jpeg";
 
-  const { error: uploadError } = await admin.storage
-    .from("visit-photos")
-    .upload(filePath, buffer, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType,
-    });
+  // Upload directly to the Supabase Storage REST API with the service role key.
+  // This avoids supabase-js storage client quirks in the server-action runtime.
+  const uploadRes = await fetch(
+    `${config.supabaseUrl}/storage/v1/object/visit-photos/${filePath}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+        apikey: config.supabaseServiceRoleKey,
+        "Content-Type": contentType,
+        "Cache-Control": "3600",
+        "x-upsert": "false",
+      },
+      body: buffer,
+    },
+  );
 
-  if (uploadError) throw uploadError;
+  const uploadBodyText = await uploadRes.text();
+  if (!uploadRes.ok) {
+    throw new Error(
+      `STORAGE_UPLOAD_HTTP_${uploadRes.status}: ${uploadBodyText.slice(0, 300)}`,
+    );
+  }
 
-  const { data: urlData } = admin.storage
-    .from("visit-photos")
-    .getPublicUrl(filePath);
+  let uploadJson: { Key?: string } = {};
+  try {
+    uploadJson = JSON.parse(uploadBodyText);
+  } catch {
+    // ignore non-json
+  }
 
+  const publicUrl = `${config.supabaseUrl}/storage/v1/object/public/visit-photos/${uploadJson.Key ?? filePath}`;
+
+  const admin = createAdminClient();
   const photo = {
     schedule_id: scheduleId,
-    url: urlData.publicUrl,
+    url: publicUrl,
     file_size: file.size,
     mime_type: contentType,
   };
@@ -105,7 +123,9 @@ export async function uploadVisitPhoto(
     .select()
     .single();
 
-  if (insertError) throw insertError;
+  if (insertError) {
+    throw new Error(`DB_INSERT_ERROR: ${insertError.message}`);
+  }
   return inserted;
 }
 
