@@ -5,7 +5,7 @@ export async function getVisitDetail(scheduleId: string) {
   const admin = createAdminClient();
   const { data: schedule } = await admin
     .from("schedules")
-    .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), user!inner(name, email)")
+    .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name, email)")
     .eq("id", scheduleId)
     .single();
 
@@ -145,7 +145,7 @@ export async function getVisitTimeline(scheduleId: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("activity_logs")
-    .select("*, user!inner(name)")
+    .select("*, users!activity_logs_user_id_fkey(name)")
     .eq("entity_id", scheduleId)
     .eq("entity_type", "schedules")
     .order("created_at", { ascending: false })
