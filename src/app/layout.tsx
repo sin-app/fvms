@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/shared/providers";
+import { SwRegistrant } from "@/components/shared/sw-registrant";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -32,7 +33,10 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <Providers>
+          <SwRegistrant />
+          {children}
+        </Providers>
       </body>
     </html>
   );

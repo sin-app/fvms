@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/shared/bottom-nav";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { AuthGate } from "@/components/shared/auth-gate";
 import { RealtimeSubscriber } from "@/components/shared/realtime-subscriber";
+import { OfflineIndicator } from "@/components/shared/offline-indicator";
 
 export default function DashboardLayout({
   children,
@@ -17,6 +18,7 @@ export default function DashboardLayout({
         <div className="flex-1 min-w-0 flex flex-col">
           <AppHeader />
           <RealtimeSubscriber />
+          <OfflineIndicator />
           <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>

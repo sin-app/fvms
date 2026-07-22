@@ -2,36 +2,37 @@
 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
-
-const STORAGE_KEY = "fvms_notification_prefs";
-
-interface NotificationPrefs {
-  pushEnabled: boolean;
-  emailEnabled: boolean;
-}
-
-function loadPrefs(): NotificationPrefs {
-  if (typeof window === "undefined") {
-    return { pushEnabled: true, emailEnabled: false };
-  }
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return { pushEnabled: true, emailEnabled: false };
-}
+import { useState, useEffect } from "react";
+import { subscribeToPush, unsubscribeFromPush, isPushSubscribed } from "@/features/notifications/services/push-manager";
+import { Loader2 } from "lucide-react";
 
 export function NotificationPrefs() {
-  const [prefs, setPrefs] = useState<NotificationPrefs>(loadPrefs);
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  function update(key: keyof NotificationPrefs, value: boolean) {
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    isPushSubscribed().then(setSubscribed);
+  }, []);
+
+  async function handlePushToggle(v: boolean) {
+    setLoading(true);
+    try {
+      if (v) {
+        const ok = await subscribeToPush();
+        setSubscribed(ok);
+        setPushEnabled(ok);
+      } else {
+        await unsubscribeFromPush();
+        setSubscribed(false);
+        setPushEnabled(false);
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -40,33 +41,23 @@ export function NotificationPrefs() {
         <div className="space-y-0.5">
           <Label htmlFor="push">Notifikasi Push</Label>
           <p className="text-sm text-muted-foreground">
-            Terima notifikasi di aplikasi
+            {subscribed ? "Terdaftar untuk notifikasi push" : "Terima notifikasi real-time di perangkat"}
           </p>
         </div>
-        <Switch
-          id="push"
-          checked={prefs.pushEnabled}
-          onCheckedChange={(v) => update("pushEnabled", v)}
-        />
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
-          <Label htmlFor="email">Notifikasi Email</Label>
-          <p className="text-sm text-muted-foreground">
-            Terima notifikasi via email
-          </p>
+        <div className="flex items-center gap-2">
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          <Switch
+            id="push"
+            checked={subscribed}
+            onCheckedChange={handlePushToggle}
+            disabled={loading}
+          />
         </div>
-        <Switch
-          id="email"
-          checked={prefs.emailEnabled}
-          onCheckedChange={(v) => update("emailEnabled", v)}
-        />
       </div>
 
       {saved && (
         <p className="text-sm text-green-600">
-          Preferensi tersimpan
+          {subscribed ? "Notifikasi push diaktifkan" : "Notifikasi push dinonaktifkan"}
         </p>
       )}
     </div>
