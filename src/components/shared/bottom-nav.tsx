@@ -49,19 +49,19 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="flex items-center gap-1 h-16 overflow-x-auto no-scrollbar px-2">
+      <div className="flex items-center gap-0 min-h-[64px] overflow-x-auto no-scrollbar px-1">
         {allItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-[10px] font-medium transition-colors shrink-0 min-w-[56px]",
+              "flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] font-medium transition-colors shrink-0 min-w-[64px] min-h-[52px] rounded-lg",
               isActive(item.href)
-                ? "text-primary"
+                ? "text-primary bg-primary/5"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-[22px] w-[22px]" />
             <span className="whitespace-nowrap">{item.label}</span>
           </Link>
         ))}

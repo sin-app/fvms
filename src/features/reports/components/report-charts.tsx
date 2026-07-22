@@ -73,6 +73,22 @@ export function ReportCharts({ data }: ReportChartsProps) {
         </ResponsiveContainer>
       </div>
 
+      {data.by_kecamatan.length > 0 && (
+        <div className="rounded-xl border p-5">
+          <h3 className="text-sm font-medium mb-4">Per Kecamatan</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={data.by_kecamatan}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="kecamatan_name" tick={{ fontSize: 11 }} />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="total" fill="#3b82f6" name="Total" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="completed" fill="#22c55e" name="Completed" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       {data.daily_data.length > 0 && (
         <div className="rounded-xl border p-5 lg:col-span-2">
           <h3 className="text-sm font-medium mb-4">Data Harian</h3>

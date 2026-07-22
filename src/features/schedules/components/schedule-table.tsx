@@ -2,7 +2,7 @@
 
 import { useState, Fragment } from "react";
 import Link from "next/link";
-import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus } from "lucide-react";
+import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2 } from "lucide-react";
 import { useSchedules, useDeleteSchedule, useShiftScheduleDate } from "../hooks/use-schedules";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -25,7 +25,7 @@ interface ScheduleTableProps {
 
 export function ScheduleTable({ filters }: ScheduleTableProps) {
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError, refetch } = useSchedules({ ...filters, page });
+  const { data, isLoading, isFetching, isError, refetch } = useSchedules({ ...filters, page });
   const deleteSchedule = useDeleteSchedule();
   const bulkAction = useBulkAction();
   const { user } = useAuth();
@@ -91,7 +91,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   }
 
   if (isLoading) return <LoadingState variant="table" />;
-  if (isError) return <ErrorState onRetry={refetch} />;
+  if (isError && !data) return <ErrorState onRetry={refetch} />;
 
   if (!data?.data.length) {
     return (
@@ -107,6 +107,12 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
 
   return (
     <div>
+      {isFetching && (
+        <div className="flex items-center justify-center gap-2 mb-3 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Memuat ulang...
+        </div>
+      )}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-2 mb-3 p-3 rounded-lg border bg-muted/30">
           <span className="text-sm text-muted-foreground mr-auto">

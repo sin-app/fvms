@@ -20,7 +20,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   let query = admin
     .from("schedules")
-    .select("id, status, visit_date, user_id, kabupaten_id, users!schedules_user_id_fkey(name), kabupaten!inner(name), visit_time", { count: "exact" })
+    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, users!schedules_user_id_fkey(name), kabupaten!inner(name), kecamatan(name), visit_time", { count: "exact" })
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to);
@@ -44,7 +44,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     return {
       total_schedules: 0, completed: 0, cancelled: 0, pending: 0,
       on_the_way: 0, in_progress: 0, completion_rate: 0, late_count: 0,
-      by_officer: [], by_kabupaten: [], daily_data: [],
+      by_officer: [], by_kabupaten: [], by_kecamatan: [], daily_data: [],
     };
   }
 
@@ -97,6 +97,25 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     completed: d.completed,
   }));
 
+  // By kecamatan (only when schedules have kecamatan data)
+  const kecMap = new Map<string, { name: string; total: number; completed: number }>();
+  schedules.forEach((s) => {
+    const kid = (s as unknown as ReportRowRelation).kecamatan_id;
+    if (!kid) return;
+    const kname = (s as unknown as ReportRowRelation).kecamatan?.name ?? "Unknown";
+    const existing = kecMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
+    existing.total++;
+    if (s.status === "completed") existing.completed++;
+    kecMap.set(kid, existing);
+  });
+
+  const by_kecamatan = Array.from(kecMap.entries()).map(([kecamatan_id, d]) => ({
+    kecamatan_id,
+    kecamatan_name: d.name,
+    total: d.total,
+    completed: d.completed,
+  }));
+
   // Daily data
   const dayMap = new Map<string, { total: number; completed: number }>();
   schedules.forEach((s) => {
@@ -122,6 +141,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     late_count,
     by_officer,
     by_kabupaten,
+    by_kecamatan,
     daily_data,
   };
 }
@@ -132,6 +152,7 @@ interface ReportRowRelation {
   status: string;
   user_id: string;
   kabupaten_id: string;
+  kecamatan_id: string;
   visit_time: string | null;
   user?: { name: string } | null;
   kabupaten?: { name: string } | null;

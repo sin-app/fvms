@@ -29,6 +29,12 @@ export interface ReportData {
     total: number;
     completed: number;
   }>;
+  by_kecamatan: Array<{
+    kecamatan_id: string;
+    kecamatan_name: string;
+    total: number;
+    completed: number;
+  }>;
   daily_data: Array<{
     date: string;
     total: number;

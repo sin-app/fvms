@@ -7,7 +7,7 @@ import { useReportRows } from "@/features/reports/hooks/use-report-rows";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { StatCard } from "@/components/shared/stat-card";
-import { CalendarCheck, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { CalendarCheck, Clock, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/features/auth/components/auth-context";
 import type { ReportFilters } from "@/features/reports";
 
@@ -34,8 +34,8 @@ export default function ReportsPage() {
     kecamatan_id: kecamatanId || undefined,
   }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId]);
 
-  const { data, isLoading, isError, refetch } = useReportData(filters);
-  const { data: rows, isLoading: rowsLoading } = useReportRows(filters);
+  const { data, isLoading, isFetching, isError, refetch } = useReportData(filters);
+  const { data: rows, isLoading: rowsLoading, isFetching: rowsFetching } = useReportRows(filters);
 
   function handleReset() {
     setDateFrom(firstOfMonth);
@@ -78,10 +78,16 @@ export default function ReportsPage() {
       />
 
       {isLoading && <LoadingState variant="card" count={4} />}
-      {isError && <ErrorState onRetry={refetch} />}
+      {isError && !data && <ErrorState onRetry={refetch} />}
 
       {data && (
         <>
+          {isFetching && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Memuat ulang...
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Jadwal"
@@ -115,7 +121,7 @@ export default function ReportsPage() {
               onDownload={handleDownload}
             />
           )}
-          {rowsLoading && <LoadingState variant="table" />}
+          {rowsLoading && !rows && <LoadingState variant="table" />}
         </>
       )}
     </div>
