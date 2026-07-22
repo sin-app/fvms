@@ -119,9 +119,9 @@ export function ImportPageInner() {
                {result.duplicates ? (
                  <>, {result.duplicates} duplikat dilewati</>
                ) : null}
-               {result.replaced ? (
-                 <>, {result.replaced} jadwal lama direplace</>
-               ) : null}
+                {result.replaced ? (
+                  <>, {result.replaced} diperbarui</>
+                ) : null}
              </p>
               {result.created && (result.created.kabupaten > 0 || result.created.kecamatan > 0 || result.created.desa > 0 || result.created.users > 0) && (
                 <p className="text-xs text-muted-foreground mt-2">

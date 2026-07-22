@@ -139,7 +139,7 @@ describe("notification-service", () => {
     });
   });
 
-  it("notifyImportCompleted reports success and skipped", async () => {
+  it("notifyImportCompleted reports success and replaced", async () => {
     const insert = vi.fn().mockResolvedValue({ error: null });
     mockAdmin({ insert });
 
@@ -147,8 +147,8 @@ describe("notification-service", () => {
 
     const payload = insert.mock.calls[0][0];
     expect(payload.title).toBe("Impor selesai");
-    expect(payload.message).toContain("10 jadwal berhasil diimpor");
-    expect(payload.message).toContain("2 dilewati");
+    expect(payload.message).toContain("10 jadwal baru");
+    expect(payload.message).toContain("2 diperbarui");
     expect(payload.type).toBe("success");
   });
 

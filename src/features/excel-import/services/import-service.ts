@@ -306,36 +306,85 @@ export async function bulkImportSchedules(
   if (schedulesToInsert.length > 0) {
     const unique = dedupeSchedules(schedulesToInsert);
 
-    // Cegah duplikat lintas-import: skip jadwal yang sudah ada di DB
-    // dengan kombinasi key yang sama (petugas+desa+tanggal+block+plot+member).
+    // Update existing records, insert new ones.
+    // When updating, preserve status if already 'completed'.
     const keys = unique.map(
       (r) =>
         `${r.user_id}|${r.desa_id}|${r.visit_date}|${r.block_no ?? ""}|${r.no_plot ?? ""}|${r.member_name ?? ""}`,
     );
-    const existing = new Set<string>();
+    const existingMap = new Map<string, { id: string; status: string }>();
     if (keys.length > 0) {
       const { data: existingRows } = await admin
         .from("schedules")
-        .select("user_id, desa_id, visit_date, block_no, no_plot, member_name")
+        .select("id, user_id, desa_id, visit_date, block_no, no_plot, member_name, status")
         .in("user_id", [...new Set(unique.map((r) => r.user_id))])
         .is("deleted_at", null);
       for (const row of existingRows ?? []) {
         const k = `${row.user_id}|${row.desa_id}|${row.visit_date}|${row.block_no ?? ""}|${row.no_plot ?? ""}|${row.member_name ?? ""}`;
-        existing.add(k);
+        existingMap.set(k, { id: row.id, status: row.status });
       }
     }
-    const toInsert = unique.filter((_, i) => !existing.has(keys[i]));
-    const skipped = unique.length - toInsert.length;
+
+    const toInsert: typeof schedulesToInsert = [];
+    const toUpdate: Array<{ id: string; data: Record<string, unknown> }> = [];
+
+    for (let i = 0; i < unique.length; i++) {
+      const r = unique[i];
+      const match = existingMap.get(keys[i]);
+      if (match) {
+        const { id, status: currentStatus } = match;
+        const updateData: Record<string, unknown> = {};
+        if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
+        if (r.cgr !== undefined) updateData.cgr = r.cgr;
+        if (r.cgr_code !== undefined) updateData.cgr_code = r.cgr_code;
+        if (r.block_no !== undefined) updateData.block_no = r.block_no;
+        if (r.no_plot !== undefined) updateData.no_plot = r.no_plot;
+        if (r.member_name !== undefined) updateData.member_name = r.member_name;
+        if (r.document_no !== undefined) updateData.document_no = r.document_no;
+        if (r.ph_tanah !== undefined) updateData.ph_tanah = r.ph_tanah;
+        if (r.nis !== undefined) updateData.nis = r.nis;
+        if (r.real_tanam_ha !== undefined) updateData.real_tanam_ha = r.real_tanam_ha;
+        if (r.gagal_tanam !== undefined) updateData.gagal_tanam = r.gagal_tanam;
+        if (r.sisa_di_lahan_ha !== undefined) updateData.sisa_di_lahan_ha = r.sisa_di_lahan_ha;
+        if (r.latitude !== undefined) updateData.latitude = r.latitude;
+        if (r.longitude !== undefined) updateData.longitude = r.longitude;
+        if (r.accuracy !== undefined) updateData.accuracy = r.accuracy;
+        if (r.visit_time !== undefined) updateData.visit_time = r.visit_time;
+        if (r.notes !== undefined) updateData.notes = r.notes;
+        // Jangan ubah status jika sudah completed
+        if (currentStatus !== "completed") {
+          updateData.status = "pending";
+        }
+        updateData.updated_at = new Date().toISOString();
+        if (Object.keys(updateData).length > 1) {
+          toUpdate.push({ id, data: updateData });
+        }
+      } else {
+        toInsert.push(r);
+      }
+    }
 
     const { error: insertError } = await admin.from("schedules").insert(toInsert);
-
     if (insertError) {
       errors.push({ row: 0, message: `Gagal insert: ${insertError.message}` });
     } else {
       result.success = toInsert.length;
       result.duplicates = schedulesToInsert.length - unique.length;
-      result.skipped = skipped;
     }
+
+    let replaced = 0;
+    if (toUpdate.length > 0) {
+      const updates = toUpdate.map((u) =>
+        admin.from("schedules").update(u.data).eq("id", u.id),
+      );
+      const updateResults = await Promise.all(updates);
+      replaced = updateResults.filter((r) => !r.error).length;
+      const updateErrors = updateResults.filter((r) => r.error).length;
+      if (updateErrors > 0) {
+        errors.push({ row: 0, message: `${updateErrors} jadwal gagal diupdate` });
+      }
+    }
+    result.replaced = replaced;
   }
   result.errors = errors.length;
   result.errorRows = errors;
@@ -351,7 +400,7 @@ export async function bulkImportSchedules(
     })
     .eq("id", importRecord.id);
 
-  await notifyImportCompleted(userId, result.success, result.errors, result.skipped ?? 0);
+  await notifyImportCompleted(userId, result.success, result.errors, result.replaced ?? 0);
 
   return result;
 }

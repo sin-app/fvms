@@ -100,7 +100,10 @@ export function useExcelImport() {
         });
         queryClient.invalidateQueries({ queryKey: ["schedules"] });
         queryClient.invalidateQueries({ queryKey: ["master-data"] });
-        toast.success(`Import berhasil: ${res.data.success} jadwal ditambahkan`);
+        const parts = [`${res.data.success} jadwal baru`];
+        if (res.data.replaced) parts.push(`${res.data.replaced} diperbarui`);
+        if (res.data.errors) parts.push(`${res.data.errors} gagal`);
+        toast.success(`Import berhasil: ${parts.join(", ")}`);
       } else {
         toast.error(res.error ?? "Gagal import");
       }

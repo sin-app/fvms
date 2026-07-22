@@ -31,10 +31,10 @@ export async function notifyImportCompleted(
   userId: string,
   success: number,
   errors: number,
-  skipped: number,
+  replaced: number,
 ): Promise<void> {
-  const parts: string[] = [`${success} jadwal berhasil diimpor`];
-  if (skipped > 0) parts.push(`${skipped} dilewati (sudah ada)`);
+  const parts: string[] = [`${success} jadwal baru`];
+  if (replaced > 0) parts.push(`${replaced} diperbarui`);
   if (errors > 0) parts.push(`${errors} baris gagal`);
 
   await createNotification({

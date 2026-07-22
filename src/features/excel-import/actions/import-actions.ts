@@ -91,6 +91,8 @@ export async function executeImportAction(
         id: result.id,
         success: result.success,
         errors: result.errors,
+        duplicates: result.duplicates,
+        replaced: result.replaced,
         created: result.created,
       },
     };
