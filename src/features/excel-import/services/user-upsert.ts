@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
-import { createAuthUser } from "@/features/auth/services/user-service";
+import { createAuthUser, setPassword } from "@/features/auth/services/user-service";
 
 interface ResolveOutput {
   map: Map<string, string>;
@@ -61,9 +61,16 @@ export function createUserUpserter(): UserUpsertResult {
               email: row.email,
               name: row.name,
               role: "produksi",
+              // Auto-set password to the user's email on import.
+              password: row.email,
             });
           } catch {
-            // Auth account may already exist; ignore.
+            // Account may already exist (re-import): ensure password = email.
+            try {
+              await setPassword(row.id, row.email);
+            } catch {
+              // ignore
+            }
           }
         }
       }

@@ -10,21 +10,32 @@ import { ScheduleTable, ScheduleForm, ScheduleFilters } from "@/features/schedul
 import { createScheduleAction } from "@/features/schedules/actions/schedule-actions";
 import { useDebounce } from "@/hooks/use-debounce";
 import { exportPdf } from "@/lib/export/pdf";
+import { useAuth } from "@/features/auth/components/auth-context";
 import type { Schedule } from "@/types";
 
 export default function SchedulesPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isProduksi = user?.role === "produksi";
   const [search, setSearch] = useState("");
+  const [memberName, setMemberName] = useState("");
+  const [blockNo, setBlockNo] = useState("");
+  const [noPlot, setNoPlot] = useState("");
+  const [nis, setNis] = useState("");
+  const [tglTanam, setTglTanam] = useState("");
   const [status, setStatus] = useState("all");
+  const [cgr, setCgr] = useState("");
   const [userId, setUserId] = useState("");
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
   const [dateRange, setDateRange] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [varietas, setVarietas] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
+  const debouncedMemberName = useDebounce(memberName, 300);
 
   function handleDownloadPdf() {
     const qfilters = {
@@ -32,29 +43,47 @@ export default function SchedulesPage() {
       status: status !== "all" ? status : undefined,
       kabupaten_id: kabupatenId || undefined,
       kecamatan_id: kecamatanId || undefined,
-      user_id: userId || undefined,
+      user_id: isProduksi ? undefined : (userId || undefined),
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
+      varietas: varietas.trim() || undefined,
       page: 1,
     };
     const cached = queryClient.getQueryData<{ data: Schedule[] }>(["schedules", qfilters]);
     const rows = (cached?.data ?? []).map((s) => ({
       date: s.visit_date,
-      kabupaten: (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—",
-      kecamatan: (s as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—",
-      desa: (s as unknown as { desa?: { name: string } }).desa?.name ?? "—",
+      petugas: s.users?.name ?? "—",
+      kabupaten: s.kabupaten?.name ?? "—",
+      kecamatan: s.kecamatan?.name ?? "—",
+      desa: s.desa?.name ?? "—",
+      cgr: s.cgr ?? "—",
+      block_plot: [s.block_no, s.no_plot].filter(Boolean).join("/") || "—",
+      member: s.member_name ?? "—",
+      doc_no: s.document_no ?? "—",
+      nis: s.nis ?? "—",
+      ph_tanah: s.ph_tanah?.toString() ?? "—",
+      real_tanam: s.real_tanam_ha?.toString() ?? "—",
       status: s.status,
     }));
     if (!rows.length) return;
+    const columns = [
+      { header: "Tanggal", dataKey: "date" },
+      ...(isProduksi ? [] : [{ header: "Petugas", dataKey: "petugas" }]),
+      { header: "Kabupaten", dataKey: "kabupaten" },
+      { header: "Kecamatan", dataKey: "kecamatan" },
+      { header: "Desa", dataKey: "desa" },
+      { header: "CGR", dataKey: "cgr" },
+      { header: "Block/Plot", dataKey: "block_plot" },
+      { header: "Member", dataKey: "member" },
+      { header: "Doc No", dataKey: "doc_no" },
+      { header: "NIS", dataKey: "nis" },
+      { header: "PH Tanah", dataKey: "ph_tanah" },
+      { header: "Real Tanam", dataKey: "real_tanam" },
+      { header: "Status", dataKey: "status" },
+    ];
     exportPdf(
-      "Daftar Jadwal Kunjungan",
-      [
-        { header: "Tanggal", dataKey: "date" },
-        { header: "Kabupaten", dataKey: "kabupaten" },
-        { header: "Kecamatan", dataKey: "kecamatan" },
-        { header: "Desa", dataKey: "desa" },
-        { header: "Status", dataKey: "status" },
-      ],
+      isProduksi ? "Jadwal Kunjungan Saya" : "Daftar Jadwal Kunjungan",
+      columns,
       rows,
       `jadwal-${new Date().toISOString().split("T")[0]}.pdf`,
     );
@@ -62,12 +91,19 @@ export default function SchedulesPage() {
 
   const filters = {
     search: debouncedSearch || undefined,
+    member_name: debouncedMemberName || undefined,
+    block_no: blockNo.trim() || undefined,
+    no_plot: noPlot.trim() || undefined,
+    nis: nis.trim() || undefined,
+    tgl_tanam: tglTanam.trim() || undefined,
     status: status !== "all" ? status : undefined,
-    user_id: userId || undefined,
-    kabupaten_id: kabupatenId || undefined,
+      user_id: isProduksi ? undefined : (userId || undefined),
+      cgr: cgr.trim() || undefined,
+      kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
+    varietas: varietas.trim() || undefined,
   };
 
   return (
@@ -98,10 +134,22 @@ export default function SchedulesPage() {
       <ScheduleFilters
         search={search}
         onSearchChange={setSearch}
+        memberName={memberName}
+        onMemberNameChange={setMemberName}
+        blockNo={blockNo}
+        onBlockNoChange={setBlockNo}
+        noPlot={noPlot}
+        onNoPlotChange={setNoPlot}
+        nis={nis}
+        onNisChange={setNis}
+        tglTanam={tglTanam}
+        onTglTanamChange={setTglTanam}
         status={status}
         onStatusChange={setStatus}
         userId={userId}
         onUserIdChange={setUserId}
+        cgr={cgr}
+        onCgrChange={setCgr}
         kabupatenId={kabupatenId}
         onKabupatenChange={setKabupatenId}
         kecamatanId={kecamatanId}
@@ -112,6 +160,9 @@ export default function SchedulesPage() {
         dateTo={dateTo}
         onDateFromChange={setDateFrom}
         onDateToChange={setDateTo}
+        varietas={varietas}
+        onVarietasChange={setVarietas}
+        hidePetugasFilter={isProduksi}
       />
 
       <ScheduleTable filters={filters} />

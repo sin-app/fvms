@@ -9,6 +9,11 @@ vi.mock("@/lib/supabase/server-client", () => ({
 }));
 
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import {
+  createNotification,
+  notifyImportCompleted,
+  generateDueSoonNotifications,
+} from "@/features/notifications/services/notification-service";
 import { createClient } from "@/lib/supabase/server-client";
 import {
   fetchNotifications,
@@ -101,5 +106,97 @@ describe("notification-client", () => {
       await markAllAsReadAction();
       expect(mockUpdate).toHaveBeenCalledWith({ is_read: true });
     });
+  });
+});
+
+describe("notification-service", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function mockAdmin(fromReturn: Record<string, unknown>) {
+    (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
+      from: vi.fn().mockReturnValue(fromReturn),
+    });
+  }
+
+  it("createNotification inserts with defaults", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    mockAdmin({ insert });
+
+    await createNotification({
+      userId: "u1",
+      title: "T",
+      message: "M",
+    });
+
+    expect(insert).toHaveBeenCalledWith({
+      user_id: "u1",
+      title: "T",
+      message: "M",
+      type: "info",
+      link: null,
+    });
+  });
+
+  it("notifyImportCompleted reports success and skipped", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    mockAdmin({ insert });
+
+    await notifyImportCompleted("u1", 10, 0, 2);
+
+    const payload = insert.mock.calls[0][0];
+    expect(payload.title).toBe("Impor selesai");
+    expect(payload.message).toContain("10 jadwal berhasil diimpor");
+    expect(payload.message).toContain("2 dilewati");
+    expect(payload.type).toBe("success");
+  });
+
+  it("notifyImportCompleted uses warning when errors exist", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    mockAdmin({ insert });
+
+    await notifyImportCompleted("u1", 5, 3, 0);
+    expect(insert.mock.calls[0][0].type).toBe("warning");
+  });
+
+  it("generateDueSoonNotifications creates one per due schedule", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const select = vi.fn().mockReturnValue({
+      gte: vi.fn().mockReturnValue({
+        lte: vi.fn().mockReturnValue({
+          neq: vi.fn().mockReturnValue({
+            is: vi.fn().mockResolvedValue({
+              data: [
+                { user_id: "u1", visit_date: "2026-08-01", document_no: "DOC1", member_name: null },
+                { user_id: "u2", visit_date: "2026-08-02", document_no: null, member_name: "Budi" },
+              ],
+            }),
+          }),
+        }),
+      }),
+    });
+    mockAdmin({ insert, select });
+
+    const count = await generateDueSoonNotifications();
+    expect(count).toBe(2);
+    expect(insert).toHaveBeenCalledTimes(2);
+  });
+
+  it("generateDueSoonNotifications returns 0 when none due", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const select = vi.fn().mockReturnValue({
+      gte: vi.fn().mockReturnValue({
+        lte: vi.fn().mockReturnValue({
+          neq: vi.fn().mockReturnValue({
+            is: vi.fn().mockResolvedValue({ data: [] }),
+          }),
+        }),
+      }),
+    });
+    mockAdmin({ insert, select });
+
+    expect(await generateDueSoonNotifications()).toBe(0);
+    expect(insert).not.toHaveBeenCalled();
   });
 });

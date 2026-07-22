@@ -10,6 +10,7 @@ interface VisitGpsProps {
   currentLatitude?: number | null;
   currentLongitude?: number | null;
   currentAccuracy?: number | null;
+  editable?: boolean;
 }
 
 export function VisitGps({
@@ -17,6 +18,7 @@ export function VisitGps({
   currentLatitude,
   currentLongitude,
   currentAccuracy,
+  editable = true,
 }: VisitGpsProps) {
   const [capturing, setCapturing] = useState(false);
   const [location, setLocation] = useState<{
@@ -88,15 +90,17 @@ export function VisitGps({
           <MapPin className="h-4 w-4" />
           Lokasi GPS
         </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={captureLocation}
-          disabled={capturing}
-        >
-          <Crosshair className="h-4 w-4 mr-1.5" />
-          {capturing ? "Mengambil..." : "Ambil Lokasi"}
-        </Button>
+        {editable && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={captureLocation}
+            disabled={capturing}
+          >
+            <Crosshair className="h-4 w-4 mr-1.5" />
+            {capturing ? "Mengambil..." : "Ambil Lokasi"}
+          </Button>
+        )}
       </div>
 
       {location && (

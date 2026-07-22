@@ -23,6 +23,7 @@ export const navItems: NavItem[] = [
   {
     label: "Master Data",
     icon: Database,
+    adminOnly: true,
     children: [
       { href: "/master-data/kabupaten", label: "Kabupaten" },
       { href: "/master-data/kecamatan", label: "Kecamatan" },
@@ -31,7 +32,7 @@ export const navItems: NavItem[] = [
   },
   { href: "/schedules", label: "Jadwal", icon: CalendarCheck },
   { href: "/schedules/calendar", label: "Kalender", icon: CalendarDays },
-  { href: "/import", label: "Import Excel", icon: FileSpreadsheet },
+  { href: "/import", label: "Import Excel", icon: FileSpreadsheet, adminOnly: true },
   { href: "/reports", label: "Laporan", icon: BarChart3 },
   { href: "/notifications", label: "Notifikasi", icon: Bell },
   { href: "/users", label: "Users", icon: Users, adminOnly: true },

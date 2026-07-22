@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useActionState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/components/auth-context";
 import type { Desa } from "@/types";
 import type { ActionResponse } from "@/types/common";
 import type { ReactNode } from "react";
@@ -30,17 +31,23 @@ function DesaForm({
   children,
 }: {
   action: (prev: ActionResponse, formData: FormData) => Promise<ActionResponse>;
-  defaultValues?: { name?: string; code?: string; kecamatan_id?: string };
+  defaultValues?: { name?: string; code?: string; kecamatan_id?: string; kabupaten_id?: string };
   onSuccess?: () => void;
   children?: ReactNode;
 }) {
   const { data: kabupaten } = useAllKabupaten();
-  const [selectedKabupaten, setSelectedKabupaten] = useState("");
-  const { data: kecamatan } = useAllKecamatan(
-    defaultValues?.kecamatan_id
-      ? (defaultValues as unknown as { kabupaten_id?: string }).kabupaten_id ?? selectedKabupaten
-      : selectedKabupaten,
+  const [selectedKabupaten, setSelectedKabupaten] = useState(
+    defaultValues?.kabupaten_id ?? "",
   );
+  const [selectedKecamatan, setSelectedKecamatan] = useState(
+    defaultValues?.kecamatan_id ?? "",
+  );
+  const { data: kecamatan } = useAllKecamatan(selectedKabupaten);
+
+  function handleKabupatenChange(value: string) {
+    setSelectedKabupaten(value);
+    setSelectedKecamatan("");
+  }
   const [state, formAction, pending] = useActionState(
     async (prev: ActionResponse, formData: FormData) => {
       const result = await action(prev, formData);
@@ -57,7 +64,7 @@ function DesaForm({
         <Label>Kabupaten</Label>
         <select
           value={selectedKabupaten}
-          onChange={(e) => setSelectedKabupaten(e.target.value)}
+          onChange={(e) => handleKabupatenChange(e.target.value)}
           className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
         >
           <option value="">Pilih Kabupaten</option>
@@ -72,7 +79,8 @@ function DesaForm({
         <select
           id="kecamatan_id"
           name="kecamatan_id"
-          defaultValue={defaultValues?.kecamatan_id ?? ""}
+          value={selectedKecamatan}
+          onChange={(e) => setSelectedKecamatan(e.target.value)}
           className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
         >
           <option value="">Pilih Kecamatan</option>
@@ -109,6 +117,8 @@ function DesaForm({
 }
 
 export function DesaTable() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [kecamatanFilter, setKecamatanFilter] = useState("");
@@ -139,7 +149,7 @@ export function DesaTable() {
       <PageHeader
         title="Desa"
         description="Kelola data desa"
-        actions={<Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-2" /> Tambah Desa</Button>}
+        actions={isAdmin ? <Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-2" /> Tambah Desa</Button> : undefined}
       />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -161,7 +171,7 @@ export function DesaTable() {
       ) : isError ? (
         <ErrorState onRetry={refetch} />
       ) : !data?.data.length ? (
-        <EmptyState title="Belum ada data" description="Belum ada desa yang ditambahkan" />
+        <EmptyState title="Belum ada data" description="Belum ada desa yang ditambahkan" action={isAdmin ? { label: "Tambah Desa", onClick: () => setShowCreate(true) } : undefined} />
       ) : (
         <>
           <div className="rounded-xl border overflow-x-auto min-w-0">
@@ -184,8 +194,12 @@ export function DesaTable() {
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setEditing(item)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        {isAdmin && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => setEditing(item)}><Pencil className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleting(item)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -211,7 +225,12 @@ export function DesaTable() {
         {editing && (
           <DesaForm
             action={updateDesaAction}
-            defaultValues={{ name: editing.name, code: editing.code, kecamatan_id: editing.kecamatan_id }}
+            defaultValues={{
+              name: editing.name,
+              code: editing.code,
+              kecamatan_id: editing.kecamatan_id,
+              kabupaten_id: (editing as unknown as { kecamatan?: { kabupaten_id?: string } }).kecamatan?.kabupaten_id ?? "",
+            }}
             onSuccess={() => setEditing(null)}
           >
             <input type="hidden" name="id" value={editing.id} />

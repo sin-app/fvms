@@ -7,6 +7,34 @@ export const scheduleSchema = z.object({
   desa_id: z.string().min(1, "Desa wajib dipilih"),
   visit_date: z.string().min(1, "Tanggal kunjungan wajib diisi"),
   notes: z.string().optional(),
+  cgr: z.string().optional(),
+  cgr_code: z.string().optional(),
+  block_no: z.string().optional(),
+  no_plot: z.string().optional(),
+  member_name: z.string().optional(),
+  document_no: z.string().optional(),
+  nis: z.string().optional(),
+  ph_tanah: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v)))
+    .refine((v) => v === undefined || !Number.isNaN(v), "PH Tanah harus berupa angka"),
+  real_tanam_ha: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v)))
+    .refine((v) => v === undefined || !Number.isNaN(v), "Real Tanam harus berupa angka"),
+  gagal_tanam: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v)))
+    .refine((v) => v === undefined || !Number.isNaN(v), "Gagal Tanam harus berupa angka"),
+  sisa_di_lahan_ha: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v)))
+    .refine((v) => v === undefined || !Number.isNaN(v), "Sisa di Lahan harus berupa angka"),
+  tgl_tanam: z.string().optional(),
 });
 
 export type ScheduleInput = z.infer<typeof scheduleSchema>;

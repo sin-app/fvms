@@ -23,7 +23,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
   );
 
   return (
-    <form action={formAction} className="space-y-4">
+    <>
+      <form action={formAction} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Nama Lengkap</Label>
         <Input
@@ -99,8 +100,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
         <Button type="submit" disabled={pending}>
           {pending ? "Menyimpan..." : "Simpan Perubahan"}
         </Button>
-        <LogoutButton />
       </div>
     </form>
+
+    <div className="pt-2 border-t">
+      <LogoutButton />
+    </div>
+    </>
   );
 }

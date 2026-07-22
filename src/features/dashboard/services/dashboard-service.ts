@@ -6,10 +6,16 @@ import {
   endOfMonth,
   addDays,
 } from "date-fns";
-import type { DashboardData, DashboardStats } from "../types";
+import { qcKabupatenScope } from "@/lib/auth/authorization";
+import type { AuthContext } from "@/lib/auth/authorization";
+import type { DashboardData, DashboardStats, DashboardFilters } from "../types";
 import type { Schedule, ActivityLog } from "@/types";
 
-export async function getDashboardData(userId: string): Promise<DashboardData> {
+export async function getDashboardData(
+  userId: string,
+  ctx?: AuthContext,
+  filters?: DashboardFilters,
+): Promise<DashboardData> {
   const admin = createAdminClient();
   const now = new Date();
   const today = now.toISOString().split("T")[0];
@@ -19,31 +25,51 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const monthStart = startOfMonth(now).toISOString().split("T")[0];
   const monthEnd = endOfMonth(now).toISOString().split("T")[0];
 
+  const kabScope = ctx ? qcKabupatenScope(ctx) : null;
+  const scoped = <Q extends { eq: (column: string, value: unknown) => Q; in: (column: string, values: string[]) => Q }>(
+    q: Q,
+  ): Q => {
+    let r = q;
+    if (kabScope !== null) {
+      r = r.in("kabupaten_id", kabScope.length > 0 ? kabScope : ["__none__"]);
+    } else if (filters?.kabupaten_id) {
+      r = r.eq("kabupaten_id", filters.kabupaten_id);
+    } else if (userId !== "all") {
+      r = r.eq("user_id", userId);
+    }
+    return r;
+  };
+
+  const applyFilters = <Q extends { eq: (column: string, value: unknown) => Q; in: (column: string, values: string[]) => Q }>(
+    q: Q,
+  ): Q => {
+    let r = scoped(q);
+    if (filters?.kecamatan_id && kabScope === null) {
+      r = r.eq("kecamatan_id", filters.kecamatan_id);
+    }
+    return r;
+  };
+
   const baseQuery = () =>
     admin.from("schedules").select("*", { count: "exact", head: true });
 
-  const todayQuery = baseQuery().eq("user_id", userId).eq("visit_date", today);
-  const tomorrowQuery = baseQuery().eq("user_id", userId).eq("visit_date", tomorrow);
-  const weekQuery = baseQuery()
-    .eq("user_id", userId)
+  const todayQuery = applyFilters(baseQuery()).eq("visit_date", today);
+  const tomorrowQuery = applyFilters(baseQuery()).eq("visit_date", tomorrow);
+  const weekQuery = applyFilters(baseQuery())
     .gte("visit_date", weekStart)
     .lte("visit_date", weekEnd);
-  const lateQuery = baseQuery()
-    .eq("user_id", userId)
+  const lateQuery = applyFilters(baseQuery())
     .lt("visit_date", today)
     .not("status", "in", "(completed,cancelled)");
-  const completedQuery = baseQuery()
-    .eq("user_id", userId)
+  const completedQuery = applyFilters(baseQuery())
     .eq("status", "completed")
     .gte("visit_date", monthStart)
     .lte("visit_date", monthEnd);
-  const pendingQuery = baseQuery()
-    .eq("user_id", userId)
+  const pendingQuery = applyFilters(baseQuery())
     .eq("status", "pending")
     .gte("visit_date", today)
     .lte("visit_date", monthEnd);
-  const monthQuery = baseQuery()
-    .eq("user_id", userId)
+  const monthQuery = applyFilters(baseQuery())
     .gte("visit_date", monthStart)
     .lte("visit_date", monthEnd);
 
@@ -68,25 +94,34 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   };
 
   const [todaySchedulesRes, upcomingSchedulesRes, recentActivityRes] = await Promise.all([
-    admin
-      .from("schedules")
-      .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
-      .eq("user_id", userId)
-      .eq("visit_date", today)
-      .order("created_at"),
-    admin
-      .from("schedules")
-      .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
-      .eq("user_id", userId)
-      .gt("visit_date", today)
+    applyFilters(
+      admin
+        .from("schedules")
+        .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)")
+        .eq("visit_date", today),
+    ).order("created_at"),
+    applyFilters(
+      admin
+        .from("schedules")
+        .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)")
+        .gt("visit_date", today),
+    )
       .order("visit_date", { ascending: true })
       .limit(5),
-    admin
-      .from("activity_logs")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(10),
+    kabScope === null && userId === "all"
+      ? admin
+          .from("activity_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(10)
+      : kabScope === null
+        ? admin
+            .from("activity_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(10)
+        : admin.from("activity_logs").select("*").eq("id", "__none__"),
   ]);
 
   return {

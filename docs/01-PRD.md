@@ -69,11 +69,11 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 - Export data
 
 ### QC (Quality Control)
-- View **all** Produksi schedules (inspection & land assessment)
-- Monitor all Produksi activities
-- View statistics and dashboards across all Produksi
-- Export reports
-- Cannot modify schedules or master data
+- View Produksi schedules **only within assigned kabupaten** (`assigned_kabupaten_ids` / wilayah tugas) — NOT all schedules
+- Monitor activities and view statistics/dashboards scoped to their assigned kabupaten
+- Export reports (scoped to assigned kabupaten)
+- Capture GPS location and **upload photos in the field** for assigned-kabupaten schedules
+- **Cannot** delete or edit photos, **cannot** delete schedules, **cannot** modify master data
 - **Scope:** conducts checks starting from **land application verification** through to **harvest** (pengecekan pengajuan lahan sampai dengan panen)
 
 ### Produksi (Field Officer)
@@ -122,6 +122,8 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 
 ### FR-05: Schedule Management
 - Full CRUD for schedules
+- Schedule fields: CGR, CGR Code, Block No, No Plot, Member Name, Document No, NIS, Tgl Tanam, PH Tanah, Real Tanam HA, Gagal Tanam, Sisa di Lahan HA (plus kabupaten/kecamatan/desa, user, visit_date, notes, status)
+- Instant schedule date shifting: "Geser +1 Hari" / "Kembalikan -1 Hari" buttons (CalendarPlus / CalendarMinus) with optimistic UI updates
 - Search by Kabupaten, Kecamatan, Desa, date
 - Filter by status, date range, region
 - Paginated results
@@ -177,7 +179,9 @@ To empower Field Officers with a modern, intuitive, and mobile-first platform th
 - Input validation on all forms
 - File upload size limit (max 10MB per photo)
 - Allowed image types: JPEG, PNG, WebP
-- Rate limiting on auth endpoints
+- Rate limiting on auth endpoints (login, reset-password)
+- Photos stored in a **private** Supabase Storage bucket, served via signed URLs only
+- CSP and security headers enforced via next.config.ts
 - Session timeout after 24 hours
 
 ### Usability

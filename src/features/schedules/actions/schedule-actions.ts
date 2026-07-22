@@ -10,7 +10,9 @@ import {
   getScheduleOwnerIds,
 } from "../services/schedule-service";
 import type { ActionResponse } from "@/types/common";
-import { getAuthContext, isPrivileged } from "@/lib/auth/authorization";
+import { STATUS_TRANSITIONS } from "@/lib/constants/status";
+import type { VisitStatus } from "@/types";
+import { getAuthContext, isPrivileged, canAccessSchedule } from "@/lib/auth/authorization";
 
 export async function createScheduleAction(
   prevState: ActionResponse,
@@ -26,6 +28,18 @@ export async function createScheduleAction(
     desa_id: formData.get("desa_id") as string,
     visit_date: formData.get("visit_date") as string,
     notes: (formData.get("notes") as string) || undefined,
+    cgr: (formData.get("cgr") as string) || undefined,
+    cgr_code: (formData.get("cgr_code") as string) || undefined,
+    block_no: (formData.get("block_no") as string) || undefined,
+    no_plot: (formData.get("no_plot") as string) || undefined,
+    member_name: (formData.get("member_name") as string) || undefined,
+    document_no: (formData.get("document_no") as string) || undefined,
+    nis: (formData.get("nis") as string) || undefined,
+    ph_tanah: formData.get("ph_tanah") as string,
+    real_tanam_ha: formData.get("real_tanam_ha") as string,
+    gagal_tanam: formData.get("gagal_tanam") as string,
+    sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
+    tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
   };
 
   const parsed = scheduleSchema.safeParse(raw);
@@ -69,6 +83,18 @@ export async function updateScheduleAction(
     desa_id: formData.get("desa_id") as string,
     visit_date: formData.get("visit_date") as string,
     notes: (formData.get("notes") as string) || undefined,
+    cgr: (formData.get("cgr") as string) || undefined,
+    cgr_code: (formData.get("cgr_code") as string) || undefined,
+    block_no: (formData.get("block_no") as string) || undefined,
+    no_plot: (formData.get("no_plot") as string) || undefined,
+    member_name: (formData.get("member_name") as string) || undefined,
+    document_no: (formData.get("document_no") as string) || undefined,
+    nis: (formData.get("nis") as string) || undefined,
+    ph_tanah: formData.get("ph_tanah") as string,
+    real_tanam_ha: formData.get("real_tanam_ha") as string,
+    gagal_tanam: formData.get("gagal_tanam") as string,
+    sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
+    tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
   };
 
   const parsed = scheduleSchema.safeParse(raw);
@@ -81,12 +107,7 @@ export async function updateScheduleAction(
   }
 
   if (!isPrivileged(ctx.role)) {
-    const { data } = await createAdminClient()
-      .from("schedules")
-      .select("user_id")
-      .eq("id", id)
-      .maybeSingle();
-    if (data?.user_id !== ctx.userId) {
+    if (!(await canAccessSchedule(id, ctx))) {
       return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
     }
     if (parsed.data.user_id !== ctx.userId) {
@@ -104,6 +125,53 @@ export async function updateScheduleAction(
   }
 }
 
+export async function shiftScheduleDateAction(
+  prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+
+  const id = formData.get("id") as string;
+  if (!id) return { success: false, error: "ID tidak valid" };
+
+  const daysRaw = formData.get("days");
+  const days = daysRaw ? Number(daysRaw) : 1;
+  if (!Number.isInteger(days) || days === 0) {
+    return { success: false, error: "Jumlah hari tidak valid" };
+  }
+
+  if (!(await canAccessSchedule(id, ctx))) {
+    return { success: false, error: "Jadwal tidak ditemukan" };
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { data: schedule, error: fetchError } = await admin
+      .from("schedules")
+      .select("user_id, visit_date")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!schedule) return { success: false, error: "Jadwal tidak ditemukan" };
+
+    const current = new Date(schedule.visit_date + "T00:00:00");
+    if (Number.isNaN(current.getTime())) {
+      return { success: false, error: "Tanggal jadwal tidak valid" };
+    }
+    current.setDate(current.getDate() + days);
+    const nextDate = current.toISOString().split("T")[0];
+
+    await updateSchedule(id, { visit_date: nextDate });
+    revalidatePath("/schedules");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menggeser tanggal jadwal";
+    return { success: false, error: msg };
+  }
+}
+
 export async function deleteScheduleAction(
   _prevState: ActionResponse,
   formData: FormData,
@@ -114,13 +182,18 @@ export async function deleteScheduleAction(
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID tidak valid" };
 
-  if (!isPrivileged(ctx.role)) {
+  if (ctx.role === "admin") {
+    // admin may delete any schedule
+  } else if (ctx.role === "produksi") {
     const { data } = await createAdminClient()
       .from("schedules")
       .select("user_id")
       .eq("id", id)
       .maybeSingle();
     if (data?.user_id !== ctx.userId) return { success: false, error: "Tidak memiliki akses" };
+  } else {
+    // QC and other non-admin/non-produksi roles cannot delete
+    return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
   }
 
   try {
@@ -153,6 +226,12 @@ export async function bulkActionSchedules(
   }
 
   if (!ids.length) return { success: false, error: "Tidak ada data dipilih" };
+
+  // Only admin may delete schedules. Produksi may only delete their own,
+  // and QC may not delete at all.
+  if (action === "delete" && ctx.role !== "admin" && ctx.role !== "produksi") {
+    return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
+  }
 
   // Non-privileged users may only act on schedules they own.
   if (!isPrivileged(ctx.role)) {
@@ -190,6 +269,39 @@ export async function bulkActionSchedules(
         .update({ status: "cancelled" })
         .in("id", ids)
         .in("status", ["pending", "on_the_way"]);
+      if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
+      const { error } = await query;
+      if (error) throw error;
+    } else if (action === "shift_forward") {
+      const { data: toShift, error: fetchErr } = await admin
+        .from("schedules")
+        .select("id, visit_date")
+        .in("id", ids)
+        .is("deleted_at", null);
+      if (fetchErr) throw fetchErr;
+      for (const s of toShift ?? []) {
+        const next = new Date(s.visit_date + "T00:00:00");
+        next.setDate(next.getDate() + 1);
+        await admin.from("schedules").update({ visit_date: next.toISOString().split("T")[0] }).eq("id", s.id);
+      }
+    } else if (action === "shift_backward") {
+      const { data: toShift, error: fetchErr } = await admin
+        .from("schedules")
+        .select("id, visit_date")
+        .in("id", ids)
+        .is("deleted_at", null);
+      if (fetchErr) throw fetchErr;
+      for (const s of toShift ?? []) {
+        const prev = new Date(s.visit_date + "T00:00:00");
+        prev.setDate(prev.getDate() - 1);
+        await admin.from("schedules").update({ visit_date: prev.toISOString().split("T")[0] }).eq("id", s.id);
+      }
+    } else if (["pending", "on_the_way", "in_progress", "completed"].includes(action)) {
+      const query = admin
+        .from("schedules")
+        .update({ status: action })
+        .in("id", ids)
+        .neq("status", "cancelled");
       if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
       const { error } = await query;
       if (error) throw error;
@@ -246,13 +358,35 @@ export async function updateVisitStatusAction(
     }
   }
 
+  // Cegah regresi status (completed/cancelled tidak bisa diubah lagi) dan
+  // validasi transisi yang diizinkan.
+  const { data: current } = await createAdminClient()
+    .from("schedules")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+  const currentStatus = (current?.status ?? "pending") as (typeof validStatuses)[number] as VisitStatus;
+  const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
+  if (!allowed.includes(status as VisitStatus)) {
+    return {
+      success: false,
+      error: `Transisi status ${currentStatus} -> ${status} tidak diizinkan`,
+    };
+  }
+
+  const lat = latitude ? Number(latitude) : NaN;
+  const lon = longitude ? Number(longitude) : NaN;
+  if ((latitude || longitude) && (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180)) {
+    return { success: false, error: "Koordinat GPS tidak valid" };
+  }
+
   try {
     const admin = createAdminClient();
     const updateData: Record<string, unknown> = { status };
 
     if (latitude && longitude) {
-      updateData.latitude = parseFloat(latitude);
-      updateData.longitude = parseFloat(longitude);
+      updateData.latitude = lat;
+      updateData.longitude = lon;
     }
 
     if (status === "completed") {

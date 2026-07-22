@@ -6,6 +6,7 @@ export const userSchema = z.object({
   role: z.enum(["admin", "qc", "produksi"]),
   phone: z.string().optional(),
   is_active: z.boolean().default(true),
+  assigned_kabupaten_ids: z.array(z.string()).default([]),
 });
 
 export type UserInput = z.infer<typeof userSchema>;

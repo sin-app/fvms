@@ -10,15 +10,15 @@
 - Set up CI/CD pipeline
 
 ### Tasks
-- [ ] Initialize Next.js 16 project with TypeScript
-- [ ] Configure Tailwind CSS + shadcn/ui
-- [ ] Set up Supabase project (DB, Auth, Storage)
-- [ ] Create database migrations (all tables, RLS, indexes)
-- [ ] Set up ESLint, Prettier, Husky
-- [ ] Configure environment variables
-- [ ] Set up GitHub repository
-- [ ] Deploy initial scaffold to Vercel
-- [ ] Set up CI/CD with GitHub Actions
+- [x] Initialize Next.js 16 project with TypeScript
+- [x] Configure Tailwind CSS + shadcn/ui
+- [x] Set up Supabase project (DB, Auth, Storage)
+- [x] Create database migrations (all tables, RLS, indexes)
+- [x] Set up ESLint, Prettier, Husky
+- [x] Configure environment variables
+- [x] Set up GitHub repository
+- [x] Deploy initial scaffold to Vercel (https://fvms-eight.vercel.app)
+- [x] Set up CI/CD with GitHub Actions
 
 ### Deliverables
 - Working Next.js app deployed on Vercel
@@ -37,13 +37,14 @@
 - Create user profile page
 
 ### Tasks
-- [ ] Configure Supabase Auth
-- [ ] Build Login page and form
-- [ ] Build Password Reset flow
-- [ ] Create auth middleware
-- [ ] Build Profile page
-- [ ] Implement session management
-- [ ] Create auth layout (unauthenticated)
+- [x] Configure Supabase Auth
+- [x] Build Login page and form
+- [x] Build Password Reset flow
+- [x] Create auth middleware (src/proxy.ts for Next.js 16)
+- [x] Build Profile page
+- [x] Implement session management
+- [x] Create auth layout (unauthenticated)
+- [x] Rate-limit login & reset-password endpoints
 
 ### Deliverables
 - Working authentication
@@ -55,17 +56,17 @@
 ## Phase 2: Master Data (Week 3)
 
 ### Objectives
-- CRUD for Kabupaten, Kecamatan, Desa
+- CRUD for Kabupaten, Kecamatan, Desa (ADMIN-ONLY)
 - Hierarchical data management
 - Responsive tables with search
 
 ### Tasks
-- [ ] Build Kabupaten management (list, create, edit, delete)
-- [ ] Build Kecamatan management (filtered by Kabupaten)
-- [ ] Build Desa management (filtered by Kecamatan)
-- [ ] Create reusable RegionSelector component
-- [ ] Implement soft delete
-- [ ] Add search and pagination
+- [x] Build Kabupaten management (list, create, edit, delete) — admin only
+- [x] Build Kecamatan management (filtered by Kabupaten) — admin only
+- [x] Build Desa management (filtered by Kecamatan) — admin only
+- [x] Create reusable RegionSelector component
+- [x] Implement soft delete
+- [x] Add search and pagination
 
 ### Deliverables
 - Fully functional master data module
@@ -105,14 +106,15 @@
 - Schedule detail page
 
 ### Tasks
-- [ ] Build ScheduleTable with TanStack Table
-- [ ] Build ScheduleForm (create/edit)
-- [ ] Build ScheduleFilters
-- [ ] Implement search with debounce
-- [ ] Implement pagination
-- [ ] Build CalendarView with FullCalendar
-- [ ] Build Schedule detail page
-- [ ] Add cascading region selects
+- [x] Build ScheduleTable with TanStack Table
+- [x] Build ScheduleForm (create/edit) with full fields (CGR, CGR Code, Block No, No Plot, Member Name, Document No, NIS, Tgl Tanam, PH Tanah, Real Tanam HA, Gagal Tanam, Sisa di Lahan HA)
+- [x] Build ScheduleFilters
+- [x] Implement search with debounce
+- [x] Implement pagination
+- [x] Build CalendarView with FullCalendar
+- [x] Build Schedule detail page
+- [x] Add cascading region selects
+- [x] Add instant "Geser +1 Hari" / "Kembalikan -1 Hari" schedule shift buttons
 
 ### Deliverables
 - Complete schedule management
@@ -130,14 +132,15 @@
 - GPS capture
 
 ### Tasks
-- [ ] Build VisitStatusSelector with state machine
-- [ ] Build VisitNotesForm
-- [ ] Build VisitPhotos component with upload
-- [ ] Implement image compression (browser-side)
-- [ ] Build VisitGps component
-- [ ] Integrate Leaflet map
-- [ ] Build VisitTimeline component
-- [ ] Create visit detail page
+- [x] Build VisitStatusSelector with state machine
+- [x] Build VisitNotesForm
+- [x] Build VisitPhotos component with upload (QC: upload/capture GPS allowed; delete/edit photos restricted)
+- [x] Implement image compression (browser-side)
+- [x] Build VisitGps component
+- [x] Integrate Leaflet map
+- [x] Build VisitTimeline component
+- [x] Create visit detail page
+- [x] Store photos in PRIVATE bucket served via signed URLs
 
 ### Deliverables
 - Complete visit execution flow
@@ -155,14 +158,15 @@
 - Bulk import
 
 ### Tasks
-- [ ] Build FileUploader (drag-drop)
-- [ ] Build ColumnMapping component
-- [ ] Build PreviewTable
-- [ ] Implement SheetJS parsing
-- [ ] Build ValidationReport
-- [ ] Implement bulk insert
-- [ ] Add import history
-- [ ] Error report download
+- [x] Build FileUploader (drag-drop) — admin only
+- [x] Build ColumnMapping component
+- [x] Build PreviewTable
+- [x] Implement SheetJS parsing
+- [x] Build ValidationReport
+- [x] Implement bulk insert
+- [x] Add import history
+- [x] Error report download
+- [x] resetAllData is admin-only
 
 ### Deliverables
 - Working Excel import flow
@@ -179,12 +183,12 @@
 - Filter by officer, region, date
 
 ### Tasks
-- [ ] Build ReportFilters component
-- [ ] Build ReportTable component
-- [ ] Implement Excel export (SheetJS)
-- [ ] Implement PDF export
-- [ ] Build report preview
-- [ ] Add charts (completion rate, etc.)
+- [x] Build ReportFilters component
+- [x] Build ReportTable component
+- [x] Implement Excel export (SheetJS)
+- [x] Implement PDF export
+- [x] Build report preview
+- [x] Add charts (completion rate, etc.)
 
 ### Deliverables
 - Working report generation
@@ -200,12 +204,12 @@
 - Late visit warnings
 
 ### Tasks
-- [ ] Build NotificationBell component
-- [ ] Build NotificationList component
-- [ ] Implement notification generation (triggers)
-- [ ] Schedule notification checks (cron)
-- [ ] Mark as read functionality
-- [ ] Notification center page
+- [x] Build NotificationBell component
+- [x] Build NotificationList component
+- [x] Implement notification generation (triggers)
+- [x] Schedule notification checks (cron)
+- [x] Mark as read functionality
+- [x] Notification center page
 
 ### Deliverables
 - In-app notification system
@@ -217,15 +221,16 @@
 
 ### Objectives
 - Admin user CRUD
-- Role management
+- Role management (admin / qc / produksi)
 - Account activation/deactivation
 
 ### Tasks
-- [ ] Build UsersTable
-- [ ] Build UserForm (create/edit)
-- [ ] Implement role assignment
-- [ ] Account activation toggle
-- [ ] Invite new users via email
+- [x] Build UsersTable
+- [x] Build UserForm (create/edit)
+- [x] Implement role assignment
+- [x] Account activation toggle
+- [x] Invite new users via email
+- [x] QC scoped to assigned_kabupaten_ids (wilayah tugas): view schedules only within assigned kabupaten, upload photos & capture GPS in field, cannot delete/edit photos or delete schedules
 
 ### Deliverables
 - User management for admins
@@ -242,15 +247,22 @@
 - Bug fixes
 
 ### Tasks
-- [ ] Write unit tests (Vitest)
-- [ ] Write integration tests
-- [ ] Write E2E tests (Playwright)
-- [ ] Performance profiling
-- [ ] Accessibility audit (WCAG AA)
-- [ ] Mobile testing on real devices
-- [ ] Load testing
-- [ ] Security audit
-- [ ] Bug fixes
+- [x] Write unit tests (Vitest) — 59+ tests passing
+- [x] Write integration tests (Vitest + MSW)
+- [x] Write E2E tests (Playwright) — auth, schedules, reports, notifications, master-data
+- [x] Performance profiling
+- [x] Accessibility audit (WCAG AA)
+- [x] Mobile testing on real devices
+- [x] Load testing
+- [x] Security hardening:
+  - [x] RLS enabled on all tables
+  - [x] Server actions gated by getAuthContext() / canAccessSchedule() / qcKabupatenScope()
+  - [x] CSP + security headers in next.config.ts
+  - [x] Login & reset-password rate limiting
+  - [x] Photos in PRIVATE bucket via signed URLs
+  - [x] Structured JSON logger (src/lib/logger.ts)
+  - [x] /health endpoint
+- [x] Bug fixes
 
 ### Deliverables
 - Test coverage > 80%
@@ -264,13 +276,13 @@
 
 | Week | Phase | Milestone |
 |------|-------|-----------|
-| 1 | Foundation | Project scaffold deployed |
-| 2 | Auth | Login/logout working |
-| 3 | Master Data | Region management |
+| 1 | Foundation | Project scaffold deployed → https://fvms-eight.vercel.app |
+| 2 | Auth | Login/logout working, rate-limited |
+| 3 | Master Data | Region management (admin-only) |
 | 4 | Dashboard | Dashboard with live data |
-| 5-6 | Schedule | Full schedule management |
-| 7-8 | Visit | Visit execution complete |
-| 9 | Import | Excel import working |
-| 10 | Reports | Report generation |
-| 11 | Notifications + Users | Notifications + User mgmt |
-| 12 | Polish | Production-ready |
+| 5-6 | Schedule | Full schedule management, +1/-1 day shift, full field set |
+| 7-8 | Visit | Visit execution complete, private photo bucket |
+| 9 | Import | Excel import working (admin-only) |
+| 10 | Reports | Report generation, Excel & PDF export, charts |
+| 11 | Notifications + Users | Notifications (in-app, cron, Realtime), User mgmt, QC kabupaten scoping |
+| 12 | Polish | Production-ready, security hardened, 59+ tests |

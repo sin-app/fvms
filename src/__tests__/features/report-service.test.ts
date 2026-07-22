@@ -4,6 +4,17 @@ vi.mock("@/lib/supabase/admin-client", () => ({
   createAdminClient: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/authorization", () => ({
+  getAuthContext: vi.fn(async () => ({
+    userId: "admin-1",
+    role: "admin",
+    assignedKabupatenIds: [],
+  })),
+  qcKabupatenScope: vi.fn((ctx: { role: string; assignedKabupatenIds: string[] }) =>
+    ctx.role === "qc" ? ctx.assignedKabupatenIds : null,
+  ),
+}));
+
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getReportData, getReportRows, exportToExcel } from "@/features/reports/services/report-service";
 

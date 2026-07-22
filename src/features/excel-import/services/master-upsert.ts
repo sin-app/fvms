@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { logger } from "@/lib/logger";
 
 export interface MasterLookup {
   created: { kabupaten: number; kecamatan: number; desa: number };
@@ -42,7 +43,7 @@ export function createMasterUpserter(): MasterUpsertResult {
     if (payload.length === 0) return map;
     const { data, error } = await admin.from(table).insert(payload).select("id, name");
     if (error) {
-      console.error(`[master-upsert] insert ${table} failed:`, error?.message);
+      logger.error("master-upsert: insert failed", { table, error: error?.message });
     }
     for (const row of data ?? []) map.set(row.name.toLowerCase(), row.id);
     // Re-fetch to capture rows that already existed or were just inserted.

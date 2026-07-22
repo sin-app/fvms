@@ -3,6 +3,7 @@ export interface ReportFilters {
   date_to?: string;
   user_id?: string;
   kabupaten_id?: string;
+  kecamatan_id?: string;
   status?: string;
 }
 

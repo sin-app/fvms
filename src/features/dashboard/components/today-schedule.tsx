@@ -46,6 +46,9 @@ export function TodaySchedule({ schedules }: TodayScheduleProps) {
               <p className="text-xs text-muted-foreground truncate">
                 {(schedule as unknown as { desa?: { name: string } }).desa?.name ?? "—"}
               </p>
+              <p className="text-xs text-muted-foreground/70 truncate">
+                Petugas: {(schedule as unknown as { users?: { name: string } }).users?.name ?? "—"}
+              </p>
             </div>
             <StatusBadge status={schedule.status} size="sm" />
           </Link>

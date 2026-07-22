@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useActionState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/components/auth-context";
 import type { Kecamatan } from "@/types";
 import type { ActionResponse } from "@/types/common";
 import type { ReactNode } from "react";
@@ -106,6 +107,8 @@ function KecamatanForm({
 }
 
 export function KecamatanTable() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [kabupatenFilter, setKabupatenFilter] = useState("");
@@ -135,9 +138,11 @@ export function KecamatanTable() {
         title="Kecamatan"
         description="Kelola data kecamatan"
         actions={
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Tambah Kecamatan
-          </Button>
+          isAdmin ? (
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Tambah Kecamatan
+            </Button>
+          ) : undefined
         }
       />
 
@@ -165,7 +170,7 @@ export function KecamatanTable() {
         <EmptyState
           title="Belum ada data"
           description="Belum ada kecamatan yang ditambahkan"
-          action={{ label: "Tambah Kecamatan", onClick: () => setShowCreate(true) }}
+          action={isAdmin ? { label: "Tambah Kecamatan", onClick: () => setShowCreate(true) } : undefined}
         />
       ) : (
         <>
@@ -187,16 +192,20 @@ export function KecamatanTable() {
                     <td className="p-3 text-sm whitespace-nowrap text-muted-foreground">
                       {(item as unknown as { kabupaten?: { name: string } }).kabupaten?.name}
                     </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setEditing(item)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleting(item)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
+                     <td className="p-3 text-right">
+                       <div className="flex items-center justify-end gap-1">
+                         {isAdmin && (
+                           <>
+                             <Button variant="ghost" size="icon" onClick={() => setEditing(item)}>
+                               <Pencil className="h-4 w-4" />
+                             </Button>
+                             <Button variant="ghost" size="icon" onClick={() => setDeleting(item)}>
+                               <Trash2 className="h-4 w-4 text-destructive" />
+                             </Button>
+                           </>
+                         )}
+                       </div>
+                     </td>
                   </tr>
                 ))}
               </tbody>

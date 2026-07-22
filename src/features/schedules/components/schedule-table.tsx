@@ -2,8 +2,8 @@
 
 import { useState, Fragment } from "react";
 import Link from "next/link";
-import { Eye, Trash2, CheckCheck, XCircle } from "lucide-react";
-import { useSchedules, useDeleteSchedule } from "../hooks/use-schedules";
+import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus } from "lucide-react";
+import { useSchedules, useDeleteSchedule, useShiftScheduleDate } from "../hooks/use-schedules";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -14,6 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { formatDateDay, isTodayDate } from "@/lib/utils/date";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { useBulkAction } from "../hooks/use-schedules";
+import { ScheduleForm } from "./schedule-form";
+import { updateScheduleAction } from "../actions/schedule-actions";
 import type { Schedule } from "@/types";
 import type { ScheduleFilters } from "../types";
 
@@ -28,10 +30,35 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const bulkAction = useBulkAction();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState<Schedule | null>(null);
+  const [editing, setEditing] = useState<Schedule | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [optimisticDates, setOptimisticDates] = useState<Record<string, string>>({});
 
   const isAdmin = user?.role === "admin";
+  const canDelete = user?.role === "admin";
+  const canBulkShift = user?.role === "admin" || user?.role === "qc";
+  const shiftSchedule = useShiftScheduleDate();
+
+  function canShift(schedule: Schedule) {
+    if (user?.role === "admin" || user?.role === "qc") return true;
+    return schedule.user_id === user?.id;
+  }
+
+  function handleShiftInstant(schedule: Schedule, days: number) {
+    const base = optimisticDates[schedule.id] ?? schedule.visit_date;
+    const next = new Date(base + "T00:00:00");
+    next.setDate(next.getDate() + days);
+    const nextStr = next.toISOString().split("T")[0];
+    setOptimisticDates((prev) => ({ ...prev, [schedule.id]: nextStr }));
+    shiftSchedule.mutate({ id: schedule.id, days }, {
+      onError: () =>
+        setOptimisticDates((prev) => {
+          const { [schedule.id]: _removed, ...rest } = prev;
+          return rest;
+        }),
+    });
+  }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -71,7 +98,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
       <EmptyState
         title="Tidak ada jadwal"
         description="Belum ada jadwal kunjungan. Import dari Excel atau buat jadwal baru."
-        action={{ label: "Import Excel", onClick: () => window.location.href = "/import" }}
+        action={{ label: "Import Excel", href: "/import" }}
       />
     );
   }
@@ -99,6 +126,22 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => handleBulk("on_the_way")}
+                disabled={bulkAction.isPending}
+              >
+                🚗 On The Way
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulk("in_progress")}
+                disabled={bulkAction.isPending}
+              >
+                📋 In Progress
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleBulk("cancel")}
                 disabled={bulkAction.isPending}
               >
@@ -107,15 +150,39 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
               </Button>
             </>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowBulkDelete(true)}
-            disabled={bulkAction.isPending}
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Hapus
-          </Button>
+          {canBulkShift && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulk("shift_forward")}
+                disabled={bulkAction.isPending}
+              >
+                <CalendarPlus className="h-4 w-4 mr-1" />
+                +1 Hari
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulk("shift_backward")}
+                disabled={bulkAction.isPending}
+              >
+                <CalendarMinus className="h-4 w-4 mr-1" />
+                -1 Hari
+              </Button>
+            </>
+          )}
+          {canDelete && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkDelete(true)}
+              disabled={bulkAction.isPending}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Hapus
+            </Button>
+          )}
         </div>
       )}
 
@@ -134,9 +201,13 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Petugas</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">CGR</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Block/Plot</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Member</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Doc No</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">NIS</th>
+                <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">PH Tanah</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Tanam (HA)</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Aksi</th>
@@ -144,22 +215,23 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
             </thead>
             <tbody>
               {data.data.map((schedule, idx) => {
+                const displayDate = optimisticDates[schedule.id] ?? schedule.visit_date;
                 const prev = data.data[idx - 1];
-                const showGroup = !prev || prev.visit_date !== schedule.visit_date;
+                const showGroup = !prev || (optimisticDates[prev.id] ?? prev.visit_date) !== displayDate;
                 return (
                   <Fragment key={schedule.id}>
                     {showGroup && (
                       <tr className="bg-muted/70">
-                        <td colSpan={10} className="p-2.5 px-3">
+                         <td colSpan={14} className="p-2.5 px-3">
                           <div className="flex items-center gap-2 text-sm font-semibold">
-                            {formatDateDay(schedule.visit_date)}
-                            {isTodayDate(schedule.visit_date) && (
+                            {formatDateDay(displayDate)}
+                            {isTodayDate(displayDate) && (
                               <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-0.5">
                                 Hari ini
                               </span>
                             )}
                             <span className="text-xs font-normal text-muted-foreground">
-                              ({data.data.filter((s) => s.visit_date === schedule.visit_date).length} jadwal)
+                              ({data.data.filter((s) => (optimisticDates[s.id] ?? s.visit_date) === displayDate).length} jadwal)
                             </span>
                           </div>
                         </td>
@@ -181,8 +253,11 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       <td className="p-3 text-sm">
                         {(schedule as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm">
+                       <td className="p-3 text-sm">
                         {(schedule as unknown as { desa?: { name: string } }).desa?.name ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm whitespace-nowrap">
+                        {schedule.users?.name ?? schedule.user?.name ?? "—"}
                       </td>
                       <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.cgr ?? "—"}
@@ -192,8 +267,17 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                         {schedule.block_no ?? "—"}
                         {schedule.no_plot ? <span className="text-muted-foreground text-xs block">Plot: {schedule.no_plot}</span> : null}
                       </td>
-                      <td className="p-3 text-sm">
+                       <td className="p-3 text-sm">
                         {schedule.member_name ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm whitespace-nowrap">
+                        {schedule.document_no ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm whitespace-nowrap">
+                        {schedule.nis ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm text-right whitespace-nowrap">
+                        {schedule.ph_tanah ?? "—"}
                       </td>
                       <td className="p-3 text-sm text-right whitespace-nowrap">
                         {schedule.real_tanam_ha ?? "—"}
@@ -209,13 +293,48 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleting(schedule)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditing(schedule)}
+                              aria-label="Edit"
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleting(schedule)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                          {canShift(schedule) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleShiftInstant(schedule, 1)}
+                              aria-label="Geser +1 hari"
+                              title="Geser +1 hari"
+                            >
+                              <CalendarPlus className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canShift(schedule) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleShiftInstant(schedule, -1)}
+                              aria-label="Kembalikan -1 hari"
+                              title="Kembalikan -1 hari"
+                            >
+                              <CalendarMinus className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -272,6 +391,15 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
         onConfirm={() => handleBulk("delete")}
         loading={bulkAction.isPending}
       />
+
+      {editing && (
+        <ScheduleForm
+          action={updateScheduleAction}
+          defaultValues={editing}
+          open={!!editing}
+          onOpenChange={(o) => { if (!o) setEditing(null); }}
+        />
+      )}
     </div>
   );
 }

@@ -2,16 +2,29 @@
 
 import { SearchInput } from "@/components/shared/search-input";
 import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
+import { useAllCgr } from "../hooks/use-cgr";
 import { useAllUsers } from "../hooks/use-users";
 import { STATUS_LABELS } from "@/lib/constants/status";
 
 interface ScheduleFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
+  memberName: string;
+  onMemberNameChange: (value: string) => void;
+  blockNo: string;
+  onBlockNoChange: (value: string) => void;
+  noPlot: string;
+  onNoPlotChange: (value: string) => void;
+  nis: string;
+  onNisChange: (value: string) => void;
+  tglTanam: string;
+  onTglTanamChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
   userId: string;
   onUserIdChange: (value: string) => void;
+  cgr: string;
+  onCgrChange: (value: string) => void;
   kabupatenId: string;
   onKabupatenChange: (value: string) => void;
   kecamatanId: string;
@@ -22,6 +35,9 @@ interface ScheduleFiltersProps {
   dateTo: string;
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
+  varietas: string;
+  onVarietasChange: (value: string) => void;
+  hidePetugasFilter?: boolean;
 }
 
 const DATE_PRESETS = [
@@ -67,10 +83,22 @@ function getDateRange(preset: string) {
 export function ScheduleFilters({
   search,
   onSearchChange,
+  memberName,
+  onMemberNameChange,
+  blockNo,
+  onBlockNoChange,
+  noPlot,
+  onNoPlotChange,
+  nis,
+  onNisChange,
+  tglTanam,
+  onTglTanamChange,
   status,
   onStatusChange,
   userId,
   onUserIdChange,
+  cgr,
+  onCgrChange,
   kabupatenId,
   onKabupatenChange,
   kecamatanId,
@@ -81,10 +109,14 @@ export function ScheduleFilters({
   dateTo,
   onDateFromChange,
   onDateToChange,
+  varietas,
+  onVarietasChange,
+  hidePetugasFilter = false,
 }: ScheduleFiltersProps) {
   const { data: kabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
   const { data: users } = useAllUsers();
+  const { data: cgrList } = useAllCgr();
 
   function handleDateRange(value: string) {
     onDateRangeChange(value);
@@ -110,6 +142,52 @@ export function ScheduleFilters({
             placeholder="Cari berdasarkan wilayah..."
           />
         </div>
+        <input
+          value={memberName}
+          onChange={(e) => onMemberNameChange(e.target.value)}
+          placeholder="Nama Member"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
+        />
+        <input
+          value={varietas}
+          onChange={(e) => onVarietasChange(e.target.value)}
+          placeholder="Kode Varietas (mis. JP-06)"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
+        />
+        <input
+          value={blockNo}
+          onChange={(e) => onBlockNoChange(e.target.value)}
+          placeholder="Block"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+        />
+        <input
+          value={noPlot}
+          onChange={(e) => onNoPlotChange(e.target.value)}
+          placeholder="Plot"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+        />
+        <input
+          value={nis}
+          onChange={(e) => onNisChange(e.target.value)}
+          placeholder="NIS"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+        />
+        <input
+          value={tglTanam}
+          onChange={(e) => onTglTanamChange(e.target.value)}
+          placeholder="Tgl Tanam"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+        />
+        <select
+          value={cgr}
+          onChange={(e) => onCgrChange(e.target.value)}
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-48"
+        >
+          <option value="">Semua CGR</option>
+          {cgrList?.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value)}
@@ -120,16 +198,18 @@ export function ScheduleFilters({
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
-        <select
-          value={userId}
-          onChange={(e) => onUserIdChange(e.target.value)}
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
-        >
-          <option value="">Semua Produksi</option>
-          {users?.map((u) => (
-            <option key={u.id} value={u.id}>{u.name}</option>
-          ))}
-        </select>
+        {!hidePetugasFilter && (
+          <select
+            value={userId}
+            onChange={(e) => onUserIdChange(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
+          >
+            <option value="">Semua Produksi</option>
+            {users?.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        )}
         <select
           value={kabupatenId}
           onChange={(e) => handleKabupaten(e.target.value)}

@@ -117,6 +117,16 @@ Standard shadcn/ui components configured with FVMS theme:
 // Props: { error: Error, onRetry?: () => void, message?: string }
 ```
 
+### UsersTable (admin only)
+```typescript
+// Admin user management table
+// Columns: name, email, role, status, "Wilayah Tugas", actions
+// "Wilayah Tugas" column shows the user's assigned kabupaten names
+//   (for QC users: lists assigned_kabupaten_ids as kabupaten names;
+//    empty/— for admin and produksi)
+// Actions: edit, deactivate (with ConfirmDialog)
+```
+
 ### ConfirmDialog
 ```typescript
 // Confirmation dialog
@@ -130,6 +140,8 @@ Standard shadcn/ui components configured with FVMS theme:
 //   onConfirm: () => void,
 //   loading?: boolean,
 // }
+// Usage: used for destructive actions such as deleting a photo,
+//   deactivating a user, or confirming logout.
 ```
 
 ### StatCard
@@ -239,21 +251,31 @@ Standard shadcn/ui components configured with FVMS theme:
 **ScheduleTable**
 ```typescript
 // Full schedule list with TanStack Table
-// Columns: date, kabupaten, kecamatan, desa, status, actions
-// Features: search, filter, sort, pagination
+// Columns: date, member_name, kabupaten, kecamatan, block_no, no_plot, nis, status, actions
+// Features: search, filter, sort, pagination, multi-select
+// Inline row actions: "Geser +1 Hari", "Kembalikan -1 Hari", "✏️ Edit"
+//   Edit opens ScheduleForm with defaultValues pre-filled
+// Bulk actions (batch): "Geser +1 Hari", "Kembalikan -1 Hari",
+//   set status "on_the_way" or "in_progress"
+// QC users only see rows within their assigned kabupaten
 ```
 
 **ScheduleForm**
 ```typescript
-// Create/edit schedule form
-// Fields: user, kabupaten, kecamatan, desa, visit_date, notes
+// Create/edit schedule form (reused for both)
+// Props: { defaultValues?: ScheduleInput, onSuccess?: () => void }
+// Fields: member_name, block_no, no_plot, nis, tgl_tanam, kabupaten,
+//   kecamatan, desa, visit_date, notes, status
 // Cascading selects: kabupaten → kecamatan → desa
+// When defaultValues provided: operates in "edit" mode (calls updateScheduleAction)
+// When no defaultValues: operates in "create" mode (calls createScheduleAction)
 ```
 
 **ScheduleFilters**
 ```typescript
 // Filter bar for schedule list
-// Filters: kabupaten, kecamatan, desa, date range, status
+// Filters: kabupaten, kecamatan, desa, date range, status,
+//   member_name, block_no, no_plot, nis, tgl_tanam
 // Clear all button
 ```
 
@@ -286,9 +308,12 @@ Standard shadcn/ui components configured with FVMS theme:
 ```typescript
 // Photo gallery + upload
 // Grid of existing photos
-// Upload button → camera/gallery
+// Upload button → camera/gallery (available to produksi and QC)
 // Auto-compress before upload
-// Delete photo (with confirm)
+// Delete/edit photo (with ConfirmDialog) — gated by role:
+//   produksi can delete/edit their own photos
+//   QC can upload/capture GPS but CANNOT delete or edit photos
+//   admin can manage all photos
 ```
 
 **VisitGps**
@@ -342,13 +367,16 @@ Standard shadcn/ui components configured with FVMS theme:
 // Grouped by date
 // Each item: icon (by type), title, message, time, read/unread
 // Click: mark as read + navigate to related page
+// Shows: "Clear All" button to delete all notifications
+// Real-time updates via Supabase Realtime subscription
 ```
 
 **NotificationBell**
 ```typescript
 // Header notification indicator
-// Icon with unread count badge
+// Icon with unread count badge (polled, updates every 30s)
 // Click: open notification dropdown/panel
+// Realtime updates via Supabase Realtime channel
 ```
 
 ## 5. Component States

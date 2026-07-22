@@ -5,7 +5,7 @@
 - Server Actions preferred for mutations (no REST endpoints needed)
 - TanStack Query for client-side data fetching
 - Supabase client-side queries for simple reads (with RLS)
-- API routes only for server-side operations (file processing, PDF generation)
+- API routes for cron jobs, health/readiness checks, and server-side operations (PDF generation)
 
 ## 2. Server Actions
 
@@ -22,6 +22,8 @@ type ActionResponse<T = void> = {
 
 ### 2.1 Auth Actions
 
+All auth actions require `getAuthContext()` and enforce role/kabupaten scoping server-side. `login` and `resetPassword` are rate-limited.
+
 | Action | Method | Input | Output |
 |--------|--------|-------|--------|
 | `login` | Server Action | `{ email, password }` | Session |
@@ -29,7 +31,11 @@ type ActionResponse<T = void> = {
 | `resetPassword` | Server Action | `{ email }` | void |
 | `updateProfile` | Server Action | `{ name, phone, avatar }` | User |
 
+> **Rate limiting:** `login` and `resetPassword` are rate-limited (5 requests/minute per IP).
+
 ### 2.2 Master Data Actions
+
+> **Admin-only:** all master data actions (route-guarded + hidden UI for non-admins).
 
 | Action | Method | Input | Output |
 |--------|--------|-------|--------|
@@ -43,6 +49,16 @@ type ActionResponse<T = void> = {
 | `updateDesa` | Server Action | `{ id, name, code, kecamatan_id }` | Desa |
 | `deleteDesa` | Server Action | `{ id }` | void |
 
+### 2.2b User Actions
+
+| Action | Method | Input | Output |
+|--------|--------|-------|--------|
+| `createUser` | Server Action | `{ email, name, role, assigned_kabupaten_ids?, phone? }` | User |
+| `updateUser` | Server Action | `{ id, name?, role?, assigned_kabupaten_ids?, phone?, is_active? }` | User |
+| `deleteUser` | Server Action | `{ id }` | void |
+
+> `assigned_kabupaten_ids` (`uuid[]`) scopes QC users to their wilayah tugas; ignored for `admin`/`produksi`.
+
 ### 2.3 Schedule Actions
 
 | Action | Method | Input | Output |
@@ -50,24 +66,31 @@ type ActionResponse<T = void> = {
 | `createSchedule` | Server Action | ScheduleInput | Schedule |
 | `updateSchedule` | Server Action | `{ id, ...ScheduleInput }` | Schedule |
 | `deleteSchedule` | Server Action | `{ id }` | void |
+| `shiftSchedule` | Server Action | `{ id, days: 1 | -1 }` | Schedule |
 | `updateVisitStatus` | Server Action | `{ id, status, latitude?, longitude? }` | Schedule |
 | `bulkCreateSchedules` | Server Action | `ScheduleInput[]` | Schedule[] |
+
+> `ScheduleInput` includes: cgr, cgr_code, block_no, no_plot, member_name, document_no, nis, tgl_tanam, ph_tanah, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, plus kabupaten/kecamatan/desa, visit_date, notes, status.
+> `shiftSchedule` accepts `days` (+1 = "Geser +1 Hari", -1 = "Kembalikan -1 Hari") and applies an optimistic UI update. QC users cannot call `deleteSchedule`.
 
 ### 2.4 Visit Actions
 
 | Action | Method | Input | Output |
 |--------|--------|-------|--------|
 | `saveVisitNotes` | Server Action | `{ schedule_id, observation, problem, recommend, additional }` | VisitNotes |
-| `uploadVisitPhoto` | Server Action | `{ schedule_id, file: FormDataEntryValue }` | VisitPhoto |
+| `uploadVisitPhoto` | Server Action | `{ schedule_id, file: FormDataEntryValue }` | VisitPhoto (with signed URL) |
 | `deleteVisitPhoto` | Server Action | `{ id }` | void |
 | `captureGpsLocation` | Server Action | `{ schedule_id, latitude, longitude, accuracy }` | void |
 
 ### 2.5 Excel Import Actions
 
+> **Admin-only:** `importExcel` and `resetAllData` (reset before re-import) are admin-only.
+
 | Action | Method | Input | Output |
 |--------|--------|-------|--------|
 | `importExcel` | Server Action | `{ file, column_mapping }` | ImportResult |
 | `previewExcel` | Client-side | File | PreviewData[] |
+| `resetAllData` | Server Action | - | void |
 
 ### 2.6 Notification Actions
 
@@ -75,33 +98,41 @@ type ActionResponse<T = void> = {
 |--------|--------|-------|--------|
 | `markNotificationRead` | Server Action | `{ id }` | void |
 | `markAllNotificationsRead` | Server Action | - | void |
+| `clearNotifications` | Server Action | - | void |
 
 ## 3. API Routes (Next.js Route Handlers)
 
-Used only when Server Actions are insufficient (e.g., file download).
+Used only when Server Actions are insufficient (e.g., cron, health checks, file download).
 
-### 3.1 Reports
-
-| Endpoint | Method | Query Params | Response |
-|----------|--------|-------------|----------|
-| `/api/reports/daily` | GET | `date, user_id` | Excel/PDF |
-| `/api/reports/weekly` | GET | `start_date, end_date, user_id` | Excel/PDF |
-| `/api/reports/monthly` | GET | `month, year, user_id` | Excel/PDF |
-| `/api/reports/export` | POST | `{ type, format, filters }` | Excel/PDF |
-
-### 3.2 Photos
+### 3.1 Health & Readiness
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/photos/upload` | POST | Upload photo to Supabase Storage |
-| `/api/photos/delete` | DELETE | Delete photo from storage |
-| `/api/photos/{id}` | GET | Serve photo with cache headers |
+| `/health` | GET | Liveness check — returns `200` + `{ status, uptime }` |
+| `/ready` | GET | Readiness check — pings Supabase DB; returns `200` if connected, `503` if DB unreachable |
 
-### 3.3 Excel
+### 3.2 Cron Jobs
+
+> Protected by `CRON_SECRET` env var via `Authorization: Bearer <secret>` header; configured in `vercel.json`.
+
+| Endpoint | Method | Schedule | Description |
+|----------|--------|----------|-------------|
+| `/api/cron/notifications` | GET | Daily 07:00 UTC (`7 0 * * *`) | Generates due-soon notifications for schedules within the next 3 days |
+
+### 3.3 Reports
+
+Reports use **client-side rendering** (TanStack Query + export via component), not dedicated API routes.
+
+### 3.4 Notifications
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/excel/template` | GET | Download example Excel template |
+| `/api/notifications` | GET | Fetch notifications for current user (via Server Action, not REST) |
+| `/api/notifications/count` | GET | Get unread notification count (used by `NotificationBell`) |
+
+### 3.5 Rate Limiting
+
+Rate limits are enforced via the `rate_limits` table (persistent across Vercel cold starts) with in-memory fallback.
 
 ## 4. Supabase Direct Queries
 
@@ -192,10 +223,21 @@ interface ApiError {
 
 ## 6. Rate Limiting
 
-- Auth endpoints: 5 requests per minute per IP
-- API routes: 30 requests per minute per user
-- File upload: 10 requests per minute per user
-- Excel import: 3 requests per 5 minutes per user
+Rate limits use the `rate_limits` table (Supabase) with in-memory fallback to survive cold starts.
+
+| Scope | Limit | Window |
+|-------|-------|--------|
+| Auth (`login`, `resetPassword`) | 5 requests | 1 minute per IP |
+| API routes | 30 requests | 1 minute per user |
+| File upload | 10 requests | 1 minute per user |
+| Excel import | 3 requests | 5 minutes per user |
+
+## 6.1 Health Check
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Liveness probe: returns `200` + `{ status, uptime, timestamp }` |
+| `/ready` | GET | Readiness probe: pings Supabase DB; `200` if connected, `503` if DB unreachable |
 
 ## 7. Caching Strategy
 
@@ -205,5 +247,5 @@ interface ApiError {
 | Schedule List | TanStack Query staleTime | 1 minute |
 | Dashboard Stats | Server Component with revalidate | 30 seconds |
 | User Profile | TanStack Query staleTime | 5 minutes |
-| Visit Photos | Browser Cache (public) | 1 hour |
+| Visit Photos | Browser Cache (signed URL) | 1 hour |
 | Reports | No cache (dynamic) | - |

@@ -15,6 +15,9 @@ const TARGET_FIELDS = [
   { key: "block_no", label: "Block No" },
   { key: "no_plot", label: "No Plot" },
   { key: "member_name", label: "Member Name" },
+  { key: "document_no", label: "Document No" },
+  { key: "ph_tanah", label: "PH Tanah" },
+  { key: "nis", label: "NIS" },
   { key: "real_tanam_ha", label: "Real Tanam (HA)" },
   { key: "gagal_tanam", label: "Gagal Tanam" },
   { key: "sisa_di_lahan_ha", label: "Sisa LahAN (HA)" },
@@ -42,14 +45,14 @@ export function ColumnMapper({ preview, mapping, onMappingChange }: ColumnMapper
         Cocokkan kolom dari file Excel dengan field yang tersedia.
       </p>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {TARGET_FIELDS.map((field) => (
-          <div key={field.key} className="flex items-center gap-3">
-            <span className="text-sm w-40 shrink-0">{field.label}</span>
+          <div key={field.key} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <label className="text-sm sm:w-40 sm:shrink-0">{field.label}</label>
             <select
               value={mapping[field.key] ?? ""}
               onChange={(e) => handleChange(field.key, e.target.value)}
-              className="flex-1 h-9 rounded-lg border border-input bg-background px-3 py-1 text-sm"
+              className="h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm sm:flex-1"
             >
               <option value="">Pilih kolom...</option>
               {preview.columns.map((col) => (

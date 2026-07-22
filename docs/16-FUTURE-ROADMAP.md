@@ -1,5 +1,7 @@
 # Future Roadmap
 
+> **Shipped in v1 (no longer future work):** QC kabupaten scoping (`assigned_kabupaten_ids`), complete schedule field set (CGR, CGR Code, Block No, No Plot, Member Name, Document No, NIS, Tgl Tanam, PH Tanah, Real Tanam HA, Gagal Tanam, Sisa di Lahan HA), instant "+1 / -1 Hari" schedule shift, admin-only master data & Excel import (`resetAllData` admin-only), and security hardening (RLS on all tables, `getAuthContext()`/`canAccessSchedule()`/`qcKabupatenScope()` gating, CSP + security headers, rate-limited login/reset, private photo bucket with signed URLs, structured JSON logger, `/health` endpoint).
+
 ## Version 2.0 - Enhanced Features
 
 ### Offline-First Mode
@@ -10,7 +12,7 @@
 - Estimated effort: 4-6 weeks
 
 ### Push Notifications
-- Web Push API integration
+- Web Push API integration (in-app notifications already shipped in v1)
 - Real-time schedule reminders
 - Status change alerts
 - QC notifications

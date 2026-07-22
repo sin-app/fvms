@@ -35,7 +35,7 @@ export function useExcelImport() {
         // Auto-map columns
         const autoMapping: ColumnMapping = {};
         const targetLabels: Record<string, string[]> = {
-          user_name: ["staff", "petugas", "nama petugas", "user", "nama", "name", "officer"],
+          user_name: ["staff", "petugas", "nama petugas", "petugas lapang", "field officer", "officer", "user", "nama", "name", "pelaksana", "penanggung jawab"],
           kabupaten_name: ["kab", "kabupaten", "kota", "city"],
           kecamatan_name: ["kec", "kecamatan", "district"],
           desa_name: ["desa", "village", "kelurahan"],
@@ -46,6 +46,9 @@ export function useExcelImport() {
           block_no: ["block no", "block", "blok"],
           no_plot: ["no plot", "plot", "no plot"],
           member_name: ["member name", "member", "nama member", "anggota"],
+          document_no: ["document no", "doc no", "document", "no dokumen", "dokumen"],
+          ph_tanah: ["ph tanah", "ph", "ph tanah"],
+          nis: ["nis"],
           real_tanam_ha: ["real tanam ha", "real tanam", "luas tanam"],
           gagal_tanam: ["gagal tanam"],
           sisa_di_lahan_ha: ["sisa di lahan ha", "sisa lahan", "sisa di lahan"],

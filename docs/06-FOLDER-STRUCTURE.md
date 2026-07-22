@@ -76,15 +76,10 @@ fvms/
 │   │   │   └── page.tsx             (redirect to dashboard)
 │   │   │
 │   │   ├── api/
-│   │   │   ├── reports/
-│   │   │   │   ├── daily/route.ts
-│   │   │   │   ├── weekly/route.ts
-│   │   │   │   └── monthly/route.ts
-│   │   │   ├── photos/
-│   │   │   │   ├── upload/route.ts
-│   │   │   │   └── delete/route.ts
-│   │   │   └── excel/
-│   │   │       └── template/route.ts
+│   │   │   ├── health/route.ts           # liveness check
+│   │   │   ├── ready/route.ts            # readiness check (DB ping)
+│   │   │   └── cron/
+│   │   │       └── notifications/route.ts # daily due-soon reminder
 │   │   │
 │   │   ├── error.tsx
 │   │   ├── global-error.tsx
@@ -140,6 +135,9 @@ fvms/
 │   │   │   │   └── auth-schema.ts
 │   │   │   ├── types/
 │   │   │   │   └── index.ts
+│   │   │   ├── lib/
+│   │   │   │   ├── authorization.ts   # getAuthContext(), canAccessSchedule(), qcKabupatenScope()
+│   │   │   │   └── rate-limit.ts       # login & reset-password rate limiting
 │   │   │   └── index.ts
 │   │   │
 │   │   ├── dashboard/
@@ -263,17 +261,24 @@ fvms/
 │   │   └── notifications/
 │   │       ├── components/
 │   │       │   ├── notification-list.tsx
-│   │       │   ├── notification-item.tsx
-│   │       │   └── notification-bell.tsx
+│   │       │   └── notification-bell.tsx   # header bell with badge
 │   │       ├── hooks/
-│   │       │   └── use-notifications.ts
+│   │       │   ├── use-notifications.ts
+│   │       │   └── use-realtime-notifications.ts  # Supabase Realtime subscription
 │   │       ├── api/
 │   │       │   └── notification-client.ts
+│   │       ├── services/
+│   │       │   └── notification-service.ts # create(), notifyImportCompleted(), generateDueSoon()
 │   │       ├── types/
 │   │       │   └── index.ts
 │   │       └── index.ts
 │   │
 │   ├── lib/
+│   │   ├── auth/
+│   │   │   ├── authorization.ts   # getAuthContext(), canAccessSchedule(), qcKabupatenScope()
+│   │   │   └── rate-limit.ts      # persistent rate-limits (table + memory fallback)
+│   │   ├── config.ts              # centralized env validation (fail-fast)
+│   │   ├── logger.ts              # structured JSON log with request-ID
 │   │   ├── supabase/
 │   │   │   ├── client.ts          # Browser client
 │   │   │   ├── server-client.ts    # Server component client
@@ -287,7 +292,7 @@ fvms/
 │   │   │   └── compress-image.ts  # Image compression utility
 │   │   └── constants/
 │   │       ├── index.ts
-│   │       ├── status.ts
+│   │       ├── status.ts          # STATUS_TRANSITIONS, labels, colors
 │   │       └── roles.ts
 │   │
 │   ├── hooks/
@@ -309,12 +314,12 @@ fvms/
 ├── .eslintrc.json
 ├── .prettierrc
 ├── .gitignore
-├── next.config.ts
+├── next.config.ts                # CSP + security headers configured here
 ├── tailwind.config.ts
 ├── tsconfig.json
 ├── package.json
 ├── components.json               # shadcn/ui config
-├── middleware.ts                  # Next.js middleware (auth)
+├── src/proxy.ts                  # Next.js 16 middleware (auth) — NOTE: proxy.ts, NOT middleware.ts
 └── AGENTS.md
 ```
 
@@ -328,6 +333,6 @@ fvms/
 
 4. **Route groups** - `(auth)` for unauthenticated pages, `(dashboard)` for authenticated pages.
 
-5. **API routes** - Minimal; only used when Server Actions cannot handle the task (file generation, external API calls).
+5. **API routes** - Minimal; used only when Server Actions can't handle the task (cron jobs, health/readiness checks, external API calls).
 
-6. **No global state management** - Server state via TanStack Query, form state via React Hook Form, URL state via search params.
+6. **No global state management** - Server state via TanStack Query, form state via React Hook Form, URL state via search params. Notifications use Supabase Realtime subscriptions.

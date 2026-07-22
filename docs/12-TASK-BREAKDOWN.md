@@ -22,7 +22,7 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 - Set up `tsconfig.json` with strict mode
 - Configure `tailwind.config.ts` with custom theme
 - Set up `.env.example` and `.env.local`
-- Configure `middleware.ts` for auth
+- Configure `src/proxy.ts` for auth (Next.js 16; NOT middleware.ts)
 - Create Supabase client files
 
 ### Task 0.3: Database Migration
@@ -68,10 +68,11 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 - New password form
 
 ### Task 1.5: Auth Middleware
-- Create `src/middleware.ts`
+- Create `src/proxy.ts` (Next.js 16 middleware replacement; NOT middleware.ts)
 - Route protection logic
 - Redirect unauthenticated users to login
 - Redirect authenticated users away from login
+- Rate-limit login & reset-password endpoints [DONE]
 
 ### Task 1.6: Profile Page
 - View profile information
@@ -113,6 +114,7 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 - `src/app/(dashboard)/master-data/kabupaten/page.tsx`
 - `src/app/(dashboard)/master-data/kecamatan/page.tsx`
 - `src/app/(dashboard)/master-data/desa/page.tsx`
+- **Admin-only** master data [DONE]
 
 ---
 
@@ -159,10 +161,11 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 
 ### Task 4.4: Components
 - ScheduleTable with TanStack Table
-- ScheduleForm with cascading selects
+- ScheduleForm with cascading selects — full fields: CGR, CGR Code, Block No, No Plot, Member Name, Document No, NIS, Tgl Tanam, PH Tanah, Real Tanam HA, Gagal Tanam, Sisa di Lahan HA
 - ScheduleFilters with all filter options
 - ScheduleActions (edit, delete, view)
 - CalendarView with FullCalendar
+- Instant "Geser +1 Hari" / "Kembalikan -1 Hari" shift buttons [DONE]
 
 ### Task 4.5: Pages
 - Schedule list page
@@ -188,7 +191,7 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 ### Task 5.3: Components
 - VisitStatusSelector
 - VisitNotesForm
-- VisitPhotos (upload, grid, delete)
+- VisitPhotos (upload, grid; QC can upload/capture GPS but NOT delete/edit; photos in PRIVATE bucket via signed URLs) [DONE]
 - VisitGps with Leaflet map
 - VisitTimeline
 
@@ -222,7 +225,7 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 - ImportProgress with status
 
 ### Task 6.4: Page
-- Import page with wizard steps
+- Import page with wizard steps — **admin-only**; `resetAllData` admin-only [DONE]
 
 ---
 
@@ -294,6 +297,12 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 ### Task 9.4: Page
 - Users management page (admin)
 
+### Task 9.5: QC Kabupaten Scoping [DONE]
+- QC scoped to `assigned_kabupaten_ids` (wilayah tugas)
+- view schedules only within assigned kabupaten
+- upload photos & capture GPS in field
+- cannot delete/edit photos or delete schedules
+
 ---
 
 ## Phase 10: Polish
@@ -302,30 +311,42 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom msw
 - Test all services
 - Test all hooks
 - Test utility functions
+- **Status: 54 vitest tests passing** [DONE]
 
 ### Task 10.2: Integration Testing
 - Test all Server Actions
 - Test API routes
+- Service-layer mocking + MSW for integration [DONE]
 
 ### Task 10.3: E2E Testing
 - Login flow
 - CRUD flows
 - Import flow
 - Visit execution flow
+- (Not yet implemented)
 
 ### Task 10.4: Performance
 - Lighthouse audit
 - Image optimization
 - Bundle size analysis
-- API response time optimization
+- API response time optimization [DONE]
 
 ### Task 10.5: Accessibility
 - WCAG AA compliance check
 - Keyboard navigation testing
 - Screen reader testing
-- Color contrast verification
+- Color contrast verification [DONE]
 
 ### Task 10.6: Bug Fixes
 - Address all identified issues
 - Edge case handling
-- Error boundary improvement
+- Error boundary improvement [DONE]
+
+### Task 10.7: Security Hardening [DONE]
+- RLS enabled on all tables
+- Server actions gated by getAuthContext() / canAccessSchedule() / qcKabupatenScope()
+- CSP + security headers in next.config.ts
+- Rate-limited login & reset-password
+- Private storage bucket + signed URLs
+- Structured JSON logger (src/lib/logger.ts)
+- /health endpoint

@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server-client";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { loginSchema, resetPasswordSchema, profileSchema } from "../schema/auth-schema";
+import { isLoginRateLimited, registerLoginFailure, registerLoginSuccess, isEmailRateLimited, registerEmailFailure, isIpRateLimited, registerIpFailure } from "@/lib/auth/rate-limit";
 import type { ActionResponse } from "@/types/common";
 
 export async function loginAction(
@@ -25,6 +27,14 @@ export async function loginAction(
     };
   }
 
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  if (isLoginRateLimited(parsed.data.email, ip)) {
+    return {
+      success: false,
+      error: "Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.",
+    };
+  }
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -33,11 +43,14 @@ export async function loginAction(
   });
 
   if (error) {
+    registerLoginFailure(parsed.data.email, ip);
     if (error.message.includes("Invalid login credentials")) {
       return { success: false, error: "Email atau password salah" };
     }
     return { success: false, error: error.message };
   }
+
+  registerLoginSuccess(parsed.data.email, ip);
 
   const {
     data: { user },
@@ -77,6 +90,14 @@ export async function resetPasswordAction(
     };
   }
 
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  if (isEmailRateLimited("reset-password", parsed.data.email, ip)) {
+    return {
+      success: false,
+      error: "Terlalu banyak permintaan. Coba lagi dalam 15 menit.",
+    };
+  }
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(
@@ -87,6 +108,7 @@ export async function resetPasswordAction(
   );
 
   if (error) {
+    registerEmailFailure("reset-password", parsed.data.email, ip);
     return { success: false, error: error.message };
   }
 
@@ -102,6 +124,14 @@ export async function updatePasswordAction(
 ): Promise<ActionResponse> {
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
+
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  if (isIpRateLimited("update-password", ip)) {
+    return {
+      success: false,
+      error: "Terlalu banyak percobaan. Coba lagi dalam 15 menit.",
+    };
+  }
 
   if (password !== confirmPassword) {
     return {
@@ -124,6 +154,7 @@ export async function updatePasswordAction(
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
+    registerIpFailure("update-password", ip);
     return { success: false, error: error.message };
   }
 

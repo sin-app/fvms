@@ -1,10 +1,18 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { qcKabupatenScope } from "@/lib/auth/authorization";
+import type { AuthContext } from "@/lib/auth/authorization";
 import type { Schedule } from "@/types";
 import type { ScheduleFilters, ScheduleListResult } from "../types";
+
+// Escape LIKE wildcards so user input can't alter the match pattern.
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
 
 export async function getScheduleList(
   userId: string,
   filters: ScheduleFilters = {},
+  ctx?: AuthContext,
 ): Promise<ScheduleListResult> {
   const admin = createAdminClient();
   const {
@@ -17,7 +25,10 @@ export async function getScheduleList(
     page = 1,
     pageSize = 20,
     user_id,
+    cgr,
   } = filters;
+
+  const scope = ctx ? qcKabupatenScope(ctx) : null;
 
   let query = admin
     .from("schedules")
@@ -26,12 +37,41 @@ export async function getScheduleList(
       { count: "exact" },
     );
 
+  if (scope !== null) {
+    // QC: restrict to assigned kabupaten. Empty assignment => no rows.
+    query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
+  }
+
   if (userId !== "all" && !user_id) {
     query = query.eq("user_id", userId);
   }
 
   if (user_id) {
     query = query.eq("user_id", user_id);
+  }
+
+  if (cgr) {
+    query = query.ilike("cgr", `%${escapeLike(cgr)}%`);
+  }
+
+  if (filters.member_name && filters.member_name.trim()) {
+    query = query.ilike("member_name", `%${escapeLike(filters.member_name.trim())}%`);
+  }
+
+  if (filters.block_no && filters.block_no.trim()) {
+    query = query.ilike("block_no", `%${escapeLike(filters.block_no.trim())}%`);
+  }
+
+  if (filters.no_plot && filters.no_plot.trim()) {
+    query = query.ilike("no_plot", `%${escapeLike(filters.no_plot.trim())}%`);
+  }
+
+  if (filters.nis && filters.nis.trim()) {
+    query = query.ilike("nis", `%${escapeLike(filters.nis.trim())}%`);
+  }
+
+  if (filters.tgl_tanam && filters.tgl_tanam.trim()) {
+    query = query.ilike("tgl_tanam", `%${escapeLike(filters.tgl_tanam.trim())}%`);
   }
 
   if (status && status !== "all") {
@@ -47,6 +87,11 @@ export async function getScheduleList(
   if (kabupaten_id) query = query.eq("kabupaten_id", kabupaten_id);
   if (kecamatan_id) query = query.eq("kecamatan_id", kecamatan_id);
 
+  if (filters.varietas && filters.varietas.trim()) {
+    // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment.
+    query = query.like("document_no", `%/${escapeLike(filters.varietas.trim())}/%`);
+  }
+
   if (date_from && date_to) {
     query = query.gte("visit_date", date_from).lte("visit_date", date_to);
   } else if (date_from) {
@@ -56,8 +101,9 @@ export async function getScheduleList(
   }
 
   if (search) {
+    const s = escapeLike(search);
     query = query.or(
-      `kabupaten.name.ilike.%${search}%,kecamatan.name.ilike.%${search}%,desa.name.ilike.%${search}%`,
+      `kabupaten.name.ilike.%${s}%,kecamatan.name.ilike.%${s}%,desa.name.ilike.%${s}%`,
     );
   }
 
@@ -97,6 +143,18 @@ export async function createSchedule(data: {
   desa_id: string;
   visit_date: string;
   notes?: string;
+  cgr?: string;
+  cgr_code?: string;
+  block_no?: string;
+  no_plot?: string;
+  member_name?: string;
+  document_no?: string;
+  nis?: string;
+  ph_tanah?: number;
+  real_tanam_ha?: number;
+  gagal_tanam?: number;
+  sisa_di_lahan_ha?: number;
+  tgl_tanam?: string;
 }) {
   const admin = createAdminClient();
   const { data: result, error } = await admin
@@ -117,6 +175,18 @@ export async function updateSchedule(
     desa_id?: string;
     visit_date?: string;
     notes?: string;
+    cgr?: string;
+    cgr_code?: string;
+    block_no?: string;
+    no_plot?: string;
+    member_name?: string;
+    document_no?: string;
+    nis?: string;
+    ph_tanah?: number;
+    real_tanam_ha?: number;
+    gagal_tanam?: number;
+    sisa_di_lahan_ha?: number;
+    tgl_tanam?: string;
   },
 ) {
   const admin = createAdminClient();
@@ -145,14 +215,20 @@ export async function getCalendarEvents(
   userId: string,
   start: string,
   end: string,
+  ctx?: AuthContext,
 ) {
   const admin = createAdminClient();
+  const scope = ctx ? qcKabupatenScope(ctx) : null;
   let query = admin
     .from("schedules")
     .select("id, visit_date, status, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
     .gte("visit_date", start)
     .lte("visit_date", end)
     .is("deleted_at", null);
+
+  if (scope !== null) {
+    query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
+  }
 
   if (userId !== "all") {
     query = query.eq("user_id", userId);
@@ -173,4 +249,30 @@ export async function getScheduleOwnerIds(
     .is("deleted_at", null);
 
   return (data ?? []) as { id: string; user_id: string }[];
+}
+
+export async function getDistinctCgr(userId: string, ctx?: AuthContext): Promise<string[]> {
+  const admin = createAdminClient();
+  const scope = ctx ? qcKabupatenScope(ctx) : null;
+  let query = admin
+    .from("schedules")
+    .select("cgr")
+    .not("cgr", "is", null)
+    .is("deleted_at", null);
+
+  if (scope !== null) {
+    query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
+  }
+
+  if (userId !== "all") {
+    query = query.eq("user_id", userId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const values = (data ?? [])
+    .map((r) => (r as { cgr: string | null }).cgr)
+    .filter((v): v is string => !!v);
+  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 }

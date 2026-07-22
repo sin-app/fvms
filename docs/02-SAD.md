@@ -109,9 +109,10 @@ User → Login Page → Supabase Auth → Session Token → RLS Policy
 
 ### 6.2 Authorization (RLS Policies)
 - **Users table:** Users can read own record; admins can read all
-- **Schedules table:** Produksis see own; QCs see assigned; Admins see all
+- **Schedules table:** Produksis see own; QCs see only schedules within their `assigned_kabupaten_ids`; Admins see all
 - **Visit notes:** Same as schedules
 - **Photos:** Same as schedules
+- All Server Actions run via the Supabase **service-role** key but are gated by `getAuthContext()` / `canAccessSchedule()` / `qcKabupatenScope()` (role + kabupaten scoping). Role is read from the JWT `app_metadata.role`.
 
 ### 6.3 Data Protection
 - All passwords hashed by Supabase Auth (bcrypt)
@@ -119,6 +120,17 @@ User → Login Page → Supabase Auth → Session Token → RLS Policy
 - File uploads scanned for type validity
 - Input sanitization via Zod
 - SQL injection prevented by Supabase client
+- **Storage:** photos are stored in a **private** Supabase Storage bucket (`visit-photos`) and served only via short-lived **signed URLs**
+- **Security headers:** CSP and other security headers are configured in `next.config.ts`
+- **Rate limiting:** login and reset-password endpoints are rate-limited
+- **Structured logging:** a structured JSON logger is implemented at `src/lib/logger.ts`
+- **Health check:** a `/health` endpoint exists for uptime monitoring
+
+### 6.4 Route Protection
+- Master data management routes are **admin-only** (route guard + hidden UI for non-admins)
+- Excel import routes are **admin-only**
+- `resetAllData` (reset before re-import) is admin-only
+- QC users cannot access delete/edit-photo or delete-schedule actions (enforced server-side via `canAccessSchedule()`)
 
 ## 7. Error Handling Strategy
 
@@ -140,7 +152,7 @@ User → Login Page → Supabase Auth → Session Token → RLS Policy
 ## 9. Deployment Architecture
 
 ```
-GitHub Repository → Vercel → Supabase
+GitHub Repository → Vercel (project "fvms", https://fvms-eight.vercel.app) → Supabase (ref: nzpjoxndqhcvphydiyaq)
       │                         │
    Push/PR                    PostgreSQL
       │                         │
@@ -148,6 +160,8 @@ GitHub Repository → Vercel → Supabase
       │                         │
   Vercel Deploy             Supabase Storage
 ```
+
+**Middleware:** Next.js 16 uses `src/proxy.ts` for middleware (NOT `middleware.ts`).
 
 ## 10. Monitoring & Observability
 

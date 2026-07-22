@@ -19,6 +19,7 @@ export interface User {
   avatar_url: string | null;
   phone: string | null;
   is_active: boolean;
+  assigned_kabupaten_ids: string[];
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
@@ -72,6 +73,9 @@ export interface Schedule {
   visit_time: string | null;
   notes: string | null;
   tgl_tanam: string | null;
+  document_no: string | null;
+  ph_tanah: number | null;
+  nis: string | null;
   cgr: string | null;
   cgr_code: string | null;
   block_no: string | null;
@@ -88,6 +92,7 @@ export interface Schedule {
   kecamatan?: Kecamatan;
   desa?: Desa;
   user?: User;
+  users?: User;
   visit_notes?: VisitNotes;
   visit_photos?: VisitPhoto[];
 }

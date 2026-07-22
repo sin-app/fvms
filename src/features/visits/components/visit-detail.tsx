@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, Calendar, User, MapPin } from "lucide-react";
-import { useVisitDetail, useDeletePhoto } from "../hooks/use-visit";
+import { useVisitDetail } from "../hooks/use-visit";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -13,6 +13,7 @@ import { VisitPhotos } from "./visit-photos";
 import { VisitGps } from "./visit-gps";
 import { VisitTimeline } from "./visit-timeline";
 import { formatDate, formatDateTime } from "@/lib/utils/date";
+import { useAuth } from "@/features/auth/components/auth-context";
 
 interface VisitDetailProps {
   id: string;
@@ -20,7 +21,11 @@ interface VisitDetailProps {
 
 export function VisitDetail({ id }: VisitDetailProps) {
   const { data: schedule, isLoading, isError, refetch } = useVisitDetail(id);
-  const deletePhoto = useDeletePhoto();
+  const { user } = useAuth();
+  const role = user?.role;
+  const canEdit =
+    !!schedule &&
+    (!!role && (role === "admin" || role === "qc") || schedule.user_id === user?.id);
 
   if (isLoading) return <LoadingState variant="card" />;
   if (isError) return <ErrorState onRetry={refetch} />;
@@ -49,7 +54,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </Link>
-        <VisitStatusSelector scheduleId={id} currentStatus={schedule.status} />
+        <VisitStatusSelector scheduleId={id} currentStatus={schedule.status} editable={canEdit} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -72,7 +77,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
                 <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-xs text-muted-foreground">Produksi</p>
-                  <p className="text-sm font-medium">{schedule.user?.name ?? "—"}</p>
+                  <p className="text-sm font-medium">{schedule.users?.name ?? "—"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -95,15 +100,16 @@ export function VisitDetail({ id }: VisitDetailProps) {
 
           <div className="rounded-xl border p-5">
             <h2 className="text-lg font-semibold mb-4">Catatan Kunjungan</h2>
-            <VisitNotesForm scheduleId={id} defaultValues={notes} />
+            <VisitNotesForm scheduleId={id} defaultValues={notes} editable={canEdit} />
           </div>
 
           <div className="rounded-xl border p-5">
             <VisitPhotos
               scheduleId={id}
               photos={schedule.visit_photos ?? []}
-              onDelete={(photoId) => deletePhoto.mutate({ photo_id: photoId, schedule_id: id })}
-              deleting={deletePhoto.isPending}
+              onDelete={() => {}}
+              deleting={false}
+              editable={canEdit}
             />
           </div>
         </div>
@@ -115,6 +121,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
               currentLatitude={schedule.latitude}
               currentLongitude={schedule.longitude}
               currentAccuracy={schedule.accuracy}
+              editable={canEdit}
             />
           </div>
 

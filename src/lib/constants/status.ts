@@ -9,10 +9,10 @@ export const SCHEDULE_STATUSES: VisitStatus[] = [
 ];
 
 export const STATUS_TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
-  pending: ["on_the_way", "cancelled"],
+  pending: ["on_the_way", "in_progress", "cancelled"],
   on_the_way: ["in_progress", "cancelled"],
   in_progress: ["completed", "cancelled"],
-  completed: [],
+  completed: ["in_progress"],
   cancelled: [],
 };
 

@@ -30,11 +30,11 @@
 
 ### 2.3 Integration Tests (Vitest + MSW)
 **What to test:**
-- Server Actions (mock Supabase)
+- Server Actions (service-layer mocked; Supabase interaction covered via MSW)
 - API routes (with Next.js test helpers)
 - Component + hook integration
 - Form submission flows
-- Error handling paths
+- Error handling paths (including access-denied and auth-failure logging)
 
 ### 2.4 Component Tests (Vitest + Testing Library)
 **What to test:**
@@ -282,7 +282,7 @@ jobs:
 | Type checking | TypeScript | 0 errors |
 | Linting | ESLint | 0 errors, 0 warnings |
 | Formatting | Prettier | Check passes |
-| Unit tests | Vitest | 100% pass, > 80% coverage |
+| Unit tests | Vitest | 54 tests, 100% pass |
 | E2E tests | Playwright | All critical paths pass |
 | Build | Next.js | Build succeeds |
 | Accessibility | axe-core | 0 critical violations |
@@ -291,16 +291,19 @@ jobs:
 ## 8. Running Tests
 
 ```bash
-# All tests
-npm run test
+# All tests (54 passing)
+npm test
 
-# Watch mode
-npm run test:watch
+# Run once (CI mode)
+npx vitest run
 
 # With coverage
-npm run test:coverage
+npx vitest run --coverage
 
-# E2E tests
+# Watch mode
+npx vitest watch
+
+# E2E tests (not yet implemented)
 npm run test:e2e
 
 # Type check
@@ -309,3 +312,5 @@ npm run typecheck
 # Lint
 npm run lint
 ```
+
+> **Note:** The structured JSON logger at `src/lib/logger.ts` is exercised by service-layer tests; integration tests assert that log events (e.g., auth failures, access-denied) are emitted.

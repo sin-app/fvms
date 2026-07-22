@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { logger } from "@/lib/logger";
 
 export type UserRole = "admin" | "qc" | "produksi";
 
 export interface AuthContext {
   userId: string;
   role: UserRole;
+  assignedKabupatenIds: string[];
 }
 
 export async function getAuthContext(): Promise<AuthContext | null> {
@@ -44,27 +46,37 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
   if (!userId) return null;
 
-  if (metaRole) {
-    return { userId, role: metaRole };
-  }
-
-  // Fallback: read role from the database via the admin client.
+  // Read role + assigned kabupaten from the database (source of truth).
   try {
     const admin = createAdminClient();
     const { data } = await admin
       .from("users")
-      .select("role")
+      .select("role, assigned_kabupaten_ids")
       .eq("id", userId)
       .maybeSingle();
-    const role = (data?.role as UserRole | undefined) ?? "produksi";
-    return { userId, role };
+    const role = (data?.role as UserRole | undefined) ?? metaRole ?? "produksi";
+    const assignedKabupatenIds = Array.isArray(data?.assigned_kabupaten_ids)
+      ? (data!.assigned_kabupaten_ids as string[])
+      : [];
+    return { userId, role, assignedKabupatenIds };
   } catch {
-    return { userId, role: "produksi" };
+    const role = metaRole ?? "produksi";
+    return { userId, role, assignedKabupatenIds: [] };
   }
 }
 
 export function isPrivileged(role: UserRole): boolean {
   return role === "admin" || role === "qc";
+}
+
+/**
+ * Returns the kabupaten ids a QC is allowed to see, or null when no scoping
+ * applies (admin, or produksi which is scoped by user instead).
+ * For QC with an empty assignment, returns an empty array (no access).
+ */
+export function qcKabupatenScope(ctx: AuthContext): string[] | null {
+  if (ctx.role !== "qc") return null;
+  return ctx.assignedKabupatenIds ?? [];
 }
 
 export async function requireAdmin(): Promise<AuthContext> {
@@ -74,11 +86,45 @@ export async function requireAdmin(): Promise<AuthContext> {
   return ctx;
 }
 
+/**
+ * Central access check for a single schedule.
+ *
+ * SECURITY NOTE: all schedule mutations run through the Supabase service-role
+ * client, which BYPASSES row-level security. Therefore this server-side check
+ * is the ONLY enforcement of ownership/role scoping. Never skip it, and always
+ * call it (or `assertScheduleAccess`) before reading or writing a schedule row.
+ */
 export async function canAccessSchedule(
   scheduleId: string,
   ctx: AuthContext,
 ): Promise<boolean> {
-  if (isPrivileged(ctx.role)) return true;
+  if (isPrivileged(ctx.role)) {
+    // QC is restricted to schedules within their assigned kabupaten.
+    const scope = qcKabupatenScope(ctx);
+    if (scope === null) return true;
+    try {
+      const supabase = createAdminClient();
+      const { data, error } = await supabase
+        .from("schedules")
+        .select("kabupaten_id")
+        .eq("id", scheduleId)
+        .maybeSingle();
+      if (error) {
+        logger.error("canAccessSchedule: schedule lookup failed", {
+          scheduleId,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        return false;
+      }
+      return !!data && scope.includes(data.kabupaten_id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error("canAccessSchedule: unexpected error", { scheduleId, error: msg });
+      return false;
+    }
+  }
 
   try {
     const supabase = createAdminClient();
@@ -89,14 +135,33 @@ export async function canAccessSchedule(
       .maybeSingle();
 
     if (error) {
-      console.error("[canAccessSchedule]", error.message, error.details, error.hint);
+      logger.error("canAccessSchedule: schedule lookup failed", {
+        scheduleId,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       return false;
     }
 
     return data?.user_id === ctx.userId;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[canAccessSchedule] throw", msg);
+    logger.error("canAccessSchedule: unexpected error", { scheduleId, error: msg });
     return false;
+  }
+}
+
+/**
+ * Throws when the context is missing or cannot access the schedule.
+ * Use at the top of server actions that mutate a schedule to fail closed.
+ */
+export async function assertScheduleAccess(
+  scheduleId: string,
+  ctx: AuthContext | null,
+): Promise<void> {
+  if (!ctx) throw new Error("Unauthorized");
+  if (!(await canAccessSchedule(scheduleId, ctx))) {
+    throw new Error("Tidak memiliki akses ke jadwal ini");
   }
 }

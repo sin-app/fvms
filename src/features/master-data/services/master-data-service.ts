@@ -76,7 +76,7 @@ export async function getDesaList(kecamatanId?: string, filters: MasterDataFilte
 
   let query = admin
     .from("desa")
-    .select("*, kecamatan!inner(name, kabupaten!inner(name))", { count: "exact" })
+    .select("*, kecamatan!inner(name, kabupaten_id, kabupaten(name))", { count: "exact" })
     .is("deleted_at", null)
     .order("name", { ascending: true });
 

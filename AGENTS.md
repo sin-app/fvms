@@ -8,12 +8,12 @@ Modern web application for Field Officers (Produksi) to manage field visit sched
 
 | Role | Enum value | Capabilities |
 |------|-----------|--------------|
-| Admin | `admin` | Full access: manage users, master data, import, view all schedules |
-| QC | `qc` | Quality Control — can view **all** Produksi schedules; verifies the full cycle from land-application check through harvest; no user management |
-| Produksi | `produksi` | Field Officers — own the full field cycle from land application through harvest; manage their own schedules, visits, photos, notes |
+| Admin | `admin` | Full access: manage users, master data, import, reset all data, view all schedules |
+| QC | `qc` | Quality Control — kabupaten-scoped to `assigned_kabupaten_ids` (wilayah tugas); can VIEW schedules only within assigned kabupaten, UPLOAD photos and CAPTURE GPS in the field, but CANNOT delete/edit photos and CANNOT delete schedules; no user management |
+| Produksi | `produksi` | Field Officers — manage ONLY their own schedules/visits (own-data-only), photos, notes |
 
 Notes:
-- `qc` and `admin` are "privileged" (`isPrivileged` in `src/lib/auth/authorization.ts`) → see all schedules.
+- `qc` and `admin` are "privileged" (`isPrivileged` in `src/lib/auth/authorization.ts`). QC sees schedules only within its `assigned_kabupaten_ids` scope via `qcKabupatenScope()`; admin sees all. Access is enforced centrally through `getAuthContext()` / `canAccessSchedule()`.
 - Produksi accounts are auto-created during Excel import (auth account + random password set later by admin).
 - Role is read from the JWT `app_metadata.role` / `user_metadata.role` (not from `public.users` select on the client).
 
@@ -145,6 +145,13 @@ feature-name/
 - File uploads validated for type and size
 - GPS data verified server-side
 - Authentication required for all routes except login
+- Server Actions run via Supabase service-role but are gated by `getAuthContext()` / `canAccessSchedule()` / `qcKabupatenScope()` (centralized in `src/lib/auth/authorization.ts`)
+- CSP + security headers configured in `next.config.ts`
+- Login & reset-password rate-limited (`src/lib/auth/rate-limit.ts`)
+- Photos stored in a PRIVATE Supabase bucket, served via signed URLs
+- Structured JSON logger at `src/lib/logger.ts`; `/health` endpoint at `src/app/health/route.ts`
+- Master data (kabupaten/kecamatan/desa) is ADMIN-ONLY; Excel import is ADMIN-ONLY; `resetAllData` is admin-only
+- Middleware is `src/proxy.ts` (Next.js 16 file-based proxy), NOT `middleware.ts`
 
 ## Environment Variables (.env.local)
 

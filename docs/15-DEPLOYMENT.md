@@ -3,11 +3,13 @@
 ## 1. Architecture Overview
 
 ```
-Internet → Vercel (Edge Network) → Next.js App → Supabase
-                                                    ├── PostgreSQL
-                                                    ├── Auth
-                                                    └── Storage
+Internet → Vercel (Edge Network) → Next.js 16 App (src/proxy.ts, not middleware.ts) → Supabase
+                                                                                          ├── PostgreSQL (RLS on all tables)
+                                                                                          ├── Auth (rate-limited login/reset)
+                                                                                          └── Storage (PRIVATE bucket, signed URLs)
 ```
+
+> **Framework:** Next.js 16. Route protection uses `src/proxy.ts` (the Next.js 16 replacement for the legacy `middleware.ts`). CSP and security headers are configured in `next.config.ts`.
 
 ## 2. Prerequisites
 
@@ -34,15 +36,15 @@ Internet → Vercel (Edge Network) → Next.js App → Supabase
 ### 3.2 Configure Authentication
 1. Go to Authentication → Settings
 2. Enable email/password auth provider
-3. Configure Site URL: `https://fvms.vercel.app` (update after Vercel deploy)
+3. Configure Site URL: `https://fvms-eight.vercel.app` (update after Vercel deploy)
 4. Configure Redirect URLs:
-   - `https://fvms.vercel.app/**`
+   - `https://fvms-eight.vercel.app/**`
    - `http://localhost:3000/**` (development)
 5. Customize email templates for password reset
 
 ### 3.3 Configure Storage
 1. Go to Storage → Create bucket: `visit-photos`
-2. Set bucket to public (images are accessed via URLs)
+2. Set bucket to PRIVATE (images are served only via signed URLs — never public)
 3. Create storage policy:
 ```sql
 -- Allow authenticated users to upload
@@ -51,10 +53,10 @@ ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (bucket_id = 'visit-photos');
 
--- Allow public read
-CREATE POLICY "Anyone can view photos"
+-- Allow authenticated users to read via signed URLs
+CREATE POLICY "Authenticated users can view photos"
 ON storage.objects FOR SELECT
-TO public
+TO authenticated
 USING (bucket_id = 'visit-photos');
 
 -- Allow users to delete own photos
@@ -66,9 +68,13 @@ USING (auth.uid() = owner);
 
 ### 3.4 Run Database Migrations
 1. Go to SQL Editor
-2. Copy contents of `supabase/migrations/001_initial.sql`
+2. Copy contents of `supabase/migrations/001_initial.sql` through `007_rate_limits.sql` (run in order)
 3. Execute the migration
 4. Verify tables created in Table Editor
+
+### 3.5 Apply Cron Secret (for notification cron job)
+1. Generate a secret: `openssl rand -hex 24`
+2. Store securely — set as `CRON_SECRET` in Vercel env
 
 ## 4. Vercel Setup
 
@@ -86,16 +92,19 @@ USING (auth.uid() = owner);
 Add these in Vercel Dashboard → Project Settings → Environment Variables:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://nzpjoxndqhcvphydiyaq.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIs...
-NEXT_PUBLIC_APP_URL=https://fvms.vercel.app
+NEXT_PUBLIC_APP_URL=https://fvms-eight.vercel.app
+CRON_SECRET=                 # required for /api/cron/notifications
 ```
 
 **Important:** 
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from Supabase Project Settings → API
 - `SUPABASE_SERVICE_ROLE_KEY` from same page (keep secret, never expose to client)
-- `NEXT_PUBLIC_APP_URL` is the Vercel deployment URL
+- `NEXT_PUBLIC_APP_URL` is the Vercel deployment URL (`https://fvms-eight.vercel.app`)
+- `CRON_SECRET` is used to authenticate daily cron job for due-soon notifications; set via `vercel env add CRON_SECRET production --value <secret>`
+- Supabase project ref: `nzpjoxndqhcvphydiyaq`
 
 ### 4.3 Deploy
 1. Click "Deploy"
@@ -180,8 +189,10 @@ fix/*         → Bug fix branches
 - [ ] RLS policies tested
 - [ ] Auth redirect URLs updated for production domain
 - [ ] Email templates customized (branding)
-- [ ] Storage bucket policies configured
-- [ ] Rate limiting configured
+- [ ] Storage bucket set to PRIVATE with signed-URL access
+- [ ] CSP + security headers configured in next.config.ts
+- [ ] Login & reset-password rate limiting configured
+- [ ] /health endpoint monitoring enabled
 - [ ] Monitoring alerts set up
 - [ ] Error tracking configured (optional: Sentry)
 - [ ] Analytics configured (optional: Vercel Analytics)
@@ -200,7 +211,7 @@ fix/*         → Bug fix branches
 | Local | localhost:3000 | Local/Dev | Development |
 | Preview | fvms-git-xxx.vercel.app | Dev | PR Testing |
 | Staging | staging.fvms.com | Staging | Pre-release |
-| Production | fvms.com | Production | Live |
+| Production | https://fvms-eight.vercel.app | Production (ref nzpjoxndqhcvphydiyaq) | Live |
 
 ## 9. Database Backups
 
@@ -249,9 +260,11 @@ If a deployment causes issues:
 - **API:** Request volume, error rate
 
 ### 11.3 Custom Monitoring
-- Health check endpoint: `/api/health`
+- Health check endpoint: `/health` (returns app/db status for uptime monitoring)
+- Structured JSON logging via `src/lib/logger.ts` (searchable in Vercel logs)
+- CSP and security headers enforced app-wide
 - Automatic alerts for:
   - Error rate > 1%
   - API response time > 2s
-  - Auth failure spike
+  - Auth failure spike (rate-limited login/reset)
   - Storage usage > 80%

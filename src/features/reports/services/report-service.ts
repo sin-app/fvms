@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { getAuthContext, qcKabupatenScope } from "@/lib/auth/authorization";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
@@ -6,6 +7,11 @@ import { SCHEDULE_STATUSES } from "@/lib/constants/status";
 
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
   const admin = createAdminClient();
+
+  const ctx = await getAuthContext();
+  const scopeUserId =
+    ctx && ctx.role !== "admin" && ctx.role !== "qc" ? ctx.userId : filters.user_id;
+  const kabScope = ctx ? qcKabupatenScope(ctx) : null;
 
   // Date range is required to avoid unbounded full-table scans.
   if (!filters.date_from || !filters.date_to) {
@@ -19,8 +25,15 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to);
 
-  if (filters.user_id) query = query.eq("user_id", filters.user_id);
-  if (filters.kabupaten_id) query = query.eq("kabupaten_id", filters.kabupaten_id);
+  if (scopeUserId) query = query.eq("user_id", scopeUserId);
+  if (kabScope !== null) {
+    query = query.in("kabupaten_id", kabScope.length > 0 ? kabScope : ["__none__"]);
+  } else if (filters.kabupaten_id) {
+    query = query.eq("kabupaten_id", filters.kabupaten_id);
+  }
+  if (filters.kecamatan_id) {
+    query = query.eq("kecamatan_id", filters.kecamatan_id);
+  }
   if (filters.status && SCHEDULE_STATUSES.includes(filters.status as (typeof SCHEDULE_STATUSES)[number])) {
     query = query.eq("status", filters.status);
   }
@@ -131,6 +144,11 @@ export const MAX_REPORT_ROWS = 10000;
 export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]> {
   const admin = createAdminClient();
 
+  const ctx = await getAuthContext();
+  const scopeUserId =
+    ctx && ctx.role !== "admin" && ctx.role !== "qc" ? ctx.userId : filters.user_id;
+  const kabScope = ctx ? qcKabupatenScope(ctx) : null;
+
   if (!filters.date_from || !filters.date_to) {
     throw new Error("Rentang tanggal wajib diisi untuk membuat laporan");
   }
@@ -144,8 +162,15 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     .order("visit_date", { ascending: true })
     .limit(MAX_REPORT_ROWS);
 
-  if (filters.user_id) query = query.eq("user_id", filters.user_id);
-  if (filters.kabupaten_id) query = query.eq("kabupaten_id", filters.kabupaten_id);
+  if (scopeUserId) query = query.eq("user_id", scopeUserId);
+  if (kabScope !== null) {
+    query = query.in("kabupaten_id", kabScope.length > 0 ? kabScope : ["__none__"]);
+  } else if (filters.kabupaten_id) {
+    query = query.eq("kabupaten_id", filters.kabupaten_id);
+  }
+  if (filters.kecamatan_id) {
+    query = query.eq("kecamatan_id", filters.kecamatan_id);
+  }
 
   const { data } = await query;
 

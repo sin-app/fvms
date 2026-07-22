@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fetchScheduleList, fetchScheduleById } from "../api/schedule-client";
-import { createScheduleAction, updateScheduleAction, deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules } from "../actions/schedule-actions";
+import { createScheduleAction, updateScheduleAction, deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction } from "../actions/schedule-actions";
 import type { ScheduleFilters } from "../types";
 import type { ScheduleInput } from "../schema/schedule-schema";
 
@@ -27,7 +27,7 @@ export function useCreateSchedule() {
   return useMutation({
     mutationFn: async (data: ScheduleInput) => {
       const fd = new FormData();
-      Object.entries(data).forEach(([k, v]) => fd.set(k, v ?? ""));
+      Object.entries(data).forEach(([k, v]) => fd.set(k, v == null ? "" : String(v)));
       const result = await createScheduleAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
       return result.data;
@@ -46,7 +46,7 @@ export function useUpdateSchedule() {
     mutationFn: async (data: { id: string } & ScheduleInput) => {
       const fd = new FormData();
       fd.set("id", data.id);
-      Object.entries(data).forEach(([k, v]) => fd.set(k, v ?? ""));
+      Object.entries(data).forEach(([k, v]) => fd.set(k, v == null ? "" : String(v)));
       const result = await updateScheduleAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
       return result.data;
@@ -71,6 +71,24 @@ export function useDeleteSchedule() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       toast.success("Jadwal berhasil dihapus");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useShiftScheduleDate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, days }: { id: string; days: number }) => {
+      const fd = new FormData();
+      fd.set("id", id);
+      fd.set("days", String(days));
+      const result = await shiftScheduleDateAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      toast.success(vars.days > 0 ? "Jadwal digeser +1 hari" : "Jadwal dikembalikan -1 hari");
     },
     onError: (err: Error) => toast.error(err.message),
   });

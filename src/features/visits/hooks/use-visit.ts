@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fetchVisitDetail, fetchVisitTimeline } from "../api/visit-client";
-import { saveVisitNotesAction, uploadPhotoAction, deletePhotoAction } from "../actions/visit-actions";
+import { saveVisitNotesAction, uploadPhotoAction, deletePhotoAction, updatePhotoAction } from "../actions/visit-actions";
 export function useVisitDetail(id: string) {
   return useQuery({
     queryKey: ["visit", id],
@@ -74,6 +74,25 @@ export function useDeletePhoto() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
       toast.success("Foto berhasil dihapus");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useUpdatePhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { photo_id: string; schedule_id: string; caption: string }) => {
+      const fd = new FormData();
+      fd.set("photo_id", data.photo_id);
+      fd.set("schedule_id", data.schedule_id);
+      fd.set("caption", data.caption);
+      const result = await updatePhotoAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
+      toast.success("Keterangan foto berhasil diperbarui");
     },
     onError: (err: Error) => toast.error(err.message),
   });

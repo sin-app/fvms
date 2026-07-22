@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createMasterUpserter } from "./master-upsert";
 import { createUserUpserter } from "./user-upsert";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
+import { notifyImportCompleted } from "@/features/notifications/services/notification-service";
 
 function cellToString(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -125,18 +126,9 @@ export async function bulkImportSchedules(
 
   const errors: Array<{ row: number; message: string }> = [];
 
-  // Replace data lapang: soft-delete jadwal yang belum dikerjakan (pending).
-  // Jadwal yang sudah dikerjakan (on_the_way/in_progress/completed/cancelled) dilindungi.
-  const { count: replacedCount, error: replaceError } = await admin
-    .from("schedules")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("status", "pending")
-    .is("deleted_at", null);
-
-  if (replaceError) {
-    errors.push({ row: 0, message: `Gagal replace data lama: ${replaceError.message}` });
-  }
-  const replaced = replacedCount ?? 0;
+  // Import menambah (append) jadwal baru tanpa menghapus data sebelumnya,
+  // agar import bertahap per varietas tidak menghilangkan jadwal lama.
+  // Duplikat dalam satu file dicegah oleh dedupeSchedules di bawah.
 
   // Validate rows & collect unique names for batch resolution.
   interface ValidRow {
@@ -152,6 +144,9 @@ export async function bulkImportSchedules(
     block_no?: string;
     no_plot?: string;
     member_name?: string;
+    document_no?: string;
+    ph_tanah?: number;
+    nis?: string;
     real_tanam_ha?: number;
     gagal_tanam?: number;
     sisa_di_lahan_ha?: number;
@@ -213,6 +208,12 @@ export async function bulkImportSchedules(
     if (mapping.block_no) v.block_no = row[mapping.block_no]?.trim() || undefined;
     if (mapping.no_plot) v.no_plot = row[mapping.no_plot]?.trim() || undefined;
     if (mapping.member_name) v.member_name = row[mapping.member_name]?.trim() || undefined;
+    if (mapping.document_no) v.document_no = row[mapping.document_no]?.trim() || undefined;
+    if (mapping.ph_tanah) {
+      const n = parseNumber(row[mapping.ph_tanah]);
+      if (n !== null) v.ph_tanah = n;
+    }
+    if (mapping.nis) v.nis = row[mapping.nis]?.trim() || undefined;
     if (mapping.real_tanam_ha) {
       const n = parseNumber(row[mapping.real_tanam_ha]);
       if (n !== null) v.real_tanam_ha = n;
@@ -248,6 +249,9 @@ export async function bulkImportSchedules(
     block_no?: string;
     no_plot?: string;
     member_name?: string;
+    document_no?: string;
+    ph_tanah?: number;
+    nis?: string;
     real_tanam_ha?: number;
     gagal_tanam?: number;
     sisa_di_lahan_ha?: number;
@@ -285,6 +289,9 @@ export async function bulkImportSchedules(
       ...(r.block_no !== undefined ? { block_no: r.block_no } : {}),
       ...(r.no_plot !== undefined ? { no_plot: r.no_plot } : {}),
       ...(r.member_name !== undefined ? { member_name: r.member_name } : {}),
+      ...(r.document_no !== undefined ? { document_no: r.document_no } : {}),
+      ...(r.ph_tanah !== undefined ? { ph_tanah: r.ph_tanah } : {}),
+      ...(r.nis !== undefined ? { nis: r.nis } : {}),
       ...(r.real_tanam_ha !== undefined ? { real_tanam_ha: r.real_tanam_ha } : {}),
       ...(r.gagal_tanam !== undefined ? { gagal_tanam: r.gagal_tanam } : {}),
       ...(r.sisa_di_lahan_ha !== undefined ? { sisa_di_lahan_ha: r.sisa_di_lahan_ha } : {}),
@@ -298,27 +305,40 @@ export async function bulkImportSchedules(
 
   if (schedulesToInsert.length > 0) {
     const unique = dedupeSchedules(schedulesToInsert);
-    const { error: insertError } = await admin
-      .from("schedules")
-      .insert(unique);
+
+    // Cegah duplikat lintas-import: skip jadwal yang sudah ada di DB
+    // dengan kombinasi key yang sama (petugas+desa+tanggal+block+plot+member).
+    const keys = unique.map(
+      (r) =>
+        `${r.user_id}|${r.desa_id}|${r.visit_date}|${r.block_no ?? ""}|${r.no_plot ?? ""}|${r.member_name ?? ""}`,
+    );
+    const existing = new Set<string>();
+    if (keys.length > 0) {
+      const { data: existingRows } = await admin
+        .from("schedules")
+        .select("user_id, desa_id, visit_date, block_no, no_plot, member_name")
+        .in("user_id", [...new Set(unique.map((r) => r.user_id))])
+        .is("deleted_at", null);
+      for (const row of existingRows ?? []) {
+        const k = `${row.user_id}|${row.desa_id}|${row.visit_date}|${row.block_no ?? ""}|${row.no_plot ?? ""}|${row.member_name ?? ""}`;
+        existing.add(k);
+      }
+    }
+    const toInsert = unique.filter((_, i) => !existing.has(keys[i]));
+    const skipped = unique.length - toInsert.length;
+
+    const { error: insertError } = await admin.from("schedules").insert(toInsert);
 
     if (insertError) {
       errors.push({ row: 0, message: `Gagal insert: ${insertError.message}` });
     } else {
-      result.success = unique.length;
+      result.success = toInsert.length;
       result.duplicates = schedulesToInsert.length - unique.length;
-      // Purge jadwal pending yang telah di-soft-delete oleh replace agar
-      // hanya data terbaru yang tersimpan (import = update data, tanpa duplikat).
-      await admin
-        .from("schedules")
-        .delete()
-        .eq("status", "pending")
-        .not("deleted_at", "is", null);
+      result.skipped = skipped;
     }
   }
   result.errors = errors.length;
   result.errorRows = errors;
-  result.replaced = replaced;
   result.created = { ...master.created, users: userOut.created };
 
   await admin
@@ -330,6 +350,8 @@ export async function bulkImportSchedules(
       error_log: errors,
     })
     .eq("id", importRecord.id);
+
+  await notifyImportCompleted(userId, result.success, result.errors, result.skipped ?? 0);
 
   return result;
 }
@@ -364,12 +386,25 @@ function parseVisitTime(date: string, value: unknown): string | null {
 }
 
 function dedupeSchedules(
-  rows: Array<{ user_id: string; kabupaten_id: string; kecamatan_id: string; desa_id: string; visit_date: string; created_by: string }>,
+  rows: Array<{
+    user_id: string;
+    kabupaten_id: string;
+    kecamatan_id: string;
+    desa_id: string;
+    visit_date: string;
+    created_by: string;
+    block_no?: string;
+    no_plot?: string;
+    member_name?: string;
+  }>,
 ): typeof rows {
   const seen = new Set<string>();
   const result: typeof rows = [];
   for (const r of rows) {
-    const key = `${r.user_id}|${r.desa_id}|${r.visit_date}`;
+    // A visit is unique per petugas + desa + tanggal + block + plot + member,
+    // so distinct rows (different plot/member) are kept, not collapsed.
+    const key =
+      `${r.user_id}|${r.desa_id}|${r.visit_date}|${r.block_no ?? ""}|${r.no_plot ?? ""}|${r.member_name ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(r);

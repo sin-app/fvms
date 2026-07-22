@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { parseExcelFile, getFullData, bulkImportSchedules } from "../services/import-service";
+import { resetAllData } from "../services/reset-service";
 import { columnMappingSchema } from "../schema/import-schema";
 import type { ColumnMapping, ImportPreview } from "../types";
-import { getAuthContext, isPrivileged } from "@/lib/auth/authorization";
+import { getAuthContext } from "@/lib/auth/authorization";
 import { MAX_EXCEL_ROWS, MAX_EXCEL_FILE_SIZE } from "@/lib/constants/import";
 
 async function fileFromForm(formData: FormData): Promise<Buffer> {
@@ -25,6 +26,9 @@ export async function previewExcelFileAction(formData: FormData): Promise<{
   error?: string;
 }> {
   try {
+    const ctx = await getAuthContext();
+    if (!ctx) return { success: false, error: "Unauthorized" };
+    if (ctx.role !== "admin") return { success: false, error: "Hanya admin yang dapat mengimport" };
     const buffer = await fileFromForm(formData);
     const preview = await parseExcelFile(buffer);
     if (preview.totalRows > MAX_EXCEL_ROWS) {
@@ -54,8 +58,8 @@ export async function executeImportAction(
 }> {
   const ctx = await getAuthContext();
   if (!ctx) return { success: false, error: "Unauthorized" };
-  if (!isPrivileged(ctx.role)) {
-    return { success: false, error: "Hanya admin/QC yang dapat mengimport" };
+  if (ctx.role !== "admin") {
+    return { success: false, error: "Hanya admin yang dapat mengimport" };
   }
 
   const mappingJson = formData.get("mapping") as string;
@@ -92,6 +96,35 @@ export async function executeImportAction(
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal import";
+    return { success: false, error: msg };
+  }
+}
+
+export async function resetAllDataAction(): Promise<{
+  success: boolean;
+  error?: string;
+  data?: { schedules: number; logs: number; users: number };
+}> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+  if (ctx.role !== "admin") {
+    return { success: false, error: "Hanya admin yang dapat mereset data" };
+  }
+
+  try {
+    const result = await resetAllData();
+    revalidatePath("/schedules");
+    revalidatePath("/users");
+    return {
+      success: true,
+      data: {
+        schedules: result.schedulesDeleted,
+        logs: result.activityLogsDeleted,
+        users: result.produksiUsersDeleted,
+      },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal reset data";
     return { success: false, error: msg };
   }
 }

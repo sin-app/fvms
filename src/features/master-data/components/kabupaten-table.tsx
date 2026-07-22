@@ -14,9 +14,12 @@ import { ReusableDialog } from "@/components/shared/reusable-dialog";
 import { MasterForm } from "./master-form";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useAuth } from "@/features/auth/components/auth-context";
 import type { Kabupaten } from "@/types";
 
 export function KabupatenTable() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
@@ -46,10 +49,12 @@ export function KabupatenTable() {
         title="Kabupaten"
         description="Kelola data kabupaten"
         actions={
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah Kabupaten
-          </Button>
+          isAdmin ? (
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Kabupaten
+            </Button>
+          ) : undefined
         }
       />
 
@@ -83,24 +88,28 @@ export function KabupatenTable() {
                   <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                     <td className="p-3 text-sm whitespace-nowrap font-mono">{item.code}</td>
                     <td className="p-3 text-sm whitespace-nowrap">{item.name}</td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingKabupaten(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingKabupaten(item)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
+                     <td className="p-3 text-right">
+                       <div className="flex items-center justify-end gap-1">
+                         {isAdmin && (
+                           <>
+                             <Button
+                               variant="ghost"
+                               size="icon"
+                               onClick={() => setEditingKabupaten(item)}
+                             >
+                               <Pencil className="h-4 w-4" />
+                             </Button>
+                             <Button
+                               variant="ghost"
+                               size="icon"
+                               onClick={() => setDeletingKabupaten(item)}
+                             >
+                               <Trash2 className="h-4 w-4 text-destructive" />
+                             </Button>
+                           </>
+                         )}
+                       </div>
+                     </td>
                   </tr>
                 ))}
               </tbody>

@@ -10,10 +10,13 @@
 │ email       │       │ name         │──┐    │ name         │
 │ name        │       │ code         │  │    │ code         │
 │ role        │       │ is_active    │  │    │ kabupaten_id │── FK
-│ avatar_url  │       │ created_at   │  │    │ is_active    │
-│ is_active   │       │ updated_at   │  │    │ created_at   │
-│ created_at  │       └──────────────┘  │    │ updated_at   │
-│ updated_at  │                        │    └──────┬───────┘
+│ assigned_   │       │ created_at   │  │    │ is_active    │
+│ kabupaten_  │       │ updated_at   │  │    │ created_at   │
+│ ids uuid[]  │       └──────────────┘  │    │ updated_at   │
+│ avatar_url  │                        │    └──────┬───────┘
+│ is_active   │                        │
+│ created_at  │                        │
+│ updated_at  │                        │
 └──────┬──────┘                        │           │
        │                              │           │
        │ 1                            │ *         │ *
@@ -45,9 +48,22 @@
        └────┼──│ user_id (FK)   │
             │  │ kabupaten_id   │── FK
             │  │ kecamatan_id   │── FK
-            │  │ desa_id        │── FK
-            │  │ visit_date     │
-            │  │ status         │
+             │  │ desa_id        │── FK
+             │  │ cgr            │
+             │  │ cgr_code       │
+             │  │ block_no       │
+             │  │ no_plot        │
+             │  │ member_name    │
+             │  │ document_no    │
+             │  │ nis            │
+             │  │ tgl_tanam      │
+             │  │ ph_tanah       │
+             │  │ real_tanam_ha  │
+             │  │ gagal_tanam    │
+             │  │ sisa_di_lahan_ │
+             │  │ ha             │
+             │  │ visit_date     │
+             │  │ status         │
             │  │ notes          │
             │  │ latitude       │
             │  │ longitude      │
@@ -164,3 +180,4 @@
 7. Unique constraint on kabupaten.code, kecamatan.code, desa.code
 8. Status enum: 'pending', 'on_the_way', 'in_progress', 'completed', 'cancelled'
 9. Role enum: 'admin', 'qc', 'produksi'
+10. QC users are scoped via `users.assigned_kabupaten_ids uuid[]` (wilayah tugas) — they see/act only on schedules within those kabupaten

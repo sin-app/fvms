@@ -10,9 +10,10 @@ import type { VisitNotes } from "@/types";
 interface VisitNotesFormProps {
   scheduleId: string;
   defaultValues?: VisitNotes | null;
+  editable?: boolean;
 }
 
-export function VisitNotesForm({ scheduleId, defaultValues }: VisitNotesFormProps) {
+export function VisitNotesForm({ scheduleId, defaultValues, editable = true }: VisitNotesFormProps) {
   const saveNotes = useSaveVisitNotes();
   const [observation, setObservation] = useState(defaultValues?.observation ?? "");
   const [problem, setProblem] = useState(defaultValues?.problem ?? "");
@@ -28,6 +29,44 @@ export function VisitNotesForm({ scheduleId, defaultValues }: VisitNotesFormProp
       recommend: recommend || undefined,
       additional: additional || undefined,
     });
+  }
+
+  if (!editable) {
+    const empty =
+      !observation && !problem && !recommend && !additional;
+    if (empty) {
+      return (
+        <p className="text-sm text-muted-foreground">Belum ada catatan kunjungan.</p>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        {observation && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Hasil Observasi</p>
+            <p className="text-sm whitespace-pre-wrap">{observation}</p>
+          </div>
+        )}
+        {problem && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Permasalahan</p>
+            <p className="text-sm whitespace-pre-wrap">{problem}</p>
+          </div>
+        )}
+        {recommend && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Rekomendasi</p>
+            <p className="text-sm whitespace-pre-wrap">{recommend}</p>
+          </div>
+        )}
+        {additional && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Catatan Tambahan</p>
+            <p className="text-sm whitespace-pre-wrap">{additional}</p>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (

@@ -10,6 +10,7 @@ import type { VisitStatus } from "@/types";
 interface VisitStatusSelectorProps {
   scheduleId: string;
   currentStatus: VisitStatus;
+  editable?: boolean;
   onSuccess?: () => void;
 }
 
@@ -24,6 +25,7 @@ const STATUS_ICONS: Record<VisitStatus, string> = {
 export function VisitStatusSelector({
   scheduleId,
   currentStatus,
+  editable = true,
   onSuccess,
 }: VisitStatusSelectorProps) {
   const [showOptions, setShowOptions] = useState(false);
@@ -38,6 +40,14 @@ export function VisitStatusSelector({
 
   const currentLabel = STATUS_LABELS[currentStatus] ?? currentStatus;
   const currentColor = STATUS_COLORS[currentStatus] ?? "";
+
+  if (!editable) {
+    return (
+      <span className={`inline-flex items-center gap-1.5 text-sm font-medium px-2.5 py-1 rounded-md ${currentColor}`}>
+        {STATUS_ICONS[currentStatus]} {currentLabel}
+      </span>
+    );
+  }
 
   return (
     <div className="relative">

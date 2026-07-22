@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ReusableDialog } from "@/components/shared/reusable-dialog";
 import { cn } from "@/lib/utils";
+import { useAllKabupaten } from "@/features/master-data";
 import type { ActionResponse } from "@/types/common";
-import type { User } from "@/types";
+import type { User, UserRole } from "@/types";
 
 interface UserFormProps {
   action: (prev: ActionResponse, formData: FormData) => Promise<ActionResponse>;
@@ -26,6 +27,24 @@ export function UserForm({ action, defaultValues, onSuccess, open, onOpenChange 
     },
     { success: false },
   );
+
+  const { data: kabupaten } = useAllKabupaten();
+  const [role, setRole] = useState<UserRole>(defaultValues?.role ?? "produksi");
+  const [selectedKab, setSelectedKab] = useState<string[]>(
+    defaultValues?.assigned_kabupaten_ids ?? [],
+  );
+
+  // Reset selection when the dialog opens for a different user.
+  useEffect(() => {
+    setRole(defaultValues?.role ?? "produksi");
+    setSelectedKab(defaultValues?.assigned_kabupaten_ids ?? []);
+  }, [defaultValues, open]);
+
+  function toggleKab(id: string) {
+    setSelectedKab((prev) =>
+      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id],
+    );
+  }
 
   const isEditing = !!defaultValues;
 
@@ -73,7 +92,8 @@ export function UserForm({ action, defaultValues, onSuccess, open, onOpenChange 
           <select
             id="role"
             name="role"
-            defaultValue={defaultValues?.role ?? "produksi"}
+            value={role}
+            onChange={(e) => setRole(e.target.value as UserRole)}
             className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
           >
             <option value="admin">Admin</option>
@@ -81,6 +101,29 @@ export function UserForm({ action, defaultValues, onSuccess, open, onOpenChange 
             <option value="produksi">Produksi</option>
           </select>
         </div>
+
+        {role === "qc" && (
+          <div className="space-y-2">
+            <Label>Wilayah Tugas (Kabupaten)</Label>
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-input p-2 space-y-1">
+              {(kabupaten ?? []).map((k) => (
+                <label key={k.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedKab.includes(k.id)}
+                    onChange={() => toggleKab(k.id)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  {k.name}
+                </label>
+              ))}
+              {(kabupaten ?? []).length === 0 && (
+                <p className="text-xs text-muted-foreground">Belum ada data kabupaten.</p>
+              )}
+            </div>
+            <input type="hidden" name="assigned_kabupaten_ids" value={selectedKab.join(",")} />
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="phone">Telepon</Label>

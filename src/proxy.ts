@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { randomUUID } from "node:crypto";
+import { withRequestId } from "@/lib/logger";
 
 const PUBLIC_ROUTES = ["/login", "/reset-password"];
 const AUTH_ROUTES = ["/login"];
@@ -12,9 +14,11 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const requestId = request.headers.get("x-request-id") ?? randomUUID();
 
+  return withRequestId(requestId, async () => {
   const isPublicRoute = PUBLIC_ROUTES.some((route) =>
     pathname.startsWith(route),
   );
@@ -58,7 +62,9 @@ export async function proxy(request: NextRequest) {
 
   const response = NextResponse.next({ request });
   applyCookiesToResponse(request, response, cookiesToSet);
+  response.headers.set("x-request-id", requestId);
   return response;
+  });
 }
 
 function applyCookiesToResponse(
@@ -74,6 +80,8 @@ function applyCookiesToResponse(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/auth|health|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+
+export default middleware;

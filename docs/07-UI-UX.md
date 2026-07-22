@@ -151,6 +151,7 @@ The FVMS follows a **mobile-first, minimal, and professional** design language i
 - Hover state: var(--muted) background
 - Responsive: horizontal scroll on mobile
 - Sortable headers with visual indicator
+- **Schedule table inline actions**: each row has "Geser +1 Hari" and "Kembalikan -1 Hari" buttons for quick date shifting (optimistic UI).
 
 ### Status Badges
 - Height: 24px
@@ -206,6 +207,14 @@ The FVMS follows a **mobile-first, minimal, and professional** design language i
 - Status change: brief success checkmark animation
 - Photo upload: progress bar + thumbnail
 - Pull to refresh on mobile schedule list
+- **Schedule shift buttons**: "Geser +1 Hari" / "Kembalikan -1 Hari" use optimistic UI — the row updates instantly, then reconciles with the server. Disabled while in-flight; error rolls back with a toast.
+
+## 9.1 Role-Based UI & Security Notes
+
+- **Mobile-first with security headers**: The app is designed mobile-first (bottom nav) and served with CSP + security headers defined in `next.config.ts`.
+- **Admin-only controls**: Master data (kabupaten/kecamatan/desa) management and Excel import are **admin-only**; non-admin roles do not see these controls (or see them read-only).
+- **QC field capability**: QC users capture GPS and upload photos in the field for schedules within their assigned kabupaten (`assigned_kabupaten_ids`), but cannot delete or edit photos and cannot delete schedules.
+- **QC scope is kabupaten-bounded**: QC sees only schedules within their assigned kabupaten(s), not all produksi schedules globally.
 
 ## 10. Responsive Breakpoints
 

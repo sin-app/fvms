@@ -4,6 +4,12 @@ export interface ScheduleFilters {
   search?: string;
   status?: string;
   user_id?: string;
+  cgr?: string;
+  member_name?: string;
+  block_no?: string;
+  no_plot?: string;
+  nis?: string;
+  tgl_tanam?: string;
   kabupaten_id?: string;
   kecamatan_id?: string;
   date_from?: string;
@@ -12,6 +18,7 @@ export interface ScheduleFilters {
   pageSize?: number;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
+  varietas?: string;
 }
 
 export interface ScheduleListResult {

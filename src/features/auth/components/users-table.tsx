@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, ToggleLeft, ToggleRight, Shield, KeyRound } from "lucide-react";
+import { Pencil, ToggleLeft, ToggleRight, Shield, KeyRound, Search } from "lucide-react";
 import { useUsersAdmin, useToggleUserActive, useSetPassword } from "../hooks/use-users-admin";
+import { useAllKabupaten } from "@/features/master-data";
 import { createUserAction, updateUserAction } from "../actions/user-actions";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -30,18 +31,41 @@ const ROLE_LABELS: Record<string, string> = {
   produksi: "Produksi",
 };
 
+// Role filter options — QC is intentionally excluded from the filter.
+const ROLE_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "all", label: "Semua Role" },
+  { value: "produksi", label: "Produksi" },
+  { value: "admin", label: "Admin" },
+];
+
 export function UsersTable() {
   const { data: users, isLoading, isError, refetch } = useUsersAdmin();
+  const { data: kabupaten } = useAllKabupaten();
   const toggleActive = useToggleUserActive();
   const setPassword = useSetPassword();
+
+  const kabName = (id: string) =>
+    kabupaten?.find((k) => k.id === id)?.name ?? id;
   const [showCreate, setShowCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [toggling, setToggling] = useState<User | null>(null);
   const [pwdUser, setPwdUser] = useState<User | null>(null);
   const [pwdValue, setPwdValue] = useState("");
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   if (isLoading) return <LoadingState variant="table" />;
   if (isError) return <ErrorState onRetry={refetch} />;
+
+  const filteredUsers = (users ?? []).filter((user) => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      user.name.toLowerCase().includes(q) ||
+      user.email.toLowerCase().includes(q);
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
 
   if (!users?.length) {
     return (
@@ -54,7 +78,44 @@ export function UsersTable() {
   }
 
   return (
-    <div>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1 space-y-1.5">
+          <Label htmlFor="user-search">Cari</Label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="user-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Nama atau email..."
+              className="pl-8"
+            />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="role-filter">Role</Label>
+          <select
+            id="role-filter"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+          >
+            {ROLE_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {filteredUsers.length === 0 ? (
+        <EmptyState
+          title="Tidak ada hasil"
+          description="Tidak ditemukan pengguna yang sesuai dengan pencarian."
+        />
+      ) : (
       <div className="rounded-xl border overflow-hidden">
         <div className="overflow-x-auto min-w-0">
           <table className="w-full">
@@ -63,13 +124,14 @@ export function UsersTable() {
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Nama</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Email</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Role</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Wilayah Tugas</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Terdaftar</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <tr key={user.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                   <td className="p-3 text-sm whitespace-nowrap font-medium">{user.name}</td>
                   <td className="p-3 text-sm whitespace-nowrap text-muted-foreground">{user.email}</td>
@@ -83,6 +145,13 @@ export function UsersTable() {
                       <Shield className="h-3 w-3" />
                       {ROLE_LABELS[user.role] ?? user.role}
                     </span>
+                  </td>
+                  <td className="p-3 text-sm text-muted-foreground">
+                    {user.role === "qc"
+                      ? (user.assigned_kabupaten_ids ?? []).length > 0
+                        ? (user.assigned_kabupaten_ids ?? []).map(kabName).join(", ")
+                        : "—"
+                      : "Semua"}
                   </td>
                   <td className="p-3">
                     <span className={cn(
@@ -133,6 +202,7 @@ export function UsersTable() {
           </table>
         </div>
       </div>
+      )}
 
       <UserForm
         action={createUserAction}

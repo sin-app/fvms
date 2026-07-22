@@ -7,7 +7,8 @@
 Start → Login Page
   → Enter email & password
   → Validate (Zod)
-  → Submit (Supabase Auth)
+  → Submit (Supabase Auth) — RATE LIMITED
+    → Too many attempts → "Terlalu banyak percobaan, coba lagi nanti" (lockout)
     → Success → Redirect to Dashboard
     → Error → Show error message
       → Invalid credentials → "Email atau password salah"
@@ -19,7 +20,8 @@ Start → Login Page
 ```
 Login Page → "Lupa Password?"
   → Enter registered email
-  → Submit
+  → Submit — RATE LIMITED
+    → Too many attempts → "Terlalu banyak percobaan, coba lagi nanti" (lockout)
     → Success → "Cek email Anda untuk instruksi reset password"
     → Error → "Email tidak terdaftar"
   → Email received → Click link → Reset Password Form
@@ -65,6 +67,17 @@ Dashboard → Schedules
   → Navigate to Calendar → Monthly view
   → Tap date → Day view
   → Tap event → Visit Detail
+```
+
+### 2.3 Schedule Shift Micro-Flow (Quick Reschedule)
+```
+Schedules List → Tap "Geser +1 Hari" on a row
+  → Optimistic UI: row date +1 immediately
+  → Server Action updates schedule (gated by getAuthContext()/canAccessSchedule())
+    → Success → toast "Jadwal digeser"
+    → Error → rollback row + toast error
+Tap "Kembalikan -1 Hari" → same flow but date -1
+(Produksi: own schedules only; Admin: any schedule; QC: view-only, no shift)
 ```
 
 ### 2.3 Execute Visit Flow
@@ -117,9 +130,9 @@ Dashboard → Click "Visit History"
 
 ## 3. Admin Flows
 
-### 3.1 Excel Import Flow
+### 3.1 Excel Import Flow (ADMIN ONLY)
 ```
-Import Page
+Import Page (admin only — produksi & QC do not have access)
   → Upload Excel file (drag-drop or click)
     → Validation: format, size
     → Error if invalid
@@ -153,9 +166,9 @@ Users Page
     → Their data remains intact
 ```
 
-### 3.3 Master Data Management Flow
+### 3.3 Master Data Management Flow (ADMIN ONLY)
 ```
-Master Data → Kabupaten
+Master Data → Kabupaten (admin only — produksi & QC do not have access)
   → List with search
   → Create → Modal: name + code
   → Edit → Modal: update name/code
@@ -174,15 +187,15 @@ Master Data → Desa
 
 ## 4. QC Flows
 
-QC is responsible for verification across the full field cycle: from **checking land applications** through to **harvest** (pengecekan pengajuan lahan sampai dengan panen). QC can view all Produksi schedules to perform inspection and land assessment.
+QC is responsible for verification across the full field cycle: from **checking land applications** through to **harvest** (pengecekan pengajuan lahan sampai dengan panen). QC is **scoped to assigned kabupaten** (`assigned_kabupaten_ids` / wilayah tugas): QC can VIEW schedules only within assigned kabupaten, can UPLOAD photos and CAPTURE GPS in the field for those schedules, but CANNOT delete/edit photos and CANNOT delete schedules.
 
 ### 4.1 Monitoring Flow
 ```
 Dashboard
-  → View all Produksi (field officers) stats
+  → View Produksi (field officers) stats for assigned kabupaten only
   → Filter/select by stage: Land Application → ... → Harvest
-  → Tap officer name → Officer Detail
-    → Their schedule list (all stages)
+  → Tap officer name → Officer Detail (within assigned kabupaten)
+    → Their schedule list (all stages, within assigned kabupaten)
     → Their completion rate
     → Their late visits
     → Their recent activity

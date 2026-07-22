@@ -34,6 +34,7 @@ CREATE TABLE users (
   email           VARCHAR(255) NOT NULL UNIQUE,
   name            VARCHAR(255) NOT NULL,
   role            user_role NOT NULL DEFAULT 'produksi',
+  assigned_kabupaten_ids UUID[] NOT NULL DEFAULT '{}',
   avatar_url      TEXT,
   phone           VARCHAR(20),
   is_active       BOOLEAN NOT NULL DEFAULT true,
@@ -44,6 +45,8 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
+-- GIN index for QC kabupaten scoping
+CREATE INDEX idx_users_assigned_kabupaten ON users USING gin (assigned_kabupaten_ids);
 ```
 
 ### 4.2 kabupaten
@@ -110,6 +113,18 @@ CREATE TABLE schedules (
   kabupaten_id  UUID NOT NULL REFERENCES kabupaten(id) ON DELETE RESTRICT,
   kecamatan_id  UUID NOT NULL REFERENCES kecamatan(id) ON DELETE RESTRICT,
   desa_id       UUID NOT NULL REFERENCES desa(id) ON DELETE RESTRICT,
+  cgr           VARCHAR(255),
+  cgr_code      VARCHAR(50),
+  block_no      VARCHAR(50),
+  no_plot       VARCHAR(50),
+  member_name   VARCHAR(255),
+  document_no   VARCHAR(100),
+  nis           VARCHAR(100),
+  tgl_tanam     DATE,
+  ph_tanah      DECIMAL(5, 2),
+  real_tanam_ha DECIMAL(10, 2),
+  gagal_tanam   DECIMAL(10, 2),
+  sisa_di_lahan_ha DECIMAL(10, 2),
   visit_date    DATE NOT NULL,
   status        visit_status NOT NULL DEFAULT 'pending',
   latitude      DECIMAL(10, 8),
@@ -159,8 +174,8 @@ CREATE INDEX idx_visit_notes_schedule ON visit_notes(schedule_id);
 CREATE TABLE visit_photos (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   schedule_id   UUID NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
-  url           TEXT NOT NULL,
-  thumbnail     TEXT,
+  url           TEXT NOT NULL, -- signed URL from private 'visit-photos' bucket
+  thumbnail     TEXT, -- signed URL
   caption       VARCHAR(500),
   file_size     INTEGER,
   mime_type     VARCHAR(50),
@@ -231,6 +246,21 @@ CREATE INDEX idx_excel_imports_status ON excel_imports(status);
 CREATE INDEX idx_excel_imports_created ON excel_imports(created_at DESC);
 ```
 
+### 4.11 rate_limits (persistent rate-limit store)
+
+```sql
+CREATE TABLE rate_limits (
+  key            text PRIMARY KEY,
+  count          integer NOT NULL DEFAULT 1,
+  first_at       timestamptz NOT NULL DEFAULT now(),
+  blocked_until  timestamptz NOT NULL DEFAULT '1970-01-01T00:00:00Z'
+);
+
+CREATE INDEX idx_rate_limits_blocked ON rate_limits (blocked_until);
+```
+
+Replaces in-memory Map so rate-limits survive across serverless invocations on Vercel. Written via service-role; RLS policy prevents direct user access.
+
 ## 5. Row Level Security (RLS) Policies
 
 ### 5.1 Enable RLS on all tables
@@ -246,6 +276,7 @@ ALTER TABLE visit_photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE excel_imports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
 ```
 
 ### 5.2 Policies Summary
@@ -262,13 +293,16 @@ ALTER TABLE excel_imports ENABLE ROW LEVEL SECURITY;
 
 **schedules**
 - Admin: all CRUD
-- QC: read all
+- QC: read only, scoped to `assigned_kabupaten_ids`; cannot delete schedules
 - Produksi: read own, update own (limited)
 
 **visit_notes, visit_photos**
 - Admin: all CRUD
-- QC: read all
+- QC: read only, scoped to assigned kabupaten; cannot delete or edit photos
 - Produksi: read own, create own, update own
+
+**Storage (visit-photos bucket): private**
+- The `visit-photos` Supabase Storage bucket is **private**; photos are served only via short-lived **signed URLs** (the `url`/`thumbnail` columns store signed URLs, not public paths).
 
 **activity_logs**
 - Admin: read all, create

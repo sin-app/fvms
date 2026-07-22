@@ -16,3 +16,8 @@ export interface DashboardData {
   upcomingSchedules: Schedule[];
   recentActivities: ActivityLog[];
 }
+
+export interface DashboardFilters {
+  kabupaten_id?: string;
+  kecamatan_id?: string;
+}

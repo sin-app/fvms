@@ -5,7 +5,7 @@ export interface VisitDetailData {
     kabupaten?: { name: string };
     kecamatan?: { name: string };
     desa?: { name: string };
-    user?: { name: string; email: string };
+    users?: { name: string; email: string } | null;
     visit_notes?: VisitNotes | VisitNotes[];
     visit_photos?: VisitPhoto[];
   };

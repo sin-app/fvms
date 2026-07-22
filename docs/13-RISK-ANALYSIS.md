@@ -8,8 +8,8 @@
 | R02 | GPS inaccuracy in remote areas | Medium | Medium | Moderate | Allow manual coordinate entry, display accuracy level |
 | R03 | Large Excel file import timeout | Medium | High | High | Chunk processing, progress indicator, 5000 row limit per batch |
 | R04 | Duplicate schedule entries | Medium | Medium | Moderate | Pre-import duplicate detection, unique constraints |
-| R05 | Unauthorized data access | Low | Critical | Critical | RLS policies, server-side validation, regular security audits |
-| R06 | Photo upload storage limits | Medium | Medium | Moderate | Auto-compression, file size limits, storage monitoring |
+| R05 | Unauthorized data access | Low | Critical | High | RLS policies, server-side validation, QC kabupaten scoping (assigned_kabupaten_ids) via canAccessSchedule()/qcKabupatenScope(), getAuthContext() gating on all server actions |
+| R06 | Photo upload storage limits | Medium | Medium | Moderate | Auto-compression, file size limits, storage monitoring, photos in PRIVATE bucket via signed URLs |
 | R07 | Data loss from accidental deletion | Low | Critical | Critical | Soft delete, database backups, restore procedure |
 | R08 | User adoption resistance | Medium | High | High | Intuitive UI, training materials, import existing data easily |
 | R09 | Browser compatibility issues | Low | Medium | Low | Target modern browsers, progressive enhancement |
@@ -44,17 +44,20 @@
 
 ### R05: Unauthorized Access
 - **Strategy:** Defense in depth
-  - Row Level Security on all database tables
+  - Row Level Security enabled on all database tables
   - Server-side validation in all Server Actions
   - Zod schema validation on all inputs
+  - QC scoped to `assigned_kabupaten_ids` (wilayah tugas): `getAuthContext()` / `canAccessSchedule()` / `qcKabupatenScope()` enforce that QC can only VIEW schedules within assigned kabupaten, cannot delete schedules, and cannot delete/edit photos
   - No sensitive data in client-side state unless necessary
   - Regular RLS policy review
+- **Residual risk:** Misconfigured `assigned_kabupaten_ids` could over-/under-expose schedules; requires accurate admin assignment. Admin role remains a high-value target (full access).
 
 ### R06: Storage Limits
 - **Strategy:** Compress images to max 1MB before upload
 - **Limits:** Max 10MB per individual upload
 - **Monitoring:** Track storage usage, alert when nearing limit
 - **Cleanup:** Option to delete old unused photos
+- **Exposure:** Photos stored in a PRIVATE bucket and served only via signed URLs (no public access)
 
 ### R07: Data Loss
 - **Strategy:** Soft delete on all master data and schedules
@@ -92,7 +95,8 @@
 
 ### 4.1 Authentication
 - **Risk:** Brute force attacks
-- **Mitigation:** Rate limiting on login endpoint, Supabase Auth built-in protection
+- **Mitigation:** Rate limiting on login & reset-password endpoints, Supabase Auth built-in protection
+- **Residual risk:** Rate limiting is IP/account-based; distributed attacks from many IPs remain partially mitigated only by Supabase Auth protections.
 
 ### 4.2 Data in Transit
 - **Risk:** Man-in-the-middle attacks
