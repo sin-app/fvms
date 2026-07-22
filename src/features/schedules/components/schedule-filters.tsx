@@ -1,14 +1,11 @@
 "use client";
 
-import { SearchInput } from "@/components/shared/search-input";
 import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
 import { useAllCgr } from "../hooks/use-cgr";
 import { useAllUsers } from "../hooks/use-users";
 import { STATUS_LABELS } from "@/lib/constants/status";
 
 interface ScheduleFiltersProps {
-  search: string;
-  onSearchChange: (value: string) => void;
   memberName: string;
   onMemberNameChange: (value: string) => void;
   blockNo: string;
@@ -81,8 +78,6 @@ function getDateRange(preset: string) {
 }
 
 export function ScheduleFilters({
-  search,
-  onSearchChange,
   memberName,
   onMemberNameChange,
   blockNo,
@@ -135,13 +130,6 @@ export function ScheduleFilters({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
-          <SearchInput
-            value={search}
-            onChange={onSearchChange}
-            placeholder="Cari berdasarkan wilayah..."
-          />
-        </div>
         <input
           value={memberName}
           onChange={(e) => onMemberNameChange(e.target.value)}

@@ -1,7 +1,6 @@
 import type { Schedule } from "@/types";
 
 export interface ScheduleFilters {
-  search?: string;
   status?: string;
   user_id?: string;
   cgr?: string;

@@ -17,7 +17,6 @@ export default function SchedulesPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isProduksi = user?.role === "produksi";
-  const [search, setSearch] = useState("");
   const [memberName, setMemberName] = useState("");
   const [blockNo, setBlockNo] = useState("");
   const [noPlot, setNoPlot] = useState("");
@@ -34,12 +33,10 @@ export default function SchedulesPage() {
   const [varietas, setVarietas] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
-  const debouncedSearch = useDebounce(search, 300);
   const debouncedMemberName = useDebounce(memberName, 300);
 
   function handleDownloadPdf() {
     const qfilters = {
-      search: debouncedSearch || undefined,
       status: status !== "all" ? status : undefined,
       kabupaten_id: kabupatenId || undefined,
       kecamatan_id: kecamatanId || undefined,
@@ -90,16 +87,15 @@ export default function SchedulesPage() {
   }
 
   const filters = {
-    search: debouncedSearch || undefined,
     member_name: debouncedMemberName || undefined,
     block_no: blockNo.trim() || undefined,
     no_plot: noPlot.trim() || undefined,
     nis: nis.trim() || undefined,
     tgl_tanam: tglTanam.trim() || undefined,
     status: status !== "all" ? status : undefined,
-      user_id: isProduksi ? undefined : (userId || undefined),
-      cgr: cgr.trim() || undefined,
-      kabupaten_id: kabupatenId || undefined,
+    user_id: isProduksi ? undefined : (userId || undefined),
+    cgr: cgr.trim() || undefined,
+    kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
@@ -132,8 +128,6 @@ export default function SchedulesPage() {
       />
 
       <ScheduleFilters
-        search={search}
-        onSearchChange={setSearch}
         memberName={memberName}
         onMemberNameChange={setMemberName}
         blockNo={blockNo}

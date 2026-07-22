@@ -16,7 +16,6 @@ export async function getScheduleList(
 ): Promise<ScheduleListResult> {
   const admin = createAdminClient();
   const {
-    search,
     status,
     kabupaten_id,
     kecamatan_id,
@@ -96,15 +95,8 @@ export async function getScheduleList(
     query = query.gte("visit_date", date_from).lte("visit_date", date_to);
   } else if (date_from) {
     query = query.gte("visit_date", date_from);
-  } else if (date_to) {
+  } else   if (date_to) {
     query = query.lte("visit_date", date_to);
-  }
-
-  if (search) {
-    const s = escapeLike(search);
-    query = query.or(
-      `kabupaten.name.ilike.%${s}%,kecamatan.name.ilike.%${s}%,desa.name.ilike.%${s}%`,
-    );
   }
 
   query = query.is("deleted_at", null).order("visit_date", { ascending: true });
