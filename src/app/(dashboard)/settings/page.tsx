@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { NotificationPrefs } from "@/features/settings/components/notification-prefs";
 import { AppearanceSettings } from "@/features/settings/components/appearance-settings";
-import { LogoutButton } from "@/features/auth/components/logout-button";
+import { LanguageSwitcher } from "@/features/settings/components/language-switcher";
+import { ApiKeyManager } from "@/features/settings/components/api-key-manager";
 
 export default function SettingsPage() {
   const { user, isLoading } = useAuth();
@@ -43,6 +44,21 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold">Tampilan</h2>
         <AppearanceSettings />
       </section>
+
+      <section className="rounded-xl border bg-card p-6 space-y-6">
+        <h2 className="text-lg font-semibold">Bahasa</h2>
+        <LanguageSwitcher />
+      </section>
+
+      {user.role === "admin" && (
+        <section className="rounded-xl border bg-card p-6 space-y-6">
+          <h2 className="text-lg font-semibold">API Key</h2>
+          <p className="text-sm text-muted-foreground">
+            Gunakan API Key untuk mengakses data melalui REST API. Simpan key dengan aman — tidak bisa dilihat lagi setelah dibuat.
+          </p>
+          <ApiKeyManager />
+        </section>
+      )}
 
       <section className="rounded-xl border bg-card p-6">
         <LogoutButton />
