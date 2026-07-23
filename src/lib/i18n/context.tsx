@@ -10,8 +10,8 @@ const STORAGE_KEY = "fvms_locale";
 const messagesCache = new Map<Locale, Messages>();
 
 const messageLoaders: Record<Locale, () => Promise<Messages>> = {
-  id: () => import("/messages/id.json").then((m) => (m.default ?? m) as Messages),
-  en: () => import("/messages/en.json").then((m) => (m.default ?? m) as Messages),
+  id: () => import("../../../messages/id.json").then((m) => (m.default ?? m) as Messages),
+  en: () => import("../../../messages/en.json").then((m) => (m.default ?? m) as Messages),
 };
 
 async function loadMessages(locale: Locale): Promise<Messages> {
