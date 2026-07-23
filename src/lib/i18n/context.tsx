@@ -9,11 +9,16 @@ const STORAGE_KEY = "fvms_locale";
 
 const messagesCache = new Map<Locale, Messages>();
 
+const messageLoaders: Record<Locale, () => Promise<Messages>> = {
+  id: () => import("/messages/id.json").then((m) => (m.default ?? m) as Messages),
+  en: () => import("/messages/en.json").then((m) => (m.default ?? m) as Messages),
+};
+
 async function loadMessages(locale: Locale): Promise<Messages> {
   if (messagesCache.has(locale)) return messagesCache.get(locale)!;
-  const msgs = await import(`/messages/${locale}.json`);
-  messagesCache.set(locale, msgs.default ?? msgs);
-  return messagesCache.get(locale)!;
+  const msgs = await messageLoaders[locale]();
+  messagesCache.set(locale, msgs);
+  return msgs;
 }
 
 interface I18nContextValue {
