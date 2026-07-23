@@ -12,6 +12,7 @@ import { VisitNotesForm } from "./visit-notes-form";
 import { VisitPhotos } from "./visit-photos";
 import { VisitGps } from "./visit-gps";
 import { VisitTimeline } from "./visit-timeline";
+import { PanenCard } from "@/features/panen";
 import { formatDate, formatDateTime } from "@/lib/utils/date";
 import { useAuth } from "@/features/auth/components/auth-context";
 
@@ -97,6 +98,13 @@ export function VisitDetail({ id }: VisitDetailProps) {
               </div>
             )}
           </div>
+
+          <PanenCard
+            scheduleId={id}
+            tglPanen={schedule.tgl_panen}
+            panenKeterangan={schedule.panen_keterangan}
+            editable={canEdit}
+          />
 
           <div className="rounded-xl border p-5">
             <h2 className="text-lg font-semibold mb-4">Catatan Kunjungan</h2>

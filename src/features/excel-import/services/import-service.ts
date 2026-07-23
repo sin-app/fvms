@@ -139,6 +139,7 @@ export async function bulkImportSchedules(
     desa: string;
     date: string;
     tgl_tanam?: string;
+    tgl_panen?: string;
     cgr?: string;
     cgr_code?: string;
     block_no?: string;
@@ -227,6 +228,11 @@ export async function bulkImportSchedules(
       if (n !== null) v.sisa_di_lahan_ha = n;
     }
 
+    if (mapping.tgl_panen) {
+      const d = row[mapping.tgl_panen]?.trim();
+      if (d && isValidDate(d)) v.tgl_panen = d;
+    }
+
     valid.push(v);
   }
 
@@ -244,6 +250,7 @@ export async function bulkImportSchedules(
     visit_date: string;
     created_by: string;
     tgl_tanam?: string;
+    tgl_panen?: string;
     cgr?: string;
     cgr_code?: string;
     block_no?: string;
@@ -284,6 +291,7 @@ export async function bulkImportSchedules(
       visit_date: r.date,
       created_by: userId,
       ...(r.tgl_tanam !== undefined ? { tgl_tanam: r.tgl_tanam } : {}),
+      ...(r.tgl_panen !== undefined ? { tgl_panen: r.tgl_panen } : {}),
       ...(r.cgr !== undefined ? { cgr: r.cgr } : {}),
       ...(r.cgr_code !== undefined ? { cgr_code: r.cgr_code } : {}),
       ...(r.block_no !== undefined ? { block_no: r.block_no } : {}),
@@ -346,6 +354,7 @@ export async function bulkImportSchedules(
         if (r.real_tanam_ha !== undefined) updateData.real_tanam_ha = r.real_tanam_ha;
         if (r.gagal_tanam !== undefined) updateData.gagal_tanam = r.gagal_tanam;
         if (r.sisa_di_lahan_ha !== undefined) updateData.sisa_di_lahan_ha = r.sisa_di_lahan_ha;
+        if (r.tgl_panen !== undefined) updateData.tgl_panen = r.tgl_panen;
         if (r.latitude !== undefined) updateData.latitude = r.latitude;
         if (r.longitude !== undefined) updateData.longitude = r.longitude;
         if (r.accuracy !== undefined) updateData.accuracy = r.accuracy;

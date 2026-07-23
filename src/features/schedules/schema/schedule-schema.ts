@@ -35,6 +35,8 @@ export const scheduleSchema = z.object({
     .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v)))
     .refine((v) => v === undefined || !Number.isNaN(v), "Sisa di Lahan harus berupa angka"),
   tgl_tanam: z.string().optional(),
+  tgl_panen: z.string().optional(),
+  panen_keterangan: z.string().optional(),
 });
 
 export type ScheduleInput = z.infer<typeof scheduleSchema>;

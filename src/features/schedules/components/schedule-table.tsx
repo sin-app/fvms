@@ -2,7 +2,7 @@
 
 import { useState, Fragment } from "react";
 import Link from "next/link";
-import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2 } from "lucide-react";
+import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout } from "lucide-react";
 import { useSchedules, useDeleteSchedule, useShiftScheduleDate } from "../hooks/use-schedules";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -215,6 +215,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">NIS</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">PH Tanah</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Tanam (HA)</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Panen</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
                 <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Aksi</th>
               </tr>
@@ -228,7 +229,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                   <Fragment key={schedule.id}>
                     {showGroup && (
                       <tr className="bg-muted/70">
-                         <td colSpan={14} className="p-2.5 px-3">
+                          <td colSpan={15} className="p-2.5 px-3">
                           <div className="flex items-center gap-2 text-sm font-semibold">
                             {formatDateDay(displayDate)}
                             {isTodayDate(displayDate) && (
@@ -287,6 +288,16 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       </td>
                       <td className="p-3 text-sm text-right whitespace-nowrap">
                         {schedule.real_tanam_ha ?? "—"}
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        {schedule.tgl_panen ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950 rounded-full px-2 py-0.5">
+                            <Sprout className="h-3 w-3" />
+                            Panen
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="p-3">
                         <StatusBadge status={schedule.status} size="sm" />

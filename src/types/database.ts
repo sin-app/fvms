@@ -84,6 +84,8 @@ export interface Schedule {
   real_tanam_ha: number | null;
   gagal_tanam: number | null;
   sisa_di_lahan_ha: number | null;
+  tgl_panen: string | null;
+  panen_keterangan: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

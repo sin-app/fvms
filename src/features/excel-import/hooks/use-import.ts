@@ -52,6 +52,7 @@ export function useExcelImport() {
           real_tanam_ha: ["real tanam ha", "real tanam", "luas tanam"],
           gagal_tanam: ["gagal tanam"],
           sisa_di_lahan_ha: ["sisa di lahan ha", "sisa lahan", "sisa di lahan"],
+          tgl_panen: ["tgl panen", "tanggal panen", "harvest date", "tgl_panen"],
           visit_time: ["jam", "waktu", "time", "visit time", "pukul"],
           latitude: ["latitude", "lat", "ls", "lintang"],
           longitude: ["longitude", "lng", "lon", "long", "bt", "bujur"],
