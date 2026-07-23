@@ -451,9 +451,24 @@ function dedupeSchedules(
     desa_id: string;
     visit_date: string;
     created_by: string;
+    tgl_tanam?: string;
+    tgl_panen?: string;
+    cgr?: string;
+    cgr_code?: string;
     block_no?: string;
     no_plot?: string;
     member_name?: string;
+    document_no?: string;
+    ph_tanah?: number;
+    nis?: string;
+    real_tanam_ha?: number;
+    gagal_tanam?: number;
+    sisa_di_lahan_ha?: number;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    visit_time?: string;
+    notes?: string;
   }>,
 ): typeof rows {
   const seen = new Set<string>();
