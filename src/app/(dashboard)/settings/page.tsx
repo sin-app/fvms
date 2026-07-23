@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/features/auth/components/auth-context";
+import { LogoutButton } from "@/features/auth";
 import { ProfileForm } from "@/features/auth/components/profile-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
