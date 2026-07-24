@@ -103,6 +103,8 @@ export function ScheduleForm({
           onDesaChange={(id) => setDesaId(id)}
         />
 
+        <input type="hidden" name="kabupaten_id" value={kabupatenId} />
+        <input type="hidden" name="kecamatan_id" value={kecamatanId} />
         <input type="hidden" name="desa_id" value={desaId} />
 
         <div className="grid gap-4 sm:grid-cols-2">
