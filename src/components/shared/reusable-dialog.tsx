@@ -15,6 +15,7 @@ interface ReusableDialogProps {
   title: string;
   description?: string;
   children: ReactNode;
+  className?: string;
 }
 
 export function ReusableDialog({
@@ -23,10 +24,11 @@ export function ReusableDialog({
   title,
   description,
   children,
+  className,
 }: ReusableDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className={className ?? "sm:max-w-[425px]"}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

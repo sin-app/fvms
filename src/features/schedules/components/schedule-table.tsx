@@ -38,6 +38,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const isAdmin = user?.role === "admin";
   const canDelete = user?.role === "admin";
   const canBulkShift = user?.role === "admin" || user?.role === "qc";
+  const canEdit = (schedule: Schedule) => user?.role === "admin" || schedule.user_id === user?.id;
   const shiftSchedule = useShiftScheduleDate();
 
   function canShift(schedule: Schedule) {
@@ -225,7 +226,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                   <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Sisa Lahan (HA)</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Panen</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">Aksi</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap min-w-[120px] sm:min-w-[160px]">Aksi</th>
                 </tr>
               </thead>
             <tbody>
@@ -326,10 +327,12 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                           <Link
                             href={`/visits/${schedule.id}`}
                             className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-muted transition-colors"
+                            aria-label="Lihat detail"
+                            title="Lihat detail"
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
-                          {canDelete && (
+                          {canEdit(schedule) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -345,6 +348,8 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                               variant="ghost"
                               size="icon"
                               onClick={() => setDeleting(schedule)}
+                              aria-label="Hapus"
+                              title="Hapus"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>

@@ -28,7 +28,7 @@ export function RegionSelector({
   const { data: desa } = useAllDesa(kecamatanId ?? "");
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       <div>
         <label className="text-sm font-medium mb-1 block">Kabupaten</label>
         <select

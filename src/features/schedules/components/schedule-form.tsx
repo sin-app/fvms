@@ -53,6 +53,7 @@ export function ScheduleForm({
       onOpenChange={onOpenChange}
       title={isEditing ? "Edit Jadwal" : "Buat Jadwal Baru"}
       description="Isi detail jadwal kunjungan lapangan"
+      className="sm:max-w-xl max-h-[90vh] overflow-y-auto"
     >
       <form action={formAction} className="space-y-4">
         {defaultValues && (
@@ -104,62 +105,64 @@ export function ScheduleForm({
 
         <input type="hidden" name="desa_id" value={desaId} />
 
-        <div className="space-y-2">
-          <Label htmlFor="visit_date">Tanggal Kunjungan</Label>
-          <Input
-            id="visit_date"
-            name="visit_date"
-            type="date"
-            defaultValue={defaultValues?.visit_date ?? ""}
-            className={cn(state.fieldErrors?.visit_date && "border-destructive")}
-          />
-          {state.fieldErrors?.visit_date && (
-            <p className="text-sm text-destructive">{state.fieldErrors.visit_date[0]}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="notes">Catatan</Label>
-          <Textarea
-            id="notes"
-            name="notes"
-            defaultValue={defaultValues?.notes ?? ""}
-            placeholder="Catatan tambahan (opsional)"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="visit_date">Tanggal Kunjungan</Label>
+            <Input
+              id="visit_date"
+              name="visit_date"
+              type="date"
+              defaultValue={defaultValues?.visit_date ?? ""}
+              className={cn(state.fieldErrors?.visit_date && "border-destructive")}
+            />
+            {state.fieldErrors?.visit_date && (
+              <p className="text-sm text-destructive">{state.fieldErrors.visit_date[0]}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Catatan</Label>
+            <Textarea
+              id="notes"
+              name="notes"
+              defaultValue={defaultValues?.notes ?? ""}
+              placeholder="Catatan tambahan (opsional)"
+              className="min-h-[2.5rem]"
+            />
+          </div>
         </div>
 
         <div className="border-t pt-4 mt-2">
           <p className="text-sm font-medium mb-3">Data Tanam</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+          <div className="grid gap-x-4 gap-y-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-1">
               <Label htmlFor="cgr">CGR</Label>
               <Input id="cgr" name="cgr" defaultValue={defaultValues?.cgr ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="cgr_code">CGR Code</Label>
               <Input id="cgr_code" name="cgr_code" defaultValue={defaultValues?.cgr_code ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="block_no">Block No</Label>
               <Input id="block_no" name="block_no" defaultValue={defaultValues?.block_no ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="no_plot">No Plot</Label>
               <Input id="no_plot" name="no_plot" defaultValue={defaultValues?.no_plot ?? ""} />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-1 sm:col-span-2 lg:col-span-1">
               <Label htmlFor="member_name">Member Name</Label>
               <Input id="member_name" name="member_name" defaultValue={defaultValues?.member_name ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="document_no">Document No</Label>
               <Input id="document_no" name="document_no" defaultValue={defaultValues?.document_no ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="nis">NIS</Label>
               <Input id="nis" name="nis" defaultValue={defaultValues?.nis ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="ph_tanah">PH Tanah</Label>
               <Input
                 id="ph_tanah"
@@ -173,7 +176,7 @@ export function ScheduleForm({
                 <p className="text-sm text-destructive">{state.fieldErrors.ph_tanah[0]}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="real_tanam_ha">Real Tanam (HA)</Label>
               <Input
                 id="real_tanam_ha"
@@ -187,7 +190,7 @@ export function ScheduleForm({
                 <p className="text-sm text-destructive">{state.fieldErrors.real_tanam_ha[0]}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="gagal_tanam">Gagal Tanam</Label>
               <Input
                 id="gagal_tanam"
@@ -201,7 +204,7 @@ export function ScheduleForm({
                 <p className="text-sm text-destructive">{state.fieldErrors.gagal_tanam[0]}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="sisa_di_lahan_ha">Sisa di Lahan (HA)</Label>
               <Input
                 id="sisa_di_lahan_ha"
@@ -215,20 +218,20 @@ export function ScheduleForm({
                 <p className="text-sm text-destructive">{state.fieldErrors.sisa_di_lahan_ha[0]}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="tgl_tanam">Tgl Tanam</Label>
               <Input id="tgl_tanam" name="tgl_tanam" type="date" defaultValue={defaultValues?.tgl_tanam ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="rencana_panen">Rencana Panen</Label>
               <Input id="rencana_panen" name="rencana_panen" type="date" defaultValue={defaultValues?.rencana_panen ?? ""} />
-              <p className="text-xs text-muted-foreground">Rencana panen (dihitung otomatis saat import)</p>
+              <p className="text-xs text-muted-foreground leading-tight">Otomatis dari import</p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="real_panen">Real Panen</Label>
               <Input id="real_panen" name="real_panen" type="date" defaultValue={defaultValues?.real_panen ?? ""} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="tgl_panen">Tgl Panen (Kunjungan)</Label>
               <Input id="tgl_panen" name="tgl_panen" type="date" defaultValue={defaultValues?.tgl_panen ?? ""} />
             </div>
@@ -239,7 +242,7 @@ export function ScheduleForm({
           <p className="text-sm text-destructive">{state.error}</p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-background pb-1">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Batal
           </Button>
