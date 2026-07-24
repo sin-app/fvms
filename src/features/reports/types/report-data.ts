@@ -8,4 +8,7 @@ export interface ReportRow {
   status: string;
   visit_time: string | null;
   has_notes: boolean;
+  rencana_panen: string | null;
+  real_panen: string | null;
+  tgl_panen: string | null;
 }

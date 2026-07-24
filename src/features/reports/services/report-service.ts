@@ -154,6 +154,9 @@ interface ReportRowRelation {
   kabupaten_id: string;
   kecamatan_id: string;
   visit_time: string | null;
+  rencana_panen: string | null;
+  real_panen: string | null;
+  tgl_panen: string | null;
   user?: { name: string } | null;
   kabupaten?: { name: string } | null;
   kecamatan?: { name: string } | null;
@@ -176,7 +179,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   let query = admin
     .from("schedules")
-    .select("id, visit_date, status, visit_time, users!schedules_user_id_fkey(name), kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
+    .select("id, visit_date, status, visit_time, rencana_panen, real_panen, tgl_panen, users!schedules_user_id_fkey(name), kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to)
@@ -207,6 +210,9 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     status: s.status,
     visit_time: s.visit_time,
     has_notes: false,
+    rencana_panen: s.rencana_panen ?? null,
+    real_panen: s.real_panen ?? null,
+    tgl_panen: s.tgl_panen ?? null,
   }));
 }
 
@@ -221,6 +227,9 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
     { header: "Kecamatan", key: "Kecamatan" },
     { header: "Desa", key: "Desa" },
     { header: "Status", key: "Status" },
+    { header: "Rencana Panen", key: "Rencana Panen" },
+    { header: "Real Panen", key: "Real Panen" },
+    { header: "Tgl Panen", key: "Tgl Panen" },
     { header: "Waktu Kunjungan", key: "Waktu Kunjungan" },
   ];
 
@@ -232,6 +241,9 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
       Kecamatan: r.kecamatan_name,
       Desa: r.desa_name,
       Status: r.status,
+      "Rencana Panen": r.rencana_panen ?? "",
+      "Real Panen": r.real_panen ?? "",
+      "Tgl Panen": r.tgl_panen ?? "",
       "Waktu Kunjungan": r.visit_time ?? "",
     });
   }

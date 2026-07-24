@@ -40,6 +40,9 @@ export async function createScheduleAction(
     gagal_tanam: formData.get("gagal_tanam") as string,
     sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
     tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
+    rencana_panen: (formData.get("rencana_panen") as string) || undefined,
+    real_panen: (formData.get("real_panen") as string) || undefined,
+    tgl_panen: (formData.get("tgl_panen") as string) || undefined,
   };
 
   const parsed = scheduleSchema.safeParse(raw);
@@ -95,6 +98,9 @@ export async function updateScheduleAction(
     gagal_tanam: formData.get("gagal_tanam") as string,
     sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
     tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
+    rencana_panen: (formData.get("rencana_panen") as string) || undefined,
+    real_panen: (formData.get("real_panen") as string) || undefined,
+    tgl_panen: (formData.get("tgl_panen") as string) || undefined,
   };
 
   const parsed = scheduleSchema.safeParse(raw);

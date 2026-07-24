@@ -72,6 +72,15 @@ export async function getDashboardData(
   const monthQuery = applyFilters(baseQuery())
     .gte("visit_date", monthStart)
     .lte("visit_date", monthEnd);
+  const sudahPanenQuery = applyFilters(baseQuery())
+    .not("real_panen", "is", null);
+  const jatuhTempoQuery = applyFilters(baseQuery())
+    .is("real_panen", null)
+    .lt("rencana_panen", today)
+    .not("status", "in", "(completed,cancelled)");
+  const belumPanenQuery = applyFilters(baseQuery())
+    .is("real_panen", null)
+    .or(`rencana_panen.gte.${today},rencana_panen.is.null`);
 
   const counts = await Promise.all([
     todayQuery,
@@ -81,6 +90,9 @@ export async function getDashboardData(
     completedQuery,
     pendingQuery,
     monthQuery,
+    sudahPanenQuery,
+    jatuhTempoQuery,
+    belumPanenQuery,
   ]);
 
   const stats: DashboardStats = {
@@ -91,6 +103,9 @@ export async function getDashboardData(
     completedCount: counts[4].count ?? 0,
     pendingCount: counts[5].count ?? 0,
     totalThisMonth: counts[6].count ?? 0,
+    sudahPanenCount: counts[7].count ?? 0,
+    jatuhTempoCount: counts[8].count ?? 0,
+    belumPanenCount: counts[9].count ?? 0,
   };
 
   const [todaySchedulesRes, upcomingSchedulesRes, recentActivityRes] = await Promise.all([

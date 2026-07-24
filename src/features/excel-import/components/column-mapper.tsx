@@ -21,6 +21,8 @@ const TARGET_FIELDS = [
   { key: "real_tanam_ha", label: "Real Tanam (HA)" },
   { key: "gagal_tanam", label: "Gagal Tanam" },
   { key: "sisa_di_lahan_ha", label: "Sisa LahAN (HA)" },
+  { key: "rencana_panen", label: "Rencana Panen" },
+  { key: "real_panen", label: "Real Panen" },
   { key: "latitude", label: "Latitude" },
   { key: "longitude", label: "Longitude" },
   { key: "accuracy", label: "Akurasi (m)" },

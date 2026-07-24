@@ -86,6 +86,14 @@ export async function getScheduleList(
   if (kabupaten_id) query = query.eq("kabupaten_id", kabupaten_id);
   if (kecamatan_id) query = query.eq("kecamatan_id", kecamatan_id);
 
+  if (filters.panen_status === "sudah") {
+    query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
+  } else if (filters.panen_status === "jatuh_tempo") {
+    query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", new Date().toISOString().split("T")[0]);
+  } else if (filters.panen_status === "belum") {
+    query = query.is("tgl_panen", null).is("real_panen", null);
+  }
+
   if (filters.varietas && filters.varietas.trim()) {
     // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment.
     query = query.like("document_no", `%/${escapeLike(filters.varietas.trim())}/%`);

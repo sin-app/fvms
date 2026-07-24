@@ -18,6 +18,7 @@ export interface ScheduleFilters {
   sort_by?: string;
   sort_dir?: "asc" | "desc";
   varietas?: string;
+  panen_status?: string;
 }
 
 export interface ScheduleListResult {

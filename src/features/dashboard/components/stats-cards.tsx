@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, CalendarClock, CalendarX, CheckCircle2, ListTodo, AlertTriangle } from "lucide-react";
+import { CalendarCheck, CalendarClock, CalendarX, CheckCircle2, ListTodo, AlertTriangle, Sprout, Timer, EyeOff } from "lucide-react";
 import { StatCard } from "@/components/shared/stat-card";
 import type { DashboardStats } from "../types";
 
@@ -46,6 +46,25 @@ export function StatsCards({ stats }: StatsCardsProps) {
         title="Pending"
         value={stats.pendingCount}
         icon={<CalendarX className="h-5 w-5 text-muted-foreground" />}
+      />
+      <StatCard
+        title="Sudah Panen"
+        value={stats.sudahPanenCount}
+        icon={<Sprout className="h-5 w-5 text-green-600" />}
+        href="/schedules"
+      />
+      {stats.jatuhTempoCount > 0 && (
+        <StatCard
+          title="Jatuh Tempo Panen"
+          value={stats.jatuhTempoCount}
+          icon={<Timer className="h-5 w-5 text-orange-500" />}
+          href="/schedules"
+        />
+      )}
+      <StatCard
+        title="Belum Panen"
+        value={stats.belumPanenCount}
+        icon={<EyeOff className="h-5 w-5 text-muted-foreground" />}
       />
     </div>
   );

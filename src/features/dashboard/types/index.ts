@@ -8,6 +8,9 @@ export interface DashboardStats {
   completedCount: number;
   pendingCount: number;
   totalThisMonth: number;
+  sudahPanenCount: number;
+  jatuhTempoCount: number;
+  belumPanenCount: number;
 }
 
 export interface DashboardData {

@@ -219,6 +219,19 @@ export function ScheduleForm({
               <Label htmlFor="tgl_tanam">Tgl Tanam</Label>
               <Input id="tgl_tanam" name="tgl_tanam" type="date" defaultValue={defaultValues?.tgl_tanam ?? ""} />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="rencana_panen">Rencana Panen</Label>
+              <Input id="rencana_panen" name="rencana_panen" type="date" defaultValue={defaultValues?.rencana_panen ?? ""} />
+              <p className="text-xs text-muted-foreground">Rencana panen (dihitung otomatis saat import)</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="real_panen">Real Panen</Label>
+              <Input id="real_panen" name="real_panen" type="date" defaultValue={defaultValues?.real_panen ?? ""} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tgl_panen">Tgl Panen (Kunjungan)</Label>
+              <Input id="tgl_panen" name="tgl_panen" type="date" defaultValue={defaultValues?.tgl_panen ?? ""} />
+            </div>
           </div>
         </div>
 

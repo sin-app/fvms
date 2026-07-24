@@ -7,7 +7,7 @@ import { useReportRows } from "@/features/reports/hooks/use-report-rows";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { StatCard } from "@/components/shared/stat-card";
-import { CalendarCheck, Clock, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { CalendarCheck, Clock, AlertTriangle, CheckCircle, Sprout, Loader2 } from "lucide-react";
 import { useAuth } from "@/features/auth/components/auth-context";
 import type { ReportFilters } from "@/features/reports";
 
@@ -80,7 +80,7 @@ export default function ReportsPage() {
       {isLoading && <LoadingState variant="card" count={4} />}
       {isError && !data && <ErrorState onRetry={refetch} />}
 
-      {data && (
+          {data && (
         <>
           {isFetching && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -112,6 +112,25 @@ export default function ReportsPage() {
               trend={{ value: data.late_count, positive: data.late_count === 0 }}
             />
           </div>
+          {rows && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <StatCard
+                title="Sudah Panen"
+                value={rows.filter((r) => r.real_panen).length}
+                icon={<Sprout className="h-4 w-4 text-green-600" />}
+              />
+              <StatCard
+                title="Rencana Panen"
+                value={rows.filter((r) => r.rencana_panen).length}
+                icon={<CalendarCheck className="h-4 w-4 text-amber-500" />}
+              />
+              <StatCard
+                title="Belum Panen"
+                value={rows.filter((r) => !r.real_panen).length}
+                icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+              />
+            </div>
+          )}
 
           <ReportCharts data={data} />
 

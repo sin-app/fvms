@@ -86,6 +86,8 @@ export interface Schedule {
   sisa_di_lahan_ha: number | null;
   tgl_panen: string | null;
   panen_keterangan: string | null;
+  rencana_panen: string | null;
+  real_panen: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

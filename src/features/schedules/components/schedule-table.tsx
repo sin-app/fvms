@@ -114,8 +114,8 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
         </div>
       )}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 mb-3 p-3 rounded-lg border bg-muted/30">
-          <span className="text-sm text-muted-foreground mr-auto">
+        <div className="flex flex-wrap items-center gap-1.5 mb-3 p-3 rounded-lg border bg-muted/30">
+          <span className="text-sm text-muted-foreground mr-auto w-full sm:w-auto mb-1 sm:mb-0">
             {selectedIds.size} dipilih
           </span>
           {isAdmin && (
@@ -125,8 +125,9 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 size="sm"
                 onClick={() => handleBulk("approve")}
                 disabled={bulkAction.isPending}
+                className="h-8 text-xs"
               >
-                <CheckCheck className="h-4 w-4 mr-1" />
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
                 Setujui
               </Button>
               <Button
@@ -134,25 +135,28 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 size="sm"
                 onClick={() => handleBulk("on_the_way")}
                 disabled={bulkAction.isPending}
+                className="h-8 text-xs"
               >
-                🚗 On The Way
+                🚗 OTW
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleBulk("in_progress")}
                 disabled={bulkAction.isPending}
+                className="h-8 text-xs"
               >
-                📋 In Progress
+                📋 Progress
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleBulk("cancel")}
                 disabled={bulkAction.isPending}
+                className="h-8 text-xs"
               >
-                <XCircle className="h-4 w-4 mr-1" />
-                Batalkan
+                <XCircle className="h-3.5 w-3.5 mr-1" />
+                Batal
               </Button>
             </>
           )}
@@ -163,18 +167,20 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 size="sm"
                 onClick={() => handleBulk("shift_forward")}
                 disabled={bulkAction.isPending}
+                className="h-8 text-xs"
               >
-                <CalendarPlus className="h-4 w-4 mr-1" />
-                +1 Hari
+                <CalendarPlus className="h-3.5 w-3.5 mr-1" />
+                +1
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleBulk("shift_backward")}
                 disabled={bulkAction.isPending}
+                className="h-8 text-xs"
               >
-                <CalendarMinus className="h-4 w-4 mr-1" />
-                -1 Hari
+                <CalendarMinus className="h-3.5 w-3.5 mr-1" />
+                -1
               </Button>
             </>
           )}
@@ -184,8 +190,9 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
               size="sm"
               onClick={() => setShowBulkDelete(true)}
               disabled={bulkAction.isPending}
+              className="h-8 text-xs"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
               Hapus
             </Button>
           )}
@@ -195,31 +202,32 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
       <div className="rounded-xl border overflow-hidden">
         <div className="overflow-x-auto min-w-0">
           <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="p-3 w-10">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={toggleSelectAll}
-                    aria-label="Pilih semua"
-                  />
-                </th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Petugas</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">CGR</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Block/Plot</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Member</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Doc No</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">NIS</th>
-                <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">PH Tanah</th>
-                <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Tanam (HA)</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Panen</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Aksi</th>
-              </tr>
-            </thead>
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="p-3 w-10">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Pilih semua"
+                    />
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Kabupaten</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Kecamatan</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Petugas</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">CGR</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Block/Plot</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Member</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Doc No</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">NIS</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">PH Tanah</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Real Tanam (HA)</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Sisa Lahan (HA)</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Panen</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">Aksi</th>
+                </tr>
+              </thead>
             <tbody>
               {data.data.map((schedule, idx) => {
                 const displayDate = optimisticDates[schedule.id] ?? schedule.visit_date;
@@ -229,7 +237,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                   <Fragment key={schedule.id}>
                     {showGroup && (
                       <tr className="bg-muted/70">
-                          <td colSpan={15} className="p-2.5 px-3">
+                          <td colSpan={16} className="p-2.5 px-3">
                           <div className="flex items-center gap-2 text-sm font-semibold">
                             {formatDateDay(displayDate)}
                             {isTodayDate(displayDate) && (
@@ -254,10 +262,10 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                           aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
                         />
                       </td>
-                      <td className="p-3 text-sm">
+                      <td className="p-3 text-sm hidden sm:table-cell">
                         {(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm">
+                      <td className="p-3 text-sm hidden sm:table-cell">
                         {(schedule as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—"}
                       </td>
                        <td className="p-3 text-sm">
@@ -266,34 +274,45 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.users?.name ?? schedule.user?.name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap">
+                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
                         {schedule.cgr ?? "—"}
                         {schedule.cgr_code ? <span className="text-muted-foreground text-xs block">{schedule.cgr_code}</span> : null}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap">
+                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
                         {schedule.block_no ?? "—"}
                         {schedule.no_plot ? <span className="text-muted-foreground text-xs block">Plot: {schedule.no_plot}</span> : null}
                       </td>
-                       <td className="p-3 text-sm">
+                       <td className="p-3 text-sm hidden md:table-cell">
                         {schedule.member_name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap">
+                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
                         {schedule.document_no ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap">
+                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
                         {schedule.nis ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap">
+                      <td className="p-3 text-sm text-right whitespace-nowrap hidden md:table-cell">
                         {schedule.ph_tanah ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap">
+                      <td className="p-3 text-sm text-right whitespace-nowrap hidden md:table-cell">
                         {schedule.real_tanam_ha ?? "—"}
                       </td>
+                      <td className="p-3 text-sm text-right whitespace-nowrap hidden md:table-cell">
+                        {schedule.sisa_di_lahan_ha ?? "—"}
+                      </td>
                       <td className="p-3 whitespace-nowrap">
-                        {schedule.tgl_panen ? (
+                        {schedule.tgl_panen || schedule.real_panen ? (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950 rounded-full px-2 py-0.5">
                             <Sprout className="h-3 w-3" />
-                            Panen
+                            {schedule.tgl_panen ?? schedule.real_panen}
+                          </span>
+                        ) : schedule.rencana_panen && schedule.rencana_panen <= new Date().toISOString().split("T")[0] ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded-full px-2 py-0.5">
+                            Jatuh Tempo {schedule.rencana_panen}
+                          </span>
+                        ) : schedule.rencana_panen ? (
+                          <span className="text-xs text-muted-foreground">
+                            Renc: {schedule.rencana_panen}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>

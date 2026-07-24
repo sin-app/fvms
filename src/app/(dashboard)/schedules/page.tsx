@@ -31,6 +31,7 @@ export default function SchedulesPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [varietas, setVarietas] = useState("");
+  const [panenStatus, setPanenStatus] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
 
   const debouncedMemberName = useDebounce(memberName, 300);
@@ -60,6 +61,8 @@ export default function SchedulesPage() {
       nis: s.nis ?? "—",
       ph_tanah: s.ph_tanah?.toString() ?? "—",
       real_tanam: s.real_tanam_ha?.toString() ?? "—",
+      sisa_lahan: s.sisa_di_lahan_ha?.toString() ?? "—",
+      panen: s.tgl_panen ?? s.real_panen ?? (s.rencana_panen ? "Renc: "+s.rencana_panen : "—"),
       status: s.status,
     }));
     if (!rows.length) return;
@@ -76,6 +79,8 @@ export default function SchedulesPage() {
       { header: "NIS", dataKey: "nis" },
       { header: "PH Tanah", dataKey: "ph_tanah" },
       { header: "Real Tanam", dataKey: "real_tanam" },
+      { header: "Sisa Lahan", dataKey: "sisa_lahan" },
+      { header: "Panen", dataKey: "panen" },
       { header: "Status", dataKey: "status" },
     ];
     exportPdf(
@@ -100,6 +105,7 @@ export default function SchedulesPage() {
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
     varietas: varietas.trim() || undefined,
+    panen_status: panenStatus !== "all" ? panenStatus : undefined,
   };
 
   return (
@@ -156,6 +162,8 @@ export default function SchedulesPage() {
         onDateToChange={setDateTo}
         varietas={varietas}
         onVarietasChange={setVarietas}
+        panenStatus={panenStatus}
+        onPanenStatusChange={setPanenStatus}
         hidePetugasFilter={isProduksi}
       />
 

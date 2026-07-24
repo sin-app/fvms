@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createMasterUpserter } from "./master-upsert";
 import { createUserUpserter } from "./user-upsert";
+import { calcRencanaPanen } from "@/features/panen/services/panen-logic";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
 import { notifyImportCompleted } from "@/features/notifications/services/notification-service";
 
@@ -140,6 +141,8 @@ export async function bulkImportSchedules(
     date: string;
     tgl_tanam?: string;
     tgl_panen?: string;
+    rencana_panen?: string;
+    real_panen?: string;
     cgr?: string;
     cgr_code?: string;
     block_no?: string;
@@ -233,6 +236,16 @@ export async function bulkImportSchedules(
       if (d && isValidDate(d)) v.tgl_panen = d;
     }
 
+    if (mapping.real_panen) {
+      const d = row[mapping.real_panen]?.trim();
+      if (d && isValidDate(d)) v.real_panen = d;
+    }
+
+    if (mapping.rencana_panen) {
+      const d = row[mapping.rencana_panen]?.trim();
+      if (d && isValidDate(d)) v.rencana_panen = d;
+    }
+
     valid.push(v);
   }
 
@@ -251,6 +264,8 @@ export async function bulkImportSchedules(
     created_by: string;
     tgl_tanam?: string;
     tgl_panen?: string;
+    rencana_panen?: string;
+    real_panen?: string;
     cgr?: string;
     cgr_code?: string;
     block_no?: string;
@@ -283,6 +298,8 @@ export async function bulkImportSchedules(
       continue;
     }
 
+    const rencana = r.rencana_panen ?? calcRencanaPanen(r.tgl_tanam, r.cgr);
+
     schedulesToInsert.push({
       user_id,
       kabupaten_id,
@@ -292,6 +309,8 @@ export async function bulkImportSchedules(
       created_by: userId,
       ...(r.tgl_tanam !== undefined ? { tgl_tanam: r.tgl_tanam } : {}),
       ...(r.tgl_panen !== undefined ? { tgl_panen: r.tgl_panen } : {}),
+      ...(rencana !== null ? { rencana_panen: rencana } : {}),
+      ...(r.real_panen !== undefined ? { real_panen: r.real_panen } : {}),
       ...(r.cgr !== undefined ? { cgr: r.cgr } : {}),
       ...(r.cgr_code !== undefined ? { cgr_code: r.cgr_code } : {}),
       ...(r.block_no !== undefined ? { block_no: r.block_no } : {}),
@@ -355,6 +374,8 @@ export async function bulkImportSchedules(
         if (r.gagal_tanam !== undefined) updateData.gagal_tanam = r.gagal_tanam;
         if (r.sisa_di_lahan_ha !== undefined) updateData.sisa_di_lahan_ha = r.sisa_di_lahan_ha;
         if (r.tgl_panen !== undefined) updateData.tgl_panen = r.tgl_panen;
+        if (r.rencana_panen !== undefined) updateData.rencana_panen = r.rencana_panen;
+        if (r.real_panen !== undefined) updateData.real_panen = r.real_panen;
         if (r.latitude !== undefined) updateData.latitude = r.latitude;
         if (r.longitude !== undefined) updateData.longitude = r.longitude;
         if (r.accuracy !== undefined) updateData.accuracy = r.accuracy;
@@ -383,14 +404,16 @@ export async function bulkImportSchedules(
 
     let replaced = 0;
     if (toUpdate.length > 0) {
-      const updates = toUpdate.map((u) =>
-        admin.from("schedules").update(u.data).eq("id", u.id),
+      const updateResults = await Promise.all(
+        toUpdate.map((u) =>
+          admin.from("schedules").update(u.data).eq("id", u.id).select("id").maybeSingle(),
+        ),
       );
-      const updateResults = await Promise.all(updates);
-      replaced = updateResults.filter((r) => !r.error).length;
-      const updateErrors = updateResults.filter((r) => r.error).length;
-      if (updateErrors > 0) {
-        errors.push({ row: 0, message: `${updateErrors} jadwal gagal diupdate` });
+      replaced = updateResults.filter((r) => r.data).length;
+      const updateErrors = updateResults.filter((r) => r.error);
+      if (updateErrors.length > 0) {
+        const sampleError = updateErrors.find((r) => r.error)?.error?.message ?? "unknown";
+        errors.push({ row: 0, message: `${updateErrors.length} jadwal gagal diupdate (contoh: ${sampleError})` });
       }
     }
     result.replaced = replaced;
@@ -415,6 +438,7 @@ export async function bulkImportSchedules(
 }
 
 function isValidDate(value: string): boolean {
+  if (/^\d+(\.\d+)?$/.test(value)) return false;
   const iso = /^\d{4}-\d{2}-\d{2}$/;
   if (!iso.test(value)) {
     const parsed = new Date(value);
@@ -453,6 +477,8 @@ function dedupeSchedules(
     created_by: string;
     tgl_tanam?: string;
     tgl_panen?: string;
+    rencana_panen?: string;
+    real_panen?: string;
     cgr?: string;
     cgr_code?: string;
     block_no?: string;

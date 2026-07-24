@@ -34,6 +34,8 @@ interface ScheduleFiltersProps {
   onDateToChange: (value: string) => void;
   varietas: string;
   onVarietasChange: (value: string) => void;
+  panenStatus?: string;
+  onPanenStatusChange?: (value: string) => void;
   hidePetugasFilter?: boolean;
 }
 
@@ -106,6 +108,8 @@ export function ScheduleFilters({
   onDateToChange,
   varietas,
   onVarietasChange,
+  panenStatus = "all",
+  onPanenStatusChange,
   hidePetugasFilter = false,
 }: ScheduleFiltersProps) {
   const { data: kabupaten } = useAllKabupaten();
@@ -161,9 +165,9 @@ export function ScheduleFilters({
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
         />
         <input
+          type="date"
           value={tglTanam}
           onChange={(e) => onTglTanamChange(e.target.value)}
-          placeholder="Tgl Tanam"
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
         />
         <select
@@ -176,6 +180,18 @@ export function ScheduleFilters({
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
+        {onPanenStatusChange && (
+          <select
+            value={panenStatus}
+            onChange={(e) => onPanenStatusChange(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+          >
+            <option value="all">Semua Panen</option>
+            <option value="sudah">Sudah Panen</option>
+            <option value="jatuh_tempo">Jatuh Tempo</option>
+            <option value="belum">Belum Panen</option>
+          </select>
+        )}
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value)}
