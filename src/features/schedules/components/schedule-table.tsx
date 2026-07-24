@@ -212,18 +212,18 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       aria-label="Pilih semua"
                     />
                   </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Kabupaten</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Kecamatan</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Kabupaten</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Kecamatan</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Petugas</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">CGR</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Block/Plot</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Member</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Doc No</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">CGR</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Block/Plot</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Member</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Doc No</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">NIS</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">PH Tanah</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Real Tanam (HA)</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Sisa Lahan (HA)</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">PH Tanah</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Real Tanam</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Sisa Lahan</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Panen</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
                   <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap min-w-[120px] sm:min-w-[160px]">Aksi</th>
@@ -263,10 +263,10 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                           aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
                         />
                       </td>
-                      <td className="p-3 text-sm hidden sm:table-cell">
+                      <td className="p-3 text-sm hidden md:table-cell">
                         {(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm hidden sm:table-cell">
+                      <td className="p-3 text-sm hidden md:table-cell">
                         {(schedule as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—"}
                       </td>
                        <td className="p-3 text-sm">
@@ -275,30 +275,30 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.users?.name ?? schedule.user?.name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap hidden sm:table-cell">
                         {schedule.cgr ?? "—"}
                         {schedule.cgr_code ? <span className="text-muted-foreground text-xs block">{schedule.cgr_code}</span> : null}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap hidden lg:table-cell">
                         {schedule.block_no ?? "—"}
                         {schedule.no_plot ? <span className="text-muted-foreground text-xs block">Plot: {schedule.no_plot}</span> : null}
                       </td>
-                       <td className="p-3 text-sm hidden md:table-cell">
+                       <td className="p-3 text-sm hidden sm:table-cell">
                         {schedule.member_name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap hidden lg:table-cell">
                         {schedule.document_no ?? "—"}
                       </td>
                       <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
                         {schedule.nis ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap hidden md:table-cell">
+                      <td className="p-3 text-sm text-right whitespace-nowrap hidden lg:table-cell">
                         {schedule.ph_tanah ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap hidden md:table-cell">
+                      <td className="p-3 text-sm text-right whitespace-nowrap hidden lg:table-cell">
                         {schedule.real_tanam_ha ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap hidden md:table-cell">
+                      <td className="p-3 text-sm text-right whitespace-nowrap hidden lg:table-cell">
                         {schedule.sisa_di_lahan_ha ?? "—"}
                       </td>
                       <td className="p-3 whitespace-nowrap">
