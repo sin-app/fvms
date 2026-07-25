@@ -1,6 +1,9 @@
+"use client";
+
 import { createClient } from "@/lib/supabase/client";
 import type { LoginInput, ResetPasswordInput, ProfileInput } from "../schema/auth-schema";
 import type { User } from "@/types";
+import { getCurrentUserAction, updateProfileAction } from "../actions/user-actions";
 
 export async function login(input: LoginInput) {
   const supabase = createClient();
@@ -26,9 +29,12 @@ export async function resetPassword(input: ResetPasswordInput) {
 
 export async function getCurrentUser(): Promise<User | null> {
   // Gunakan server action untuk bypass RLS (service role)
-  const { getCurrentUserAction } = await import("../actions/user-actions");
-  const dbUser = await getCurrentUserAction();
-  if (dbUser) return dbUser;
+  try {
+    const dbUser = await getCurrentUserAction();
+    if (dbUser) return dbUser;
+  } catch {
+    // fallback ke JWT metadata jika server action gagal
+  }
 
   // Fallback: baca dari JWT metadata
   const supabase = createClient();
@@ -50,20 +56,13 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 export async function updateProfile(input: ProfileInput) {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) throw new Error("Not authenticated");
-
-  const { data, error } = await supabase
-    .from("users")
-    .update(input)
-    .eq("id", session.user.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const ctx = await getCurrentUser();
+  if (!ctx?.id) throw new Error("Not authenticated");
+  const fd = new FormData();
+  fd.set("id", ctx.id);
+  fd.set("name", input.name ?? "");
+  fd.set("phone", input.phone ?? "");
+  const result = await updateProfileAction({ success: false }, fd);
+  if (!result.success) throw new Error(result.error);
+  return result.data;
 }

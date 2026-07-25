@@ -13,6 +13,30 @@ export async function getCurrentUserAction(): Promise<User | null> {
   return getCurrentUserFromDb(ctx.userId);
 }
 
+export async function updateProfileAction(
+  prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+
+  const id = formData.get("id") as string;
+  if (id !== ctx.userId) return { success: false, error: "Tidak dapat mengubah profil orang lain" };
+
+  const name = formData.get("name") as string;
+  const phone = formData.get("phone") as string;
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("users")
+    .update({ name, phone: phone || null })
+    .eq("id", id);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/profile");
+  return { success: true };
+}
+
 export async function createUserAction(
   prevState: ActionResponse,
   formData: FormData,
