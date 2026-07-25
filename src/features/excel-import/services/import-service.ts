@@ -39,10 +39,13 @@ function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
     }
 
     const obj: ExcelRow = {};
+    let hasData = false;
     values.forEach((v, i) => {
-      obj[headers[i] ?? `col${i}`] = cellToString(v);
+      const s = cellToString(v);
+      obj[headers[i] ?? `col${i}`] = s;
+      if (s) hasData = true;
     });
-    rows.push(obj);
+    if (hasData) rows.push(obj);
   });
 
   return rows;
