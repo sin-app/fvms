@@ -6,6 +6,18 @@ import { calcRencanaPanen } from "@/features/panen/services/panen-logic";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
 import { notifyImportCompleted } from "@/features/notifications/services/notification-service";
 
+function makeKey(r: {
+  user_id: string;
+  desa_id: string;
+  visit_date: string;
+  block_no?: string | null;
+  no_plot?: string | null;
+  member_name?: string | null;
+}): string {
+  const normalize = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+  return `${r.user_id}|${r.desa_id}|${r.visit_date}|${normalize(r.block_no)}|${normalize(r.no_plot)}|${normalize(r.member_name)}`;
+}
+
 function cellToString(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
@@ -338,59 +350,68 @@ export async function bulkImportSchedules(
 
     // Update existing records, insert new ones.
     // When updating, preserve status if already 'completed'.
-    const keys = unique.map(
-      (r) =>
-        `${r.user_id}|${r.desa_id}|${r.visit_date}|${r.block_no ?? ""}|${r.no_plot ?? ""}|${r.member_name ?? ""}`,
-    );
-    const existingMap = new Map<string, { id: string; status: string }>();
-    if (keys.length > 0) {
+    const existingMap = new Map<string, Array<{ id: string; status: string }>>();
+    const allUserIds = [...new Set(unique.map((r) => r.user_id))];
+    if (allUserIds.length > 0) {
       const { data: existingRows } = await admin
         .from("schedules")
         .select("id, user_id, desa_id, visit_date, block_no, no_plot, member_name, status")
-        .in("user_id", [...new Set(unique.map((r) => r.user_id))])
+        .in("user_id", allUserIds)
         .is("deleted_at", null);
       for (const row of existingRows ?? []) {
-        const k = `${row.user_id}|${row.desa_id}|${row.visit_date}|${row.block_no ?? ""}|${row.no_plot ?? ""}|${row.member_name ?? ""}`;
-        existingMap.set(k, { id: row.id, status: row.status });
+        const k = makeKey(row);
+        const arr = existingMap.get(k) ?? [];
+        arr.push({ id: row.id, status: row.status });
+        existingMap.set(k, arr);
       }
     }
 
     const toInsert: typeof schedulesToInsert = [];
     const toUpdate: Array<{ id: string; data: Record<string, unknown> }> = [];
+    let seenKeys = new Set<string>();
 
     for (let i = 0; i < unique.length; i++) {
       const r = unique[i];
-      const match = existingMap.get(keys[i]);
-      if (match) {
-        const { id, status: currentStatus } = match;
-        const updateData: Record<string, unknown> = {};
-        if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
-        if (r.cgr !== undefined) updateData.cgr = r.cgr;
-        if (r.cgr_code !== undefined) updateData.cgr_code = r.cgr_code;
-        if (r.block_no !== undefined) updateData.block_no = r.block_no;
-        if (r.no_plot !== undefined) updateData.no_plot = r.no_plot;
-        if (r.member_name !== undefined) updateData.member_name = r.member_name;
-        if (r.document_no !== undefined) updateData.document_no = r.document_no;
-        if (r.ph_tanah !== undefined) updateData.ph_tanah = r.ph_tanah;
-        if (r.nis !== undefined) updateData.nis = r.nis;
-        if (r.real_tanam_ha !== undefined) updateData.real_tanam_ha = r.real_tanam_ha;
-        if (r.gagal_tanam !== undefined) updateData.gagal_tanam = r.gagal_tanam;
-        if (r.sisa_di_lahan_ha !== undefined) updateData.sisa_di_lahan_ha = r.sisa_di_lahan_ha;
-        if (r.tgl_panen !== undefined) updateData.tgl_panen = r.tgl_panen;
-        if (r.rencana_panen !== undefined) updateData.rencana_panen = r.rencana_panen;
-        if (r.real_panen !== undefined) updateData.real_panen = r.real_panen;
-        if (r.latitude !== undefined) updateData.latitude = r.latitude;
-        if (r.longitude !== undefined) updateData.longitude = r.longitude;
-        if (r.accuracy !== undefined) updateData.accuracy = r.accuracy;
-        if (r.visit_time !== undefined) updateData.visit_time = r.visit_time;
-        if (r.notes !== undefined) updateData.notes = r.notes;
-        // Jangan ubah status jika sudah completed
-        if (currentStatus !== "completed") {
-          updateData.status = "pending";
-        }
-        updateData.updated_at = new Date().toISOString();
-        if (Object.keys(updateData).length > 1) {
-          toUpdate.push({ id, data: updateData });
+      const k = makeKey(r);
+
+      // Skip jika key ini sudah diproses (file-level dedup via makeKey)
+      if (seenKeys.has(k)) continue;
+      seenKeys.add(k);
+
+      const matches = existingMap.get(k);
+      if (matches && matches.length > 0) {
+        // Update SEMUA existing record dengan key ini (handle duplikat DB sebelumnya)
+        for (const match of matches) {
+          const { id, status: currentStatus } = match;
+          const updateData: Record<string, unknown> = {};
+          if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
+          if (r.cgr !== undefined) updateData.cgr = r.cgr;
+          if (r.cgr_code !== undefined) updateData.cgr_code = r.cgr_code;
+          if (r.block_no !== undefined) updateData.block_no = r.block_no;
+          if (r.no_plot !== undefined) updateData.no_plot = r.no_plot;
+          if (r.member_name !== undefined) updateData.member_name = r.member_name;
+          if (r.document_no !== undefined) updateData.document_no = r.document_no;
+          if (r.ph_tanah !== undefined) updateData.ph_tanah = r.ph_tanah;
+          if (r.nis !== undefined) updateData.nis = r.nis;
+          if (r.real_tanam_ha !== undefined) updateData.real_tanam_ha = r.real_tanam_ha;
+          if (r.gagal_tanam !== undefined) updateData.gagal_tanam = r.gagal_tanam;
+          if (r.sisa_di_lahan_ha !== undefined) updateData.sisa_di_lahan_ha = r.sisa_di_lahan_ha;
+          if (r.tgl_panen !== undefined) updateData.tgl_panen = r.tgl_panen;
+          if (r.rencana_panen !== undefined) updateData.rencana_panen = r.rencana_panen;
+          if (r.real_panen !== undefined) updateData.real_panen = r.real_panen;
+          if (r.latitude !== undefined) updateData.latitude = r.latitude;
+          if (r.longitude !== undefined) updateData.longitude = r.longitude;
+          if (r.accuracy !== undefined) updateData.accuracy = r.accuracy;
+          if (r.visit_time !== undefined) updateData.visit_time = r.visit_time;
+          if (r.notes !== undefined) updateData.notes = r.notes;
+          // Jangan ubah status jika sudah completed
+          if (currentStatus !== "completed") {
+            updateData.status = "pending";
+          }
+          updateData.updated_at = new Date().toISOString();
+          if (Object.keys(updateData).length > 1) {
+            toUpdate.push({ id, data: updateData });
+          }
         }
       } else {
         toInsert.push(r);
@@ -503,10 +524,7 @@ function dedupeSchedules(
   const seen = new Set<string>();
   const result: typeof rows = [];
   for (const r of rows) {
-    // A visit is unique per petugas + desa + tanggal + block + plot + member,
-    // so distinct rows (different plot/member) are kept, not collapsed.
-    const key =
-      `${r.user_id}|${r.desa_id}|${r.visit_date}|${r.block_no ?? ""}|${r.no_plot ?? ""}|${r.member_name ?? ""}`;
+    const key = makeKey(r);
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(r);

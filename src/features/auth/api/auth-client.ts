@@ -25,21 +25,18 @@ export async function resetPassword(input: ResetPasswordInput) {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
+  // Gunakan server action untuk bypass RLS (service role)
+  const { getCurrentUserAction } = await import("../actions/user-actions");
+  const dbUser = await getCurrentUserAction();
+  if (dbUser) return dbUser;
+
+  // Fallback: baca dari JWT metadata
   const supabase = createClient();
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
-
   if (error || !user) return null;
-
-  const { data } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (data) return data;
 
   const meta = user.user_metadata ?? {};
   const appMeta = user.app_metadata ?? {};

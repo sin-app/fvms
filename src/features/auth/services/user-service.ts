@@ -98,6 +98,17 @@ export async function createUserWithPassword(
   return { id };
 }
 
+export async function getCurrentUserFromDb(userId: string): Promise<User | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("users")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) return null;
+  return data as unknown as User;
+}
+
 export async function getUsers(): Promise<User[]> {
   const admin = createAdminClient();
   const { data } = await admin

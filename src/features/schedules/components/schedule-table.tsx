@@ -38,7 +38,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const isAdmin = user?.role === "admin";
   const canDelete = user?.role === "admin";
   const canBulkShift = user?.role === "admin" || user?.role === "qc";
-  const canEdit = (schedule: Schedule) => user?.role === "admin" || schedule.user_id === user?.id;
+  const canEdit = (schedule: Schedule) => user?.role === "admin" || user?.role === "qc" || schedule.user_id === user?.id;
   const shiftSchedule = useShiftScheduleDate();
 
   function canShift(schedule: Schedule) {

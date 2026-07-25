@@ -1,11 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createUser, updateUser, toggleUserActive, getUsers, setPassword } from "../services/user-service";
+import { createUser, updateUser, toggleUserActive, getUsers, setPassword, getCurrentUserFromDb } from "../services/user-service";
 import { userSchema } from "../schema/user-schema";
 import type { ActionResponse } from "@/types/common";
 import { getAuthContext } from "@/lib/auth/authorization";
 import type { User } from "@/types";
+
+export async function getCurrentUserAction(): Promise<User | null> {
+  const ctx = await getAuthContext();
+  if (!ctx) return null;
+  return getCurrentUserFromDb(ctx.userId);
+}
 
 export async function createUserAction(
   prevState: ActionResponse,
