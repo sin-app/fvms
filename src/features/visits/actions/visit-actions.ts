@@ -175,6 +175,8 @@ export async function deletePhotoAction(
   try {
     await deleteVisitPhoto(photoId);
     revalidatePath(`/visits/${scheduleId}`);
+    revalidatePath("/schedules");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menghapus foto";
@@ -210,6 +212,8 @@ export async function updatePhotoAction(
   try {
     await updateVisitPhoto(photoId, caption);
     revalidatePath(`/visits/${scheduleId}`);
+    revalidatePath("/schedules");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal memperbarui foto";

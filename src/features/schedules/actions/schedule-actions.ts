@@ -62,6 +62,8 @@ export async function createScheduleAction(
   try {
     await createSchedule(parsed.data);
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal membuat jadwal";
@@ -124,6 +126,9 @@ export async function updateScheduleAction(
   try {
     await updateSchedule(id, parsed.data);
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
+    revalidatePath(`/visits/${id}`);
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal mengupdate jadwal";
@@ -171,9 +176,11 @@ export async function shiftScheduleDateAction(
 
     await updateSchedule(id, { visit_date: nextDate });
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Gagal menggeser tanggal jadwal";
+    const msg = err instanceof Error ? err.message : "Gagal menggeser tanggal";
     return { success: false, error: msg };
   }
 }
@@ -205,6 +212,8 @@ export async function deleteScheduleAction(
   try {
     await deleteSchedule(id);
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal";
@@ -410,6 +419,8 @@ export async function updateVisitStatusAction(
     });
 
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     revalidatePath(`/visits/${id}`);
     return { success: true };
   } catch (err: unknown) {

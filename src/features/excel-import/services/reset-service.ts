@@ -42,14 +42,23 @@ export async function resetAllData(): Promise<ResetResult> {
   if (userErr) throw new Error(`Gagal ambil user produksi: ${userErr.message}`);
 
   let deletedUsers = 0;
+  const orphaned: string[] = [];
   for (const u of produksiUsers ?? []) {
+    let authDeleted = false;
     try {
-      await admin.auth.admin.deleteUser(u.id);
+      const { error: authErr } = await admin.auth.admin.deleteUser(u.id);
+      if (!authErr) authDeleted = true;
     } catch {
       // ignore if no auth account
     }
     const { error: delErr } = await admin.from("users").delete().eq("id", u.id);
-    if (!delErr) deletedUsers += 1;
+    if (!delErr) {
+      deletedUsers += 1;
+      if (!authDeleted) orphaned.push(u.id);
+    }
+  }
+  if (orphaned.length > 0) {
+    console.error("[reset-service] Orphaned auth accounts (DB row deleted, auth survives):", orphaned.join(", "));
   }
 
   // 4) Clear previous import records for a clean slate.

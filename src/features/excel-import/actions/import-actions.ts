@@ -85,6 +85,8 @@ export async function executeImportAction(
     const data = await getFullData(buffer);
     const result = await bulkImportSchedules(data, mapping, ctx.userId);
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     return {
       success: true,
       data: {
@@ -116,6 +118,8 @@ export async function resetAllDataAction(): Promise<{
   try {
     const result = await resetAllData();
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     revalidatePath("/users");
     return {
       success: true,

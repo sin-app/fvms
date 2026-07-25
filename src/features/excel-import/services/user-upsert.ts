@@ -34,26 +34,38 @@ export function createUserUpserter(): UserUpsertResult {
       needed.delete(row.name.toLowerCase());
     }
 
+    const usedEmails = new Set<string>();
     for (const lowerName of needed) {
       const original = unique.find((n) => n.toLowerCase() === lowerName) ?? lowerName;
-      const slug = lowerName
+      let slug = lowerName
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "")
         .slice(0, 40);
+      if (!slug) slug = "user";
+      // Handle slug collision: "john-doe" vs "John Doe"
+      let email = `${slug}@fvms.com`;
+      let counter = 2;
+      while (usedEmails.has(email)) {
+        const suffix = String(counter).padStart(2, "0");
+        const truncated = slug.slice(0, 38 - suffix.length);
+        email = `${truncated}-${suffix}@fvms.com`;
+        counter++;
+      }
+      usedEmails.add(email);
       toInsert.push({
         id: crypto.randomUUID(),
-        email: `${slug}@fvms.com`,
+        email,
         name: original,
         role: "produksi",
         is_active: true,
       });
     }
 
+    const authErrors: string[] = [];
     if (toInsert.length > 0) {
       const { error } = await admin.from("users").insert(toInsert);
       if (!error) {
         created = toInsert.length;
-        // Create auth accounts so petugas can log in (password set later by admin).
         for (const row of toInsert) {
           try {
             await createAuthUser({
@@ -61,25 +73,27 @@ export function createUserUpserter(): UserUpsertResult {
               email: row.email,
               name: row.name,
               role: "produksi",
-              // Auto-set password to the user's email on import.
               password: row.email,
             });
           } catch {
-            // Account may already exist (re-import): ensure password = email.
             try {
               await setPassword(row.id, row.email);
-            } catch {
-              // ignore
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : String(e);
+              authErrors.push(`${row.email}: ${msg}`);
             }
           }
         }
       }
-      // Re-fetch to capture any rows that already existed (race / prior import).
       const { data: after } = await admin
         .from("users")
         .select("id, name")
         .in("name", unique);
       for (const row of after ?? []) map.set(row.name.toLowerCase(), row.id);
+    }
+
+    if (authErrors.length > 0) {
+      console.error("[user-upsert] Auth account errors:", authErrors.join("; "));
     }
 
     return { map, created };

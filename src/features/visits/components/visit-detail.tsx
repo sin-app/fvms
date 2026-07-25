@@ -24,9 +24,8 @@ export function VisitDetail({ id }: VisitDetailProps) {
   const { data: schedule, isLoading, isError, refetch } = useVisitDetail(id);
   const { user } = useAuth();
   const role = user?.role;
-  const canEdit =
-    !!schedule &&
-    (!!role && (role === "admin" || role === "qc") || schedule.user_id === user?.id);
+  const isOwner = schedule?.user_id === user?.id;
+  const canEdit = !!schedule && (role === "admin" || role === "qc" || isOwner);
 
   if (isLoading) return <LoadingState variant="card" />;
   if (isError) return <ErrorState onRetry={refetch} />;

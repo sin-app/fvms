@@ -9,6 +9,7 @@ export function useDashboard(filters?: DashboardFilters) {
     queryKey: ["dashboard", filters],
     queryFn: () => fetchDashboardData(filters),
     refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
     placeholderData: (prev) => prev,
   });
 }
