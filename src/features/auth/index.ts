@@ -10,8 +10,8 @@ export {
   logoutAction,
   resetPasswordAction,
   updatePasswordAction,
-  updateProfileAction,
 } from "./actions/auth-actions";
+export { updateProfileAction } from "./actions/user-actions";
 export {
   loginSchema,
   resetPasswordSchema,

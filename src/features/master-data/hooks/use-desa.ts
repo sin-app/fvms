@@ -40,6 +40,7 @@ export function useCreateDesa() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["desa"] });
+      queryClient.invalidateQueries({ queryKey: ["master-data"] });
       toast.success("Desa berhasil dibuat");
     },
     onError: (err: Error) => {
@@ -64,6 +65,7 @@ export function useUpdateDesa() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["desa"] });
+      queryClient.invalidateQueries({ queryKey: ["master-data"] });
       toast.success("Desa berhasil diupdate");
     },
     onError: (err: Error) => {

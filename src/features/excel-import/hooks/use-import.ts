@@ -103,6 +103,10 @@ export function useExcelImport() {
         });
         queryClient.invalidateQueries({ queryKey: ["schedules"] });
         queryClient.invalidateQueries({ queryKey: ["master-data"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["calendar"] });
+        queryClient.invalidateQueries({ queryKey: ["users", "field-officers"] });
+        queryClient.invalidateQueries({ queryKey: ["cgr"] });
         const parts = [`${res.data.success} jadwal baru`];
         if (res.data.replaced) parts.push(`${res.data.replaced} diperbarui`);
         if (res.data.errors) parts.push(`${res.data.errors} gagal`);

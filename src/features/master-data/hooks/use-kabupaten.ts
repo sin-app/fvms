@@ -38,6 +38,7 @@ export function useCreateKabupaten() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kabupaten"] });
+      queryClient.invalidateQueries({ queryKey: ["master-data"] });
       toast.success("Kabupaten berhasil dibuat");
     },
     onError: (err: Error) => {
@@ -61,6 +62,7 @@ export function useUpdateKabupaten() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kabupaten"] });
+      queryClient.invalidateQueries({ queryKey: ["master-data"] });
       toast.success("Kabupaten berhasil diupdate");
     },
     onError: (err: Error) => {

@@ -36,7 +36,8 @@ export function useSaveVisitNotes() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
-      toast.success("Catatan berhasil disimpan");
+      queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -55,7 +56,8 @@ export function useUploadPhoto() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
-      toast.success("Foto berhasil diupload");
+      queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -73,7 +75,8 @@ export function useDeletePhoto() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
-      toast.success("Foto berhasil dihapus");
+      queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -92,7 +95,8 @@ export function useUpdatePhoto() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
-      toast.success("Keterangan foto berhasil diperbarui");
+      queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });

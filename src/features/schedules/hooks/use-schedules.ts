@@ -35,6 +35,9 @@ export function useCreateSchedule() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["cgr"] });
       toast.success("Jadwal berhasil dibuat");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -54,6 +57,8 @@ export function useUpdateSchedule() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
       toast.success("Jadwal berhasil diupdate");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -71,6 +76,9 @@ export function useDeleteSchedule() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["cgr"] });
       toast.success("Jadwal berhasil dihapus");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -89,6 +97,8 @@ export function useShiftScheduleDate() {
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
       toast.success(vars.days > 0 ? "Jadwal digeser +1 hari" : "Jadwal dikembalikan -1 hari");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -107,6 +117,9 @@ export function useBulkAction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["cgr"] });
       toast.success("Aksi berhasil diproses");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -129,6 +142,8 @@ export function useUpdateVisitStatus() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
       toast.success("Status berhasil diupdate");
     },
     onError: (err: Error) => toast.error(err.message),

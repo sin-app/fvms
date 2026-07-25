@@ -41,6 +41,7 @@ export function useCreateKecamatan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kecamatan"] });
+      queryClient.invalidateQueries({ queryKey: ["master-data"] });
       toast.success("Kecamatan berhasil dibuat");
     },
     onError: (err: Error) => {
@@ -65,6 +66,7 @@ export function useUpdateKecamatan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kecamatan"] });
+      queryClient.invalidateQueries({ queryKey: ["master-data"] });
       toast.success("Kecamatan berhasil diupdate");
     },
     onError: (err: Error) => {

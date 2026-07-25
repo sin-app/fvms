@@ -28,6 +28,8 @@ export function useCreateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["users", "field-officers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Pengguna berhasil dibuat");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -51,6 +53,8 @@ export function useUpdateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["users", "field-officers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Pengguna berhasil diupdate");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -69,6 +73,8 @@ export function useToggleUserActive() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["users", "field-officers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Status pengguna berhasil diubah");
     },
     onError: (err: Error) => toast.error(err.message),
