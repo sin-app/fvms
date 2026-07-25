@@ -2,66 +2,15 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchScheduleList, fetchScheduleById } from "../api/schedule-client";
-import { createScheduleAction, updateScheduleAction, deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction } from "../actions/schedule-actions";
+import { fetchScheduleList } from "../api/schedule-client";
+import { deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction } from "../actions/schedule-actions";
 import type { ScheduleFilters } from "../types";
-import type { ScheduleInput } from "../schema/schedule-schema";
 
 export function useSchedules(filters: ScheduleFilters) {
   return useQuery({
     queryKey: ["schedules", filters],
     queryFn: () => fetchScheduleList(filters),
     placeholderData: (prev) => prev,
-  });
-}
-
-export function useSchedule(id: string) {
-  return useQuery({
-    queryKey: ["schedule", id],
-    queryFn: () => fetchScheduleById(id),
-    enabled: !!id,
-  });
-}
-
-export function useCreateSchedule() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: ScheduleInput) => {
-      const fd = new FormData();
-      Object.entries(data).forEach(([k, v]) => fd.set(k, v == null ? "" : String(v)));
-      const result = await createScheduleAction({ success: false }, fd);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["calendar"] });
-      queryClient.invalidateQueries({ queryKey: ["cgr"] });
-      toast.success("Jadwal berhasil dibuat");
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-}
-
-export function useUpdateSchedule() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: { id: string } & ScheduleInput) => {
-      const fd = new FormData();
-      fd.set("id", data.id);
-      Object.entries(data).forEach(([k, v]) => fd.set(k, v == null ? "" : String(v)));
-      const result = await updateScheduleAction({ success: false }, fd);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["calendar"] });
-      toast.success("Jadwal berhasil diupdate");
-    },
-    onError: (err: Error) => toast.error(err.message),
   });
 }
 

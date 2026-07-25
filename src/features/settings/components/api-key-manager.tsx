@@ -31,7 +31,9 @@ export function ApiKeyManager() {
         const data = await res.json();
         setKeys(data.keys ?? []);
       }
-    } catch {} finally {
+    } catch (e) {
+      console.error("api-key-manager: failed to load keys", e);
+    } finally {
       setLoading(false);
     }
   }

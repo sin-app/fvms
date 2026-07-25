@@ -37,7 +37,6 @@ export function createMasterUpserter(): MasterUpsertResult {
   async function insertRows(
     table: "kabupaten" | "kecamatan" | "desa",
     payload: Array<Record<string, unknown>>,
-    names: string[],
   ): Promise<Map<string, string>> {
     const map = new Map<string, string>();
     if (payload.length === 0) return map;
@@ -46,15 +45,7 @@ export function createMasterUpserter(): MasterUpsertResult {
       logger.error("master-upsert: insert failed", { table, error: error?.message });
     }
     for (const row of data ?? []) map.set(row.name.toLowerCase(), row.id);
-    // Re-fetch to capture rows that already existed or were just inserted.
-    if (names.length > 0) {
-      const { data: after } = await admin
-        .from(table)
-        .select("id, name")
-        .in("name", names);
-      for (const row of after ?? []) map.set(row.name.toLowerCase(), row.id);
-      created[table] += data?.length ?? 0;
-    }
+    created[table] += data?.length ?? 0;
     return map;
   }
 
@@ -83,7 +74,7 @@ export function createMasterUpserter(): MasterUpsertResult {
       code: shortCode("KAB"),
       is_active: true,
     }));
-    const kabNew = await insertRows("kabupaten", kabPayload, kabMissing);
+    const kabNew = await insertRows("kabupaten", kabPayload);
     for (const [k, v] of kabNew) kab.set(k, v);
 
     // Kecamatan: parent = kabupaten id (resolved from the row's kabupaten).
@@ -103,7 +94,7 @@ export function createMasterUpserter(): MasterUpsertResult {
         });
       }
     }
-    const kecNew = await insertRows("kecamatan", kecPayload, kecNames);
+    const kecNew = await insertRows("kecamatan", kecPayload);
     for (const [k, v] of kecNew) kec.set(k, v);
 
     // Desa: parent = kecamatan id (now resolved above).
@@ -123,7 +114,7 @@ export function createMasterUpserter(): MasterUpsertResult {
         });
       }
     }
-    const desaNew = await insertRows("desa", desaPayload, desaNames);
+    const desaNew = await insertRows("desa", desaPayload);
     for (const [k, v] of desaNew) des.set(k, v);
 
     return { created: { ...created }, kabupaten: kab, kecamatan: kec, desa: des };

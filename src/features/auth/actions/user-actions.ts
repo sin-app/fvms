@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createUser, updateUser, toggleUserActive, getUsers, setPassword, getCurrentUserFromDb } from "../services/user-service";
 import { userSchema } from "../schema/user-schema";
+import { profileSchema } from "../schema/auth-schema";
 import type { ActionResponse } from "@/types/common";
 import { getAuthContext } from "@/lib/auth/authorization";
 import type { User } from "@/types";
@@ -24,13 +25,24 @@ export async function updateProfileAction(
   const id = formData.get("id") as string;
   if (id !== ctx.userId) return { success: false, error: "Tidak dapat mengubah profil orang lain" };
 
-  const name = formData.get("name") as string;
-  const phone = formData.get("phone") as string;
+  const raw = {
+    name: formData.get("name") as string,
+    phone: (formData.get("phone") as string) || "",
+  };
+
+  const parsed = profileSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Validasi gagal",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    };
+  }
 
   const admin = createAdminClient();
   const { error } = await admin
     .from("users")
-    .update({ name, phone: phone || null })
+    .update({ name: parsed.data.name, phone: parsed.data.phone || null })
     .eq("id", id);
 
   if (error) return { success: false, error: error.message };
