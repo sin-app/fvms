@@ -51,7 +51,8 @@ export async function savePanenAction(
     const { error } = await admin
       .from("schedules")
       .update(update)
-      .eq("id", raw.schedule_id);
+      .eq("id", raw.schedule_id)
+      .is("deleted_at", null);
 
     if (error) throw error;
 
@@ -65,6 +66,7 @@ export async function savePanenAction(
 
     revalidatePath(`/visits/${raw.schedule_id}`);
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
     revalidatePath("/reports");
 
     return { success: true };

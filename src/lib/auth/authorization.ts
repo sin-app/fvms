@@ -108,6 +108,7 @@ export async function canAccessSchedule(
         .from("schedules")
         .select("kabupaten_id")
         .eq("id", scheduleId)
+        .is("deleted_at", null)
         .maybeSingle();
       if (error) {
         logger.error("canAccessSchedule: schedule lookup failed", {
@@ -132,6 +133,7 @@ export async function canAccessSchedule(
       .from("schedules")
       .select("user_id")
       .eq("id", scheduleId)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (error) {

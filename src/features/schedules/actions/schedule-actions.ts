@@ -12,7 +12,7 @@ import {
 import type { ActionResponse } from "@/types/common";
 import { STATUS_TRANSITIONS } from "@/lib/constants/status";
 import type { VisitStatus } from "@/types";
-import { getAuthContext, isPrivileged, canAccessSchedule } from "@/lib/auth/authorization";
+import { getAuthContext, isPrivileged, canAccessSchedule, qcKabupatenScope } from "@/lib/auth/authorization";
 
 export async function createScheduleAction(
   prevState: ActionResponse,
@@ -162,6 +162,7 @@ export async function shiftScheduleDateAction(
       .from("schedules")
       .select("user_id, visit_date")
       .eq("id", id)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (fetchError) throw fetchError;
@@ -248,7 +249,13 @@ export async function bulkActionSchedules(
     return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
   }
 
-  // Non-privileged users may only act on schedules they own.
+  // QC is restricted to schedules within their assigned kabupaten.
+  const kabScope = qcKabupatenScope(ctx);
+  if (kabScope !== null && !(await filterIdsByKabupatenScope(ids, kabScope))) {
+    return { success: false, error: "Tidak memiliki akses ke beberapa jadwal" };
+  }
+
+  // Non-privileged (produksi) users may only act on schedules they own.
   if (!isPrivileged(ctx.role)) {
     const owned = await getScheduleOwnerIds(ids);
     const ownedIds = new Set(owned.map((o) => o.id));
@@ -334,6 +341,8 @@ export async function bulkActionSchedules(
     await admin.from("activity_logs").insert(logs);
 
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal memproses aksi";
@@ -362,15 +371,8 @@ export async function updateVisitStatusAction(
     return { success: false, error: "Status tidak valid" };
   }
 
-  if (!isPrivileged(ctx.role)) {
-    const { data } = await createAdminClient()
-      .from("schedules")
-      .select("user_id")
-      .eq("id", id)
-      .maybeSingle();
-    if (data?.user_id !== ctx.userId) {
-      return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
-    }
+  if (!(await canAccessSchedule(id, ctx))) {
+    return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
   }
 
   // Cegah regresi status (completed/cancelled tidak bisa diubah lagi) dan
@@ -379,6 +381,7 @@ export async function updateVisitStatusAction(
     .from("schedules")
     .select("status")
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   const currentStatus = (current?.status ?? "pending") as (typeof validStatuses)[number] as VisitStatus;
   const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
@@ -427,4 +430,17 @@ export async function updateVisitStatusAction(
     const msg = err instanceof Error ? err.message : "Gagal mengupdate status";
     return { success: false, error: msg };
   }
+}
+
+async function filterIdsByKabupatenScope(ids: string[], scope: string[]): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("schedules")
+    .select("id")
+    .in("id", ids)
+    .in("kabupaten_id", scope.length > 0 ? scope : ["__none__"])
+    .is("deleted_at", null);
+
+  const allowed = new Set(data?.map((r) => r.id) ?? []);
+  return ids.every((id) => allowed.has(id));
 }

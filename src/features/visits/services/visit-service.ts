@@ -12,6 +12,7 @@ export async function getVisitDetail(scheduleId: string) {
     .from("schedules")
     .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name, email)")
     .eq("id", scheduleId)
+    .is("deleted_at", null)
     .single();
 
   if (!schedule) return null;

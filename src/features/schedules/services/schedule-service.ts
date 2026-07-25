@@ -89,9 +89,9 @@ export async function getScheduleList(
   if (filters.panen_status === "sudah") {
     query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
   } else if (filters.panen_status === "jatuh_tempo") {
-    query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", new Date().toISOString().split("T")[0]);
+    query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", new Date().toISOString().split("T")[0]).not("status", "in", "(completed,cancelled)");
   } else if (filters.panen_status === "belum") {
-    query = query.is("tgl_panen", null).is("real_panen", null);
+    query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${new Date().toISOString().split("T")[0]},rencana_panen.is.null`);
   }
 
   if (filters.varietas && filters.varietas.trim()) {
@@ -131,6 +131,7 @@ export async function getScheduleById(id: string): Promise<Schedule | null> {
     .from("schedules")
     .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name, email), visit_notes(*), visit_photos(*)")
     .eq("id", id)
+    .is("deleted_at", null)
     .single();
 
   return data as unknown as Schedule | null;

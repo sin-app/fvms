@@ -66,8 +66,9 @@ export async function saveVisitNotesAction(
       metadata: { has_observation: !!raw.observation },
     });
     revalidatePath(`/visits/${raw.schedule_id}`);
-    revalidatePath("/reports");
     revalidatePath("/schedules");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menyimpan catatan";

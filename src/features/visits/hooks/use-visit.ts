@@ -37,6 +37,8 @@ export function useSaveVisitNotes() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -57,6 +59,8 @@ export function useUploadPhoto() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -76,6 +80,8 @@ export function useDeletePhoto() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -96,6 +102,8 @@ export function useUpdatePhoto() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["visit-timeline", variables.schedule_id] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule", variables.schedule_id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
