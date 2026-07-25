@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateSchedulePaths } from "@/lib/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";
 import { panenSchema } from "../schema/panen-schema";
@@ -64,10 +64,7 @@ export async function savePanenAction(
       metadata: { tgl_panen: parsed.data.tgl_panen ?? null },
     });
 
-    revalidatePath(`/visits/${raw.schedule_id}`);
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths(raw.schedule_id);
 
     return { success: true };
   } catch (err) {

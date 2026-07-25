@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateSchedulePaths } from "@/lib/revalidate";
 import { parseExcelFile, getFullData, bulkImportSchedules } from "../services/import-service";
 import { resetAllData } from "../services/reset-service";
 import { columnMappingSchema } from "../schema/import-schema";
@@ -84,9 +85,7 @@ export async function executeImportAction(
     const buffer = await fileFromForm(formData);
     const data = await getFullData(buffer);
     const result = await bulkImportSchedules(data, mapping, ctx.userId);
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths();
     return {
       success: true,
       data: {
@@ -117,9 +116,7 @@ export async function resetAllDataAction(): Promise<{
 
   try {
     const result = await resetAllData();
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths();
     revalidatePath("/users");
     return {
       success: true,

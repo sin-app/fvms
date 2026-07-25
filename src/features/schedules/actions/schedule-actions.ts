@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { scheduleSchema } from "../schema/schedule-schema";
 import {
@@ -13,6 +12,7 @@ import type { ActionResponse } from "@/types/common";
 import { STATUS_TRANSITIONS } from "@/lib/constants/status";
 import type { VisitStatus } from "@/types";
 import { getAuthContext, isPrivileged, canAccessSchedule, qcKabupatenScope } from "@/lib/auth/authorization";
+import { revalidateSchedulePaths } from "@/lib/revalidate";
 
 export async function createScheduleAction(
   prevState: ActionResponse,
@@ -21,38 +21,8 @@ export async function createScheduleAction(
   const ctx = await getAuthContext();
   if (!ctx) return { success: false, error: "Unauthorized" };
 
-  const raw = {
-    user_id: formData.get("user_id") as string,
-    kabupaten_id: formData.get("kabupaten_id") as string,
-    kecamatan_id: formData.get("kecamatan_id") as string,
-    desa_id: formData.get("desa_id") as string,
-    visit_date: formData.get("visit_date") as string,
-    notes: (formData.get("notes") as string) || undefined,
-    cgr: (formData.get("cgr") as string) || undefined,
-    cgr_code: (formData.get("cgr_code") as string) || undefined,
-    block_no: (formData.get("block_no") as string) || undefined,
-    no_plot: (formData.get("no_plot") as string) || undefined,
-    member_name: (formData.get("member_name") as string) || undefined,
-    document_no: (formData.get("document_no") as string) || undefined,
-    nis: (formData.get("nis") as string) || undefined,
-    ph_tanah: formData.get("ph_tanah") as string,
-    real_tanam_ha: formData.get("real_tanam_ha") as string,
-    gagal_tanam: formData.get("gagal_tanam") as string,
-    sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
-    tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
-    rencana_panen: (formData.get("rencana_panen") as string) || undefined,
-    real_panen: (formData.get("real_panen") as string) || undefined,
-    tgl_panen: (formData.get("tgl_panen") as string) || undefined,
-  };
-
-  const parsed = scheduleSchema.safeParse(raw);
-  if (!parsed.success) {
-    return {
-      success: false,
-      error: "Validasi gagal",
-      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
-    };
-  }
+  const parsed = parseAndValidateSchedule(formData);
+  if (!parsed.success) return parsed;
 
   // Non-privileged users can only create schedules assigned to themselves.
   if (!isPrivileged(ctx.role) && parsed.data.user_id !== ctx.userId) {
@@ -61,9 +31,7 @@ export async function createScheduleAction(
 
   try {
     await createSchedule(parsed.data);
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths();
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal membuat jadwal";
@@ -81,38 +49,8 @@ export async function updateScheduleAction(
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID tidak valid" };
 
-  const raw = {
-    user_id: formData.get("user_id") as string,
-    kabupaten_id: formData.get("kabupaten_id") as string,
-    kecamatan_id: formData.get("kecamatan_id") as string,
-    desa_id: formData.get("desa_id") as string,
-    visit_date: formData.get("visit_date") as string,
-    notes: (formData.get("notes") as string) || undefined,
-    cgr: (formData.get("cgr") as string) || undefined,
-    cgr_code: (formData.get("cgr_code") as string) || undefined,
-    block_no: (formData.get("block_no") as string) || undefined,
-    no_plot: (formData.get("no_plot") as string) || undefined,
-    member_name: (formData.get("member_name") as string) || undefined,
-    document_no: (formData.get("document_no") as string) || undefined,
-    nis: (formData.get("nis") as string) || undefined,
-    ph_tanah: formData.get("ph_tanah") as string,
-    real_tanam_ha: formData.get("real_tanam_ha") as string,
-    gagal_tanam: formData.get("gagal_tanam") as string,
-    sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
-    tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
-    rencana_panen: (formData.get("rencana_panen") as string) || undefined,
-    real_panen: (formData.get("real_panen") as string) || undefined,
-    tgl_panen: (formData.get("tgl_panen") as string) || undefined,
-  };
-
-  const parsed = scheduleSchema.safeParse(raw);
-  if (!parsed.success) {
-    return {
-      success: false,
-      error: "Validasi gagal",
-      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
-    };
-  }
+  const parsed = parseAndValidateSchedule(formData);
+  if (!parsed.success) return parsed;
 
   if (!isPrivileged(ctx.role)) {
     if (!(await canAccessSchedule(id, ctx))) {
@@ -125,10 +63,7 @@ export async function updateScheduleAction(
 
   try {
     await updateSchedule(id, parsed.data);
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
-    revalidatePath(`/visits/${id}`);
+    revalidateSchedulePaths(id);
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal mengupdate jadwal";
@@ -176,9 +111,7 @@ export async function shiftScheduleDateAction(
     const nextDate = current.toISOString().split("T")[0];
 
     await updateSchedule(id, { visit_date: nextDate });
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths();
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menggeser tanggal";
@@ -212,9 +145,7 @@ export async function deleteScheduleAction(
 
   try {
     await deleteSchedule(id);
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths();
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal";
@@ -340,9 +271,7 @@ export async function bulkActionSchedules(
     }));
     await admin.from("activity_logs").insert(logs);
 
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths();
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal memproses aksi";
@@ -421,15 +350,50 @@ export async function updateVisitStatusAction(
       metadata: { status },
     });
 
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
-    revalidatePath(`/visits/${id}`);
+    revalidateSchedulePaths(id);
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal mengupdate status";
     return { success: false, error: msg };
   }
+}
+
+function parseAndValidateSchedule(formData: FormData) {
+  const raw = {
+    user_id: formData.get("user_id") as string,
+    kabupaten_id: formData.get("kabupaten_id") as string,
+    kecamatan_id: formData.get("kecamatan_id") as string,
+    desa_id: formData.get("desa_id") as string,
+    visit_date: formData.get("visit_date") as string,
+    notes: (formData.get("notes") as string) || undefined,
+    cgr: (formData.get("cgr") as string) || undefined,
+    cgr_code: (formData.get("cgr_code") as string) || undefined,
+    block_no: (formData.get("block_no") as string) || undefined,
+    no_plot: (formData.get("no_plot") as string) || undefined,
+    member_name: (formData.get("member_name") as string) || undefined,
+    document_no: (formData.get("document_no") as string) || undefined,
+    nis: (formData.get("nis") as string) || undefined,
+    ph_tanah: formData.get("ph_tanah") as string,
+    real_tanam_ha: formData.get("real_tanam_ha") as string,
+    gagal_tanam: formData.get("gagal_tanam") as string,
+    sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
+    tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
+    rencana_panen: (formData.get("rencana_panen") as string) || undefined,
+    real_panen: (formData.get("real_panen") as string) || undefined,
+    tgl_panen: (formData.get("tgl_panen") as string) || undefined,
+  };
+
+  const parsed = scheduleSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      error: "Validasi gagal",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      data: undefined,
+    };
+  }
+
+  return { success: true as const, data: parsed.data };
 }
 
 async function filterIdsByKabupatenScope(ids: string[], scope: string[]): Promise<boolean> {

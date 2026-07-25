@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateSchedulePaths } from "@/lib/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { logger } from "@/lib/logger";
 import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";
@@ -65,10 +65,7 @@ export async function saveVisitNotesAction(
       entity_id: raw.schedule_id,
       metadata: { has_observation: !!raw.observation },
     });
-    revalidatePath(`/visits/${raw.schedule_id}`);
-    revalidatePath("/schedules");
-    revalidatePath("/dashboard");
-    revalidatePath("/reports");
+    revalidateSchedulePaths(raw.schedule_id);
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menyimpan catatan";
@@ -133,9 +130,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
         error: statusErr instanceof Error ? statusErr.message : String(statusErr),
       });
     }
-    revalidatePath(`/visits/${scheduleId}`);
-    revalidatePath("/reports");
-    revalidatePath("/schedules");
+    revalidateSchedulePaths(scheduleId);
     return { success: true, data: result };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal mengupload foto";
@@ -175,9 +170,7 @@ export async function deletePhotoAction(
 
   try {
     await deleteVisitPhoto(photoId);
-    revalidatePath(`/visits/${scheduleId}`);
-    revalidatePath("/schedules");
-    revalidatePath("/reports");
+    revalidateSchedulePaths(scheduleId);
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menghapus foto";
@@ -212,9 +205,7 @@ export async function updatePhotoAction(
 
   try {
     await updateVisitPhoto(photoId, caption);
-    revalidatePath(`/visits/${scheduleId}`);
-    revalidatePath("/schedules");
-    revalidatePath("/reports");
+    revalidateSchedulePaths(scheduleId);
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal memperbarui foto";
