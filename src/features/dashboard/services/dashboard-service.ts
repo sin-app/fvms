@@ -40,13 +40,14 @@ export async function getDashboardData(
     return r;
   };
 
-  const applyFilters = <Q extends { eq: (column: string, value: unknown) => Q; in: (column: string, values: string[]) => Q }>(
+  const applyFilters = <Q extends { eq: (column: string, value: unknown) => Q; in: (column: string, values: string[]) => Q; is: (column: string, value: null) => Q }>(
     q: Q,
   ): Q => {
     let r = scoped(q);
     if (filters?.kecamatan_id && kabScope === null) {
       r = r.eq("kecamatan_id", filters.kecamatan_id);
     }
+    r = r.is("deleted_at", null);
     return r;
   };
 
@@ -73,13 +74,15 @@ export async function getDashboardData(
     .gte("visit_date", monthStart)
     .lte("visit_date", monthEnd);
   const sudahPanenQuery = applyFilters(baseQuery())
-    .not("real_panen", "is", null);
+    .or("real_panen.not.is.NULL,tgl_panen.not.is.NULL");
   const jatuhTempoQuery = applyFilters(baseQuery())
     .is("real_panen", null)
+    .is("tgl_panen", null)
     .lt("rencana_panen", today)
     .not("status", "in", "(completed,cancelled)");
   const belumPanenQuery = applyFilters(baseQuery())
     .is("real_panen", null)
+    .is("tgl_panen", null)
     .or(`rencana_panen.gte.${today},rencana_panen.is.null`);
 
   const counts = await Promise.all([

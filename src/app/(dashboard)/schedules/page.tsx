@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Plus, Calendar, FileDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 import { ScheduleTable, ScheduleForm, ScheduleFilters } from "@/features/schedules";
 import { createScheduleAction } from "@/features/schedules/actions/schedule-actions";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -173,6 +173,13 @@ export default function SchedulesPage() {
         action={createScheduleAction}
         open={showCreate}
         onOpenChange={setShowCreate}
+        onSuccess={() => {
+          setShowCreate(false);
+          queryClient.invalidateQueries({ queryKey: ["schedules"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["calendar"] });
+          queryClient.invalidateQueries({ queryKey: ["cgr"] });
+        }}
       />
     </div>
   );

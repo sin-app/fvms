@@ -3,6 +3,7 @@
 import { useState, Fragment } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSchedules, useDeleteSchedule, useShiftScheduleDate } from "../hooks/use-schedules";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -28,6 +29,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const { data, isLoading, isFetching, isError, refetch } = useSchedules({ ...filters, page });
   const deleteSchedule = useDeleteSchedule();
   const bulkAction = useBulkAction();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState<Schedule | null>(null);
   const [editing, setEditing] = useState<Schedule | null>(null);
@@ -439,6 +441,12 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
           defaultValues={editing}
           open={!!editing}
           onOpenChange={(o) => { if (!o) setEditing(null); }}
+          onSuccess={() => {
+            setEditing(null);
+            queryClient.invalidateQueries({ queryKey: ["schedules"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+            queryClient.invalidateQueries({ queryKey: ["calendar"] });
+          }}
         />
       )}
     </div>
