@@ -39,7 +39,7 @@ export function ScheduleForm({
 
   const { data: users } = useAllUsers();
   const { user } = useAuth();
-  const isPrivileged = user?.role === "admin" || user?.role === "qc";
+  const isPrivileged = user?.role === "admin";
 
   const [kabupatenId, setKabupatenId] = useState(defaultValues?.kabupaten_id ?? "");
   const [kecamatanId, setKecamatanId] = useState(defaultValues?.kecamatan_id ?? "");
@@ -207,6 +207,18 @@ export function ScheduleForm({
               )}
             </div>
             <div className="space-y-1">
+              <Label htmlFor="detaseling">Detaseling</Label>
+              <Input
+                id="detaseling"
+                name="detaseling"
+                defaultValue={defaultValues?.detaseling ?? ""}
+                className={cn(state.fieldErrors?.detaseling && "border-destructive")}
+              />
+              {state.fieldErrors?.detaseling && (
+                <p className="text-sm text-destructive">{state.fieldErrors.detaseling[0]}</p>
+              )}
+            </div>
+            <div className="space-y-1">
               <Label htmlFor="sisa_di_lahan_ha">Sisa di Lahan (HA)</Label>
               <Input
                 id="sisa_di_lahan_ha"
@@ -236,6 +248,10 @@ export function ScheduleForm({
             <div className="space-y-1">
               <Label htmlFor="tgl_panen">Tgl Panen (Kunjungan)</Label>
               <Input id="tgl_panen" name="tgl_panen" type="date" defaultValue={defaultValues?.tgl_panen ?? ""} />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3 space-y-1">
+              <Label htmlFor="panen_keterangan">Panen Keterangan</Label>
+              <Input id="panen_keterangan" name="panen_keterangan" defaultValue={defaultValues?.panen_keterangan ?? ""} />
             </div>
           </div>
         </div>

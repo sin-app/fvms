@@ -7,10 +7,9 @@ import type { Schedule } from "@/types";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#f59e0b",
-  on_the_way: "#3b82f6",
   in_progress: "#8b5cf6",
   completed: "#22c55e",
-  cancelled: "#ef4444",
+  gagal_total: "#ef4444",
 };
 
 export function useCalendarEvents(start: string, end: string) {

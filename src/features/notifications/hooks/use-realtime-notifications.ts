@@ -28,6 +28,7 @@ export function useRealtimeNotifications() {
         },
         () => {
           queryClientRef.current.invalidateQueries({ queryKey: ["notifications"] });
+          queryClientRef.current.invalidateQueries({ queryKey: ["notifications", "unread"] });
         },
       )
       .subscribe();

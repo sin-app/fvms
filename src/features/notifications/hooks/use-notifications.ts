@@ -31,6 +31,7 @@ export function useMarkAsRead() {
     mutationFn: markAsReadAction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
     },
     onError: () => toast.error("Gagal menandai notifikasi"),
   });
@@ -42,6 +43,7 @@ export function useMarkAllAsRead() {
     mutationFn: markAllAsReadAction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
     },
     onError: () => toast.error("Gagal menandai semua notifikasi"),
   });

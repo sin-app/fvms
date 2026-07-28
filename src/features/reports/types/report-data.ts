@@ -11,4 +11,5 @@ export interface ReportRow {
   rencana_panen: string | null;
   real_panen: string | null;
   tgl_panen: string | null;
+  label: string | null;
 }

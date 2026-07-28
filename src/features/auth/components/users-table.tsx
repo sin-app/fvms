@@ -147,11 +147,9 @@ export function UsersTable() {
                     </span>
                   </td>
                   <td className="p-3 text-sm text-muted-foreground">
-                    {user.role === "qc"
-                      ? (user.assigned_kabupaten_ids ?? []).length > 0
-                        ? (user.assigned_kabupaten_ids ?? []).map(kabName).join(", ")
-                        : "—"
-                      : "Semua"}
+                    {(user.assigned_kabupaten_ids ?? []).length > 0
+                      ? (user.assigned_kabupaten_ids ?? []).map(kabName).join(", ")
+                      : "—"}
                   </td>
                   <td className="p-3">
                     <span className={cn(

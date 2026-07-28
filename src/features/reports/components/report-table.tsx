@@ -1,9 +1,10 @@
 "use client";
 
+import { LabelBadge } from "@/components/shared/label-badge";
 import { Button } from "@/components/ui/button";
 import { Download, FileDown } from "lucide-react";
 import { STATUS_LABELS } from "@/lib/constants/status";
-import { formatDate } from "@/lib/utils/date";
+import { formatDate, todayString } from "@/lib/utils/date";
 import { exportPdf } from "@/lib/export/pdf";
 import type { ReportRow } from "../types/report-data";
 
@@ -23,6 +24,7 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
       kecamatan: r.kecamatan_name,
       desa: r.desa_name,
       status: STATUS_LABELS[r.status as keyof typeof STATUS_LABELS] ?? r.status,
+      label: r.label ?? "—",
       rencanaPanen: r.rencana_panen ?? "—",
       realPanen: r.real_panen ?? "—",
       tglPanen: r.tgl_panen ?? "—",
@@ -36,12 +38,13 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
         { header: "Kecamatan", dataKey: "kecamatan" },
         { header: "Desa", dataKey: "desa" },
         { header: "Status", dataKey: "status" },
+        { header: "Label", dataKey: "label" },
         { header: "Rencana Panen", dataKey: "rencanaPanen" },
         { header: "Real Panen", dataKey: "realPanen" },
         { header: "Tgl Panen", dataKey: "tglPanen" },
       ],
       pdfRows,
-      `laporan-${new Date().toISOString().split("T")[0]}.pdf`,
+      `laporan-${todayString()}.pdf`,
     );
   }
 
@@ -74,6 +77,7 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Label</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Rencana Panen</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Panen</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Tgl Panen</th>
@@ -88,6 +92,9 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
                   <td className="p-3 text-sm whitespace-nowrap">{row.kecamatan_name}</td>
                   <td className="p-3 text-sm whitespace-nowrap">{row.desa_name}</td>
                   <td className="p-3 text-sm whitespace-nowrap">{STATUS_LABELS[row.status as keyof typeof STATUS_LABELS] ?? row.status}</td>
+                  <td className="p-3 whitespace-nowrap">
+                    <LabelBadge label={row.label} />
+                  </td>
                   <td className="p-3 text-sm whitespace-nowrap">{row.rencana_panen ? formatDate(row.rencana_panen) : "—"}</td>
                   <td className="p-3 text-sm whitespace-nowrap">{row.real_panen ? formatDate(row.real_panen) : "—"}</td>
                   <td className="p-3 text-sm whitespace-nowrap">{row.tgl_panen ? formatDate(row.tgl_panen) : "—"}</td>

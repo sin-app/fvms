@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createUser, updateUser, toggleUserActive, getUsers, setPassword, getCurrentUserFromDb } from "../services/user-service";
-import { userSchema } from "../schema/user-schema";
+import { userSchema, setPasswordSchema } from "../schema/user-schema";
 import { profileSchema } from "../schema/auth-schema";
 import type { ActionResponse } from "@/types/common";
 import { getAuthContext } from "@/lib/auth/authorization";
@@ -167,16 +167,20 @@ export async function setPasswordAction(
   if (!ctx) return { success: false, error: "Unauthorized" };
   if (ctx.role !== "admin") return { success: false, error: "Hanya admin yang diizinkan" };
 
-  const id = formData.get("id") as string;
-  const password = formData.get("password") as string;
-
-  if (!id) return { success: false, error: "ID tidak valid" };
-  if (!password || password.length < 6) {
-    return { success: false, error: "Password minimal 6 karakter" };
+  const parsed = setPasswordSchema.safeParse({
+    id: formData.get("id"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Validasi gagal",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    };
   }
 
   try {
-    await setPassword(id, password);
+    await setPassword(parsed.data.id, parsed.data.password);
     revalidatePath("/users");
     return { success: true };
   } catch (err: unknown) {

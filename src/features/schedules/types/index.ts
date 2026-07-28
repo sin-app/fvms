@@ -8,7 +8,6 @@ export interface ScheduleFilters {
   block_no?: string;
   no_plot?: string;
   nis?: string;
-  tgl_tanam?: string;
   kabupaten_id?: string;
   kecamatan_id?: string;
   date_from?: string;
@@ -19,6 +18,7 @@ export interface ScheduleFilters {
   sort_dir?: "asc" | "desc";
   varietas?: string;
   panen_status?: string;
+  label?: string;
 }
 
 export interface ScheduleListResult {

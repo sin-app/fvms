@@ -39,6 +39,7 @@ export async function savePanenAction(
     };
     if (parsed.data.tgl_panen) {
       update.tgl_panen = parsed.data.tgl_panen;
+      update.status = "completed";
     } else {
       update.tgl_panen = null;
     }

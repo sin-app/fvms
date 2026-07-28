@@ -10,7 +10,6 @@ export function useSchedules(filters: ScheduleFilters) {
   return useQuery({
     queryKey: ["schedules", filters],
     queryFn: () => fetchScheduleList(filters),
-    placeholderData: (prev) => prev,
   });
 }
 
@@ -25,6 +24,7 @@ export function useDeleteSchedule() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
       queryClient.invalidateQueries({ queryKey: ["cgr"] });
@@ -46,6 +46,8 @@ export function useShiftScheduleDate() {
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["visit"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
       toast.success(vars.days > 0 ? "Jadwal digeser +1 hari" : "Jadwal dikembalikan -1 hari");
@@ -66,6 +68,8 @@ export function useBulkAction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["visit"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
       queryClient.invalidateQueries({ queryKey: ["cgr"] });
@@ -88,9 +92,11 @@ export function useUpdateVisitStatus() {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["visit", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["visit-timeline", vars.id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
       toast.success("Status berhasil diupdate");

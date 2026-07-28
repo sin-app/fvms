@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticateApiKey } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { todayString } from "@/lib/utils/date";
 
 export const dynamic = "force-dynamic";
 
@@ -40,22 +41,20 @@ export async function GET(request: Request) {
 
   const total = count ?? 0;
   const completed = data?.filter((s) => s.status === "completed").length ?? 0;
-  const cancelled = data?.filter((s) => s.status === "cancelled").length ?? 0;
+  const gagal_total = data?.filter((s) => s.status === "gagal_total").length ?? 0;
   const pending = data?.filter((s) => s.status === "pending").length ?? 0;
-  const on_the_way = data?.filter((s) => s.status === "on_the_way").length ?? 0;
   const in_progress = data?.filter((s) => s.status === "in_progress").length ?? 0;
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayString();
   const late_count = data?.filter(
-    (s) => s.visit_date < today && !["completed", "cancelled"].includes(s.status),
+    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.status),
   ).length ?? 0;
 
   return NextResponse.json({
     data: {
       total_schedules: total,
       completed,
-      cancelled,
+      gagal_total,
       pending,
-      on_the_way,
       in_progress,
       late_count,
       completion_rate: total > 0 ? Math.round((completed / total) * 100) : 0,

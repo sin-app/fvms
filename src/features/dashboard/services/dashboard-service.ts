@@ -7,6 +7,7 @@ import {
   addDays,
 } from "date-fns";
 import { qcKabupatenScope } from "@/lib/auth/authorization";
+import { dateString } from "@/lib/utils/date";
 import type { AuthContext } from "@/lib/auth/authorization";
 import type { DashboardData, DashboardStats, DashboardFilters } from "../types";
 import type { Schedule, ActivityLog } from "@/types";
@@ -18,12 +19,12 @@ export async function getDashboardData(
 ): Promise<DashboardData> {
   const admin = createAdminClient();
   const now = new Date();
-  const today = now.toISOString().split("T")[0];
-  const tomorrow = addDays(now, 1).toISOString().split("T")[0];
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString().split("T")[0];
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 }).toISOString().split("T")[0];
-  const monthStart = startOfMonth(now).toISOString().split("T")[0];
-  const monthEnd = endOfMonth(now).toISOString().split("T")[0];
+  const today = dateString(now);
+  const tomorrow = dateString(addDays(now, 1));
+  const weekStart = dateString(startOfWeek(now, { weekStartsOn: 1 }));
+  const weekEnd = dateString(endOfWeek(now, { weekStartsOn: 1 }));
+  const monthStart = dateString(startOfMonth(now));
+  const monthEnd = dateString(endOfMonth(now));
 
   const kabScope = ctx ? qcKabupatenScope(ctx) : null;
   const scoped = <Q extends { eq: (column: string, value: unknown) => Q; in: (column: string, values: string[]) => Q }>(
@@ -61,7 +62,7 @@ export async function getDashboardData(
     .lte("visit_date", weekEnd);
   const lateQuery = applyFilters(baseQuery())
     .lt("visit_date", today)
-    .not("status", "in", "(completed,cancelled)");
+    .not("status", "in", "(completed,gagal_total)");
   const completedQuery = applyFilters(baseQuery())
     .eq("status", "completed")
     .gte("visit_date", monthStart)
@@ -79,7 +80,7 @@ export async function getDashboardData(
     .is("real_panen", null)
     .is("tgl_panen", null)
     .lt("rencana_panen", today)
-    .not("status", "in", "(completed,cancelled)");
+    .not("status", "in", "(completed,gagal_total)");
   const belumPanenQuery = applyFilters(baseQuery())
     .is("real_panen", null)
     .is("tgl_panen", null)

@@ -56,8 +56,8 @@ describe("isLate", () => {
     expect(isLate("2020-01-01", "completed")).toBe(false);
   });
 
-  it("returns false for cancelled status", () => {
-    expect(isLate("2020-01-01", "cancelled")).toBe(false);
+  it("returns false for gagal_total status", () => {
+    expect(isLate("2020-01-01", "gagal_total")).toBe(false);
   });
 
   it("returns false for future date", () => {

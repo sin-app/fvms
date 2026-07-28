@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { STATUS_LABELS, STATUS_TRANSITIONS } from "@/lib/constants/status";
-import { STATUS_COLORS } from "@/lib/constants/status";
+import { STATUS_LABELS, STATUS_TRANSITIONS, STATUS_COLORS } from "@/lib/constants/status";
 import { useUpdateVisitStatus } from "@/features/schedules/hooks/use-schedules";
 import type { VisitStatus } from "@/types";
 
@@ -16,10 +15,9 @@ interface VisitStatusSelectorProps {
 
 const STATUS_ICONS: Record<VisitStatus, string> = {
   pending: "⏳",
-  on_the_way: "🚗",
   in_progress: "📋",
   completed: "✅",
-  cancelled: "❌",
+  gagal_total: "❌",
 };
 
 export function VisitStatusSelector({

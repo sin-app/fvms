@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getAuthContext, qcKabupatenScope } from "@/lib/auth/authorization";
+import { todayString } from "@/lib/utils/date";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
@@ -37,27 +38,29 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   if (filters.status && SCHEDULE_STATUSES.includes(filters.status as (typeof SCHEDULE_STATUSES)[number])) {
     query = query.eq("status", filters.status);
   }
+  if (filters.label) {
+    query = query.eq("label", filters.label);
+  }
 
   const { data: schedules } = await query;
 
   if (!schedules) {
     return {
-      total_schedules: 0, completed: 0, cancelled: 0, pending: 0,
-      on_the_way: 0, in_progress: 0, completion_rate: 0, late_count: 0,
+      total_schedules: 0, completed: 0, pending: 0,
+      in_progress: 0, gagal_total: 0, completion_rate: 0, late_count: 0,
       by_officer: [], by_kabupaten: [], by_kecamatan: [], daily_data: [],
     };
   }
 
   const total = schedules.length;
   const completed = schedules.filter((s) => s.status === "completed").length;
-  const cancelled = schedules.filter((s) => s.status === "cancelled").length;
   const pending = schedules.filter((s) => s.status === "pending").length;
-  const on_the_way = schedules.filter((s) => s.status === "on_the_way").length;
   const in_progress = schedules.filter((s) => s.status === "in_progress").length;
+  const gagal_total = schedules.filter((s) => s.status === "gagal_total").length;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayString();
   const late_count = schedules.filter(
-    (s) => s.visit_date < today && !["completed", "cancelled"].includes(s.status),
+    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.status),
   ).length;
 
   // By officer
@@ -133,10 +136,9 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   return {
     total_schedules: total,
     completed,
-    cancelled,
     pending,
-    on_the_way,
     in_progress,
+    gagal_total,
     completion_rate: total > 0 ? Math.round((completed / total) * 100) : 0,
     late_count,
     by_officer,
@@ -157,6 +159,7 @@ interface ReportRowRelation {
   rencana_panen: string | null;
   real_panen: string | null;
   tgl_panen: string | null;
+  label: string | null;
   user?: { name: string } | null;
   kabupaten?: { name: string } | null;
   kecamatan?: { name: string } | null;
@@ -179,7 +182,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   let query = admin
     .from("schedules")
-    .select("id, visit_date, status, visit_time, rencana_panen, real_panen, tgl_panen, users!schedules_user_id_fkey(name), kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
+    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, users!schedules_user_id_fkey(name), kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to)
@@ -194,6 +197,9 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
   }
   if (filters.kecamatan_id) {
     query = query.eq("kecamatan_id", filters.kecamatan_id);
+  }
+  if (filters.label) {
+    query = query.eq("label", filters.label);
   }
 
   const { data } = await query;
@@ -213,6 +219,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     rencana_panen: s.rencana_panen ?? null,
     real_panen: s.real_panen ?? null,
     tgl_panen: s.tgl_panen ?? null,
+    label: s.label ?? null,
   }));
 }
 
@@ -227,6 +234,7 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
     { header: "Kecamatan", key: "Kecamatan" },
     { header: "Desa", key: "Desa" },
     { header: "Status", key: "Status" },
+    { header: "Label", key: "Label" },
     { header: "Rencana Panen", key: "Rencana Panen" },
     { header: "Real Panen", key: "Real Panen" },
     { header: "Tgl Panen", key: "Tgl Panen" },
@@ -241,6 +249,7 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
       Kecamatan: r.kecamatan_name,
       Desa: r.desa_name,
       Status: r.status,
+      Label: r.label ?? "",
       "Rencana Panen": r.rencana_panen ?? "",
       "Real Panen": r.real_panen ?? "",
       "Tgl Panen": r.tgl_panen ?? "",

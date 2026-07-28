@@ -4,6 +4,7 @@ import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
 import { useAllCgr } from "../hooks/use-cgr";
 import { useAllUsers } from "../hooks/use-users";
 import { STATUS_LABELS } from "@/lib/constants/status";
+import { dateString } from "@/lib/utils/date";
 
 interface ScheduleFiltersProps {
   memberName: string;
@@ -14,8 +15,6 @@ interface ScheduleFiltersProps {
   onNoPlotChange: (value: string) => void;
   nis: string;
   onNisChange: (value: string) => void;
-  tglTanam: string;
-  onTglTanamChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
   userId: string;
@@ -36,6 +35,8 @@ interface ScheduleFiltersProps {
   onVarietasChange: (value: string) => void;
   panenStatus?: string;
   onPanenStatusChange?: (value: string) => void;
+  label: string;
+  onLabelChange: (value: string) => void;
   hidePetugasFilter?: boolean;
 }
 
@@ -63,15 +64,15 @@ function getDateRange(preset: string) {
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
       return {
-        from: start.toISOString().split("T")[0],
-        to: end.toISOString().split("T")[0],
+        from: dateString(start),
+        to: dateString(end),
       };
     }
     case "month": {
       const last = new Date(y, now.getMonth() + 1, 0);
       return {
         from: `${y}-${m}-01`,
-        to: last.toISOString().split("T")[0],
+        to: dateString(last),
       };
     }
     default:
@@ -88,8 +89,6 @@ export function ScheduleFilters({
   onNoPlotChange,
   nis,
   onNisChange,
-  tglTanam,
-  onTglTanamChange,
   status,
   onStatusChange,
   userId,
@@ -110,6 +109,8 @@ export function ScheduleFilters({
   onVarietasChange,
   panenStatus = "all",
   onPanenStatusChange,
+  label = "all",
+  onLabelChange,
   hidePetugasFilter = false,
 }: ScheduleFiltersProps) {
   const { data: kabupaten } = useAllKabupaten();
@@ -164,12 +165,6 @@ export function ScheduleFilters({
           placeholder="NIS"
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
         />
-        <input
-          type="date"
-          value={tglTanam}
-          onChange={(e) => onTglTanamChange(e.target.value)}
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
-        />
         <select
           value={cgr}
           onChange={(e) => onCgrChange(e.target.value)}
@@ -192,6 +187,16 @@ export function ScheduleFilters({
             <option value="belum">Belum Panen</option>
           </select>
         )}
+        <select
+          value={label}
+          onChange={(e) => onLabelChange(e.target.value)}
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+        >
+          <option value="all">Semua Label</option>
+          <option value="hijau">Hijau</option>
+          <option value="kuning">Kuning</option>
+          <option value="merah">Merah</option>
+        </select>
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value)}

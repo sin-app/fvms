@@ -17,9 +17,8 @@ import type { ReportData } from "../types";
 const STATUS_COLORS_CHART = {
   completed: "#22c55e",
   pending: "#f59e0b",
-  on_the_way: "#3b82f6",
   in_progress: "#8b5cf6",
-  cancelled: "#ef4444",
+  gagal_total: "#ef4444",
 };
 
 interface ReportChartsProps {
@@ -30,9 +29,8 @@ export function ReportCharts({ data }: ReportChartsProps) {
   const pieData = [
     { name: "Completed", value: data.completed, color: STATUS_COLORS_CHART.completed },
     { name: "Pending", value: data.pending, color: STATUS_COLORS_CHART.pending },
-    { name: "On The Way", value: data.on_the_way, color: STATUS_COLORS_CHART.on_the_way },
     { name: "In Progress", value: data.in_progress, color: STATUS_COLORS_CHART.in_progress },
-    { name: "Cancelled", value: data.cancelled, color: STATUS_COLORS_CHART.cancelled },
+    { name: "Gagal Total", value: data.gagal_total, color: STATUS_COLORS_CHART.gagal_total },
   ].filter((d) => d.value > 0);
 
   return (

@@ -30,10 +30,5 @@ export async function fetchCalendarEvents(start: string, end: string) {
 }
 
 export async function fetchDistinctCgr(): Promise<string[]> {
-  const ctx = await getAuthContext();
-  if (!ctx) throw new Error("Not authenticated");
-
-  const userId = ctx.role === "admin" || ctx.role === "qc" ? "all" : ctx.userId;
-
-  return getDistinctCgr(userId, ctx);
+  return getDistinctCgr();
 }

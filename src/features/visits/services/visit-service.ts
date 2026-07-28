@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getConfig } from "@/lib/config";
 import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";
+import { logger } from "@/lib/logger";
 
 export async function getVisitDetail(scheduleId: string) {
   const ctx = await getAuthContext();
@@ -53,7 +54,7 @@ async function signPhotoUrl(objectPath: string): Promise<string> {
       .createSignedUrl(objectPath, PHOTO_SIGN_TTL_SECONDS);
     return data?.signedUrl ?? "";
   } catch (e) {
-    console.error("visit-service: failed to sign photo URL", objectPath, e);
+    logger.error("visit-service: failed to sign photo URL", { objectPath, error: String(e) });
     return "";
   }
 }

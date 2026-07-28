@@ -4,6 +4,15 @@ import { logger } from "@/lib/logger";
 
 export type UserRole = "admin" | "qc" | "produksi";
 
+const VALID_ROLES: readonly UserRole[] = ["admin", "qc", "produksi"];
+
+function parseRole(value: unknown): UserRole | undefined {
+  if (typeof value === "string" && VALID_ROLES.includes(value as UserRole)) {
+    return value as UserRole;
+  }
+  return undefined;
+}
+
 export interface AuthContext {
   userId: string;
   role: UserRole;
@@ -23,7 +32,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     if (user) {
       userId = user.id;
       const meta = user.user_metadata ?? {};
-      metaRole = (meta.role ?? user.app_metadata?.role) as UserRole | undefined;
+      metaRole = parseRole(meta.role ?? user.app_metadata?.role);
     }
   } catch {
     // getUser can intermittently fail; fall back to session below.
@@ -37,7 +46,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       if (session?.user) {
         userId = session.user.id;
         const meta = session.user.user_metadata ?? {};
-        metaRole = (meta.role ?? session.user.app_metadata?.role) as UserRole | undefined;
+        metaRole = parseRole(meta.role ?? session.user.app_metadata?.role);
       }
     } catch {
       // ignore
@@ -54,9 +63,9 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       .select("role, assigned_kabupaten_ids")
       .eq("id", userId)
       .maybeSingle();
-    const role = (data?.role as UserRole | undefined) ?? metaRole ?? "produksi";
-    const assignedKabupatenIds = Array.isArray(data?.assigned_kabupaten_ids)
-      ? (data!.assigned_kabupaten_ids as string[])
+    const role = parseRole(data?.role) ?? metaRole ?? "produksi";
+    const assignedKabupatenIds: string[] = Array.isArray(data?.assigned_kabupaten_ids)
+      ? data!.assigned_kabupaten_ids.filter((v): v is string => typeof v === "string")
       : [];
     return { userId, role, assignedKabupatenIds };
   } catch {

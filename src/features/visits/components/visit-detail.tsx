@@ -8,6 +8,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { VisitStatusSelector } from "./visit-status-selector";
+import { VisitLabel } from "./visit-label";
 import { VisitNotesForm } from "./visit-notes-form";
 import { VisitPhotos } from "./visit-photos";
 import { VisitGps } from "./visit-gps";
@@ -26,6 +27,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
   const role = user?.role;
   const isOwner = schedule?.user_id === user?.id;
   const canEdit = !!schedule && (role === "admin" || role === "qc" || isOwner);
+  const canLabel = role === "admin" || role === "qc";
 
   if (isLoading) return <LoadingState variant="card" />;
   if (isError) return <ErrorState onRetry={refetch} />;
@@ -54,7 +56,10 @@ export function VisitDetail({ id }: VisitDetailProps) {
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </Link>
-        <VisitStatusSelector scheduleId={id} currentStatus={schedule.status} editable={canEdit} />
+        <div className="flex items-center gap-2">
+          <VisitStatusSelector scheduleId={id} currentStatus={schedule.status} editable={canEdit} />
+          <VisitLabel scheduleId={id} currentLabel={schedule.label} editable={canLabel} />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -89,6 +94,21 @@ export function VisitDetail({ id }: VisitDetailProps) {
                   </p>
                 </div>
               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-4">
+              {schedule.gagal_tanam != null && (
+                <div className="text-sm">
+                  <span className="text-xs text-muted-foreground">Gagal Tanam</span>
+                  <p className="font-medium text-orange-600">{schedule.gagal_tanam} Ha</p>
+                </div>
+              )}
+              {schedule.sisa_di_lahan_ha != null && (
+                <div className="text-sm">
+                  <span className="text-xs text-muted-foreground">Sisa di Lahan</span>
+                  <p className="font-medium">{schedule.sisa_di_lahan_ha} Ha</p>
+                </div>
+              )}
             </div>
 
             {schedule.visit_time && (

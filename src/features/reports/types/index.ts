@@ -5,15 +5,15 @@ export interface ReportFilters {
   kabupaten_id?: string;
   kecamatan_id?: string;
   status?: string;
+  label?: string;
 }
 
 export interface ReportData {
   total_schedules: number;
   completed: number;
-  cancelled: number;
   pending: number;
-  on_the_way: number;
   in_progress: number;
+  gagal_total: number;
   completion_rate: number;
   late_count: number;
   by_officer: Array<{

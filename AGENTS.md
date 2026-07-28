@@ -8,14 +8,50 @@ Modern web application for Field Officers (Produksi) to manage field visit sched
 
 | Role | Enum value | Capabilities |
 |------|-----------|--------------|
-| Admin | `admin` | Full access: manage users, master data, import, reset all data, view all schedules |
-| QC | `qc` | Quality Control — kabupaten-scoped to `assigned_kabupaten_ids` (wilayah tugas); can VIEW schedules only within assigned kabupaten, UPLOAD photos and CAPTURE GPS in the field, but CANNOT delete/edit photos and CANNOT delete schedules; no user management |
-| Produksi | `produksi` | Field Officers — manage ONLY their own schedules/visits (own-data-only), photos, notes |
+| Admin | `admin` | Full access: manage users, master data, import, reset all data, view all schedules; can change status and set labels |
+| QC | `qc` | Quality Control — kabupaten-scoped to `assigned_kabupaten_ids` (wilayah tugas); can **view, edit, and fill all schedule data** (notes, photos, panen, GPS) within assigned kabupaten; can **change status** and **set labels** (hijau/kuning/merah) on any schedule; no user management |
+| Produksi | `produksi` | Field Officers — manage ONLY their own schedules/visits (own-data-only), photos, notes, panen, GPS; can set any status including `gagal_total` |
 
-Notes:
-- `qc` and `admin` are "privileged" (`isPrivileged` in `src/lib/auth/authorization.ts`). QC sees schedules only within its `assigned_kabupaten_ids` scope via `qcKabupatenScope()`; admin sees all. Access is enforced centrally through `getAuthContext()` / `canAccessSchedule()`.
-- Produksi accounts are auto-created during Excel import (auth account + random password set later by admin).
-- Role is read from the JWT `app_metadata.role` / `user_metadata.role` (not from `public.users` select on the client).
+## Statuses
+
+| Status | Color | Setters | Description |
+|--------|-------|---------|-------------|
+| `pending` | amber | admin, qc, produksi | Belum dikunjungi |
+| `in_progress` | yellow | admin, qc, produksi | Sedang dikerjakan |
+| `completed` | green | admin, qc, produksi | Selesai |
+| `gagal_total` | red | admin, qc, produksi | Gagal total |
+
+All status transitions are unrestricted (any → any). Transitions defined in `STATUS_TRANSITIONS` in `src/lib/constants/status.ts`.
+
+## Label (QC/Admin only)
+
+- Column `label` on `schedules` table — values: `hijau`, `kuning`, `merah`, or `null`
+- QC and Admin can set/remove labels via `VisitLabel` component on visit detail page
+- Displayed as colored badge via shared `LabelBadge` component (`src/components/shared/label-badge.tsx`)
+- Server action: `updateLabelAction` in `src/features/schedules/actions/schedule-actions.ts`
+- Filter by label available on schedules page and reports page
+
+## Excel Import Behavior
+
+- **Admin-only** — accessed via "Import Excel" button on schedules page
+- **Append + Upsert** — does NOT delete existing data. New records inserted, matched records updated
+- **Composite key** for matching: `user_id|desa_id|visit_date|block_no|no_plot|member_name`
+- **Intra-file dedup** — duplicate rows within same Excel file are skipped
+- **Status preservation** — records already marked `completed` in the app keep their status
+- **Auto-derivation**:
+  - `real_tanam_ha - gagal_tanam <= 0` → status `gagal_total`, `panen_keterangan = "Bongkar Total"`
+  - `tgl_panen` terisi → status `completed`
+  - `sisa_di_lahan_ha = 0` + `gagal_tanam > 0` → `panen_keterangan = "Bongkar Total"`
+  - `sisa_di_lahan_ha = 0` + no `gagal_tanam` → `tgl_panen = visit_date` (tandai panen)
+- **Master data auto-creation** — kabupaten/kecamatan/desa/users are auto-created if missing
+- **Reset** — separate `resetAllData` action (admin-only) wipes all operational data
+
+## Panen Status Logic
+
+- Derived from `tgl_panen`/`real_panen`/`rencana_panen` fields
+- Function `getPanenStatus()` in `src/features/panen/services/panen-logic.ts`
+- States: "Panen" (harvested), "Jatuh Tempo" (overdue), "Renc: YYYY-MM-DD" (scheduled), or "—" (none)
+- Filterable in schedules list and dashboard via `panen_status` filter
 
 ## Tech Stack
 
@@ -77,6 +113,8 @@ src/
 │   ├── visits/
 │   ├── excel-import/
 │   ├── reports/
+│   ├── panen/
+│   ├── settings/
 │   └── notifications/
 ├── lib/                   # Utilities & configurations
 │   ├── supabase/
@@ -135,7 +173,9 @@ feature-name/
 - Tests pass
 - Mobile responsive
 - Accessibility basics (keyboard nav, screen reader labels)
-- No hardcoded strings (use constants/enums)
+- No hardcoded status strings (use `SCHEDULE_STATUSES` constant from `src/lib/constants/status.ts`)
+- Date formatting uses `todayString()` / `dateString()` from `src/lib/utils/date.ts` (never inline `new Date().toISOString().split("T")[0]`)
+- Error logging uses `logger.error()` from `src/lib/logger.ts` on server-side
 
 ## Security Rules
 
@@ -152,6 +192,7 @@ feature-name/
 - Structured JSON logger at `src/lib/logger.ts`; `/health` endpoint at `src/app/health/route.ts`
 - Master data (kabupaten/kecamatan/desa) is ADMIN-ONLY; Excel import is ADMIN-ONLY; `resetAllData` is admin-only
 - Middleware is `src/proxy.ts` (Next.js 16 file-based proxy), NOT `middleware.ts`
+- Key database indexes: `idx_schedules_active` (partial on `visit_date WHERE deleted_at IS NULL`), `idx_schedules_label`
 
 ## Environment Variables (.env.local)
 

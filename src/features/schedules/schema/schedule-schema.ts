@@ -29,6 +29,7 @@ export const scheduleSchema = z.object({
     .optional()
     .transform((v) => (v === "" || v === null || v === undefined ? undefined : Number(v)))
     .refine((v) => v === undefined || !Number.isNaN(v), "Gagal Tanam harus berupa angka"),
+  detaseling: z.string().optional(),
   sisa_di_lahan_ha: z
     .union([z.string(), z.number()])
     .optional()
@@ -39,6 +40,7 @@ export const scheduleSchema = z.object({
   real_panen: z.string().optional(),
   tgl_panen: z.string().optional(),
   panen_keterangan: z.string().optional(),
+  status: z.string().optional(),
 });
 
 export type ScheduleInput = z.infer<typeof scheduleSchema>;

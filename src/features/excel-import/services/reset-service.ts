@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { logger } from "@/lib/logger";
 
 export interface ResetResult {
   schedulesDeleted: number;
@@ -58,7 +59,7 @@ export async function resetAllData(): Promise<ResetResult> {
     }
   }
   if (orphaned.length > 0) {
-    console.error("[reset-service] Orphaned auth accounts (DB row deleted, auth survives):", orphaned.join(", "));
+    logger.error("[reset-service] Orphaned auth accounts (DB row deleted, auth survives)", { orphaned: orphaned.join(", ") });
   }
 
   // 4) Clear previous import records for a clean slate.

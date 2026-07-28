@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { qcKabupatenScope } from "@/lib/auth/authorization";
+import { todayString } from "@/lib/utils/date";
 import type { AuthContext } from "@/lib/auth/authorization";
 import type { Schedule } from "@/types";
 import type { ScheduleFilters, ScheduleListResult } from "../types";
@@ -69,15 +70,11 @@ export async function getScheduleList(
     query = query.ilike("nis", `%${escapeLike(filters.nis.trim())}%`);
   }
 
-  if (filters.tgl_tanam && filters.tgl_tanam.trim()) {
-    query = query.ilike("tgl_tanam", `%${escapeLike(filters.tgl_tanam.trim())}%`);
-  }
-
   if (status && status !== "all") {
     if (status === "late") {
       query = query
-        .lt("visit_date", new Date().toISOString().split("T")[0])
-        .not("status", "in", '("completed","cancelled")');
+        .lt("visit_date", todayString())
+        .not("status", "in", "(completed,gagal_total)");
     } else {
       query = query.eq("status", status);
     }
@@ -89,14 +86,24 @@ export async function getScheduleList(
   if (filters.panen_status === "sudah") {
     query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
   } else if (filters.panen_status === "jatuh_tempo") {
-    query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", new Date().toISOString().split("T")[0]).not("status", "in", "(completed,cancelled)");
+    query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString()).not("status", "in", "(completed,gagal_total)");
   } else if (filters.panen_status === "belum") {
-    query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${new Date().toISOString().split("T")[0]},rencana_panen.is.null`);
+    query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
   }
 
   if (filters.varietas && filters.varietas.trim()) {
     // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment.
     query = query.like("document_no", `%/${escapeLike(filters.varietas.trim())}/%`);
+  }
+
+  if (filters.label) {
+    if (filters.label === "all") {
+      // no filter
+    } else if (filters.label === "ada") {
+      query = query.not("label", "is", null);
+    } else {
+      query = query.eq("label", filters.label);
+    }
   }
 
   if (date_from && date_to) {
@@ -154,8 +161,14 @@ export async function createSchedule(data: {
   ph_tanah?: number;
   real_tanam_ha?: number;
   gagal_tanam?: number;
+  detaseling?: string;
   sisa_di_lahan_ha?: number;
   tgl_tanam?: string;
+  rencana_panen?: string;
+  real_panen?: string;
+  tgl_panen?: string;
+  panen_keterangan?: string;
+  status?: string;
 }) {
   const admin = createAdminClient();
   const { data: result, error } = await admin
@@ -186,8 +199,14 @@ export async function updateSchedule(
     ph_tanah?: number;
     real_tanam_ha?: number;
     gagal_tanam?: number;
+    detaseling?: string;
     sisa_di_lahan_ha?: number;
     tgl_tanam?: string;
+    rencana_panen?: string;
+    real_panen?: string;
+    tgl_panen?: string;
+    panen_keterangan?: string;
+    status?: string;
   },
 ) {
   const admin = createAdminClient();
@@ -252,24 +271,13 @@ export async function getScheduleOwnerIds(
   return (data ?? []) as { id: string; user_id: string }[];
 }
 
-export async function getDistinctCgr(userId: string, ctx?: AuthContext): Promise<string[]> {
+export async function getDistinctCgr(): Promise<string[]> {
   const admin = createAdminClient();
-  const scope = ctx ? qcKabupatenScope(ctx) : null;
-  let query = admin
+  const { data, error } = await admin
     .from("schedules")
     .select("cgr")
-    .not("cgr", "is", null)
-    .is("deleted_at", null);
+    .not("cgr", "is", null);
 
-  if (scope !== null) {
-    query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
-  }
-
-  if (userId !== "all") {
-    query = query.eq("user_id", userId);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
 
   const values = (data ?? [])

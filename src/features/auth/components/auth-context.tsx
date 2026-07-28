@@ -41,6 +41,7 @@ function userFromSession(session: {
     is_active: true,
     assigned_kabupaten_ids: [],
     last_login_at: null,
+    deleted_at: null,
     created_at: "",
     updated_at: "",
   };

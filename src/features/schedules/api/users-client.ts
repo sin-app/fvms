@@ -4,10 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getAuthContext } from "@/lib/auth/authorization";
 import type { User } from "@/types";
 
-export async function fetchAllFieldOfficers(): Promise<User[]> {
+export async function fetchAllFieldOfficers(): Promise<Pick<User, "id" | "name" | "email" | "role">[]> {
   const ctx = await getAuthContext();
   if (!ctx) return [];
-  // Hanya admin/QC yang berhak melihat daftar petugas lapangan.
   if (ctx.role !== "admin" && ctx.role !== "qc") return [];
 
   const admin = createAdminClient();
@@ -18,5 +17,5 @@ export async function fetchAllFieldOfficers(): Promise<User[]> {
     .eq("is_active", true)
     .order("name");
 
-  return (data ?? []) as unknown as User[];
+  return data ?? [];
 }

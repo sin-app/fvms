@@ -95,6 +95,7 @@ describe("report-service", () => {
           id: "1", visit_date: "2024-01-01", status: "completed", visit_time: null,
           user_name: "John", kabupaten_name: "Kab A", kecamatan_name: "Kec B", desa_name: "Desa C",
           has_notes: false,
+          rencana_panen: null, real_panen: null, tgl_panen: null, label: null,
         },
       ];
       const result = await exportToExcel(rows);

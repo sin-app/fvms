@@ -38,26 +38,6 @@ export async function saveVisitNotesAction(
 
   try {
     await saveVisitNotes(parsed.data);
-    // Move from pending to in_progress once field work notes are recorded.
-    try {
-      const admin = createAdminClient();
-      const { data: cur } = await admin
-        .from("schedules")
-        .select("status")
-        .eq("id", raw.schedule_id)
-        .maybeSingle();
-      if (cur && cur.status === "pending") {
-        await admin
-          .from("schedules")
-          .update({ status: "in_progress" })
-          .eq("id", raw.schedule_id);
-      }
-    } catch (statusErr) {
-      logger.warn("saveVisitNotesAction: status update skipped", {
-        scheduleId: raw.schedule_id,
-        error: statusErr instanceof Error ? statusErr.message : String(statusErr),
-      });
-    }
     await createAdminClient().from("activity_logs").insert({
       user_id: ctx.userId,
       action: "notes_saved",
@@ -113,23 +93,6 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
         error: logErr instanceof Error ? logErr.message : String(logErr),
       });
     }
-    // Mark the schedule as completed once a photo (proof of visit) is uploaded.
-    try {
-      const admin = createAdminClient();
-      const { data: cur } = await admin
-        .from("schedules")
-        .select("status")
-        .eq("id", scheduleId)
-        .maybeSingle();
-      if (cur && cur.status !== "cancelled" && cur.status !== "completed") {
-        await admin.from("schedules").update({ status: "completed" }).eq("id", scheduleId);
-      }
-    } catch (statusErr) {
-      logger.warn("uploadPhotoAction: status update skipped", {
-        scheduleId,
-        error: statusErr instanceof Error ? statusErr.message : String(statusErr),
-      });
-    }
     revalidateSchedulePaths(scheduleId);
     return { success: true, data: result };
   } catch (err: unknown) {
@@ -160,11 +123,6 @@ export async function deletePhotoAction(
     return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
   }
 
-  // QC may not delete photos. Only admin or the owning produksi may delete.
-  if (ctx.role === "qc") {
-    return { success: false, error: "QC tidak diizinkan menghapus foto" };
-  }
-
   const owned = await getOwnedPhoto(photoId, scheduleId);
   if (!owned) return { success: false, error: "Foto tidak ditemukan" };
 
@@ -193,11 +151,6 @@ export async function updatePhotoAction(
 
   if (!(await canAccessSchedule(scheduleId, ctx))) {
     return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
-  }
-
-  // QC may not edit photos. Only admin or the owning produksi may edit.
-  if (ctx.role === "qc") {
-    return { success: false, error: "QC tidak diizinkan mengubah foto" };
   }
 
   const owned = await getOwnedPhoto(photoId, scheduleId);

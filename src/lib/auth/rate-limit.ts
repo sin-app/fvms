@@ -127,6 +127,8 @@ function readRowSync(key: string): RateLimitRow | null {
   // Kick an async refresh but return current memory value (may be null first pass).
   void readRow(key).then((row) => {
     if (row) memoryStore.set(key, row);
+  }).catch(() => {
+    // Background refresh failed; will retry on next access.
   });
   return memoryStore.get(key) ?? null;
 }

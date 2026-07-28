@@ -106,7 +106,7 @@ export async function getCurrentUserFromDb(userId: string): Promise<User | null>
     .eq("id", userId)
     .maybeSingle();
   if (error) return null;
-  return data as unknown as User;
+  return data as User;
 }
 
 export async function getUsers(): Promise<User[]> {

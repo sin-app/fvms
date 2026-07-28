@@ -1,3 +1,5 @@
+import { dateString, todayString } from "@/lib/utils/date";
+
 const PANEN_AGE: Record<string, number> = {
   "JMP-01": 90,
   "JMP-03": 90,
@@ -23,7 +25,7 @@ export function calcRencanaPanen(
   if (days <= 0) return null;
   const d = new Date(tgl_tanam + "T00:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  return dateString(d);
 }
 
 export function getPanenStatus(schedule: {
@@ -38,7 +40,7 @@ export function getPanenStatus(schedule: {
   }
   const rencana = schedule.rencana_panen ?? calcRencanaPanen(schedule.tgl_tanam, schedule.cgr);
   if (rencana) {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayString();
     if (today >= rencana) {
       return { label: "Jatuh Tempo", harvested: false };
     }

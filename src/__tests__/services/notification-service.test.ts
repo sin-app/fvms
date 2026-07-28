@@ -33,15 +33,15 @@ describe("notification-client", () => {
         { id: "n1", title: "Test", is_read: false },
         { id: "n2", title: "Test 2", is_read: true },
       ];
-      const mockOrder = vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue({ data: mockData }) });
+      const mockLimit = vi.fn().mockResolvedValue({ data: mockData });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
       const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
       const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
 
       (createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
         auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
-      });
-      (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
-        from: vi.fn().mockReturnValue({ select: mockSelect }),
+        from: mockFrom,
       });
 
       const result = await fetchNotifications();
@@ -60,14 +60,14 @@ describe("notification-client", () => {
 
   describe("fetchUnreadCount", () => {
     it("returns unread count", async () => {
-      const mockEq = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ count: 5 }) });
+      const mockEq2 = vi.fn().mockResolvedValue({ count: 5 });
+      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
       const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
 
       (createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
         auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
-      });
-      (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
-        from: vi.fn().mockReturnValue({ select: mockSelect }),
+        from: mockFrom,
       });
 
       const result = await fetchUnreadCount();
@@ -77,30 +77,32 @@ describe("notification-client", () => {
 
   describe("markAsReadAction", () => {
     it("updates notification as read", async () => {
-      const mockEq2 = vi.fn().mockResolvedValue({ error: null });
-      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockEqUser = vi.fn().mockResolvedValue({ error: null });
+      const mockEqId = vi.fn().mockReturnValue({ eq: mockEqUser });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqId });
+      const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate });
 
-      (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
-        from: vi.fn().mockReturnValue({ update: mockUpdate }),
+      (createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
+        auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
+        from: mockFrom,
       });
 
       await markAsReadAction("n1");
       expect(mockUpdate).toHaveBeenCalledWith({ is_read: true });
-      expect(mockEq).toHaveBeenCalledWith("id", "n1");
+      expect(mockEqId).toHaveBeenCalledWith("id", "n1");
     });
   });
 
   describe("markAllAsReadAction", () => {
     it("marks all notifications as read", async () => {
-      const mockEq = vi.fn().mockReturnThis();
-      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockEqRead = vi.fn().mockResolvedValue({ error: null });
+      const mockEqUser = vi.fn().mockReturnValue({ eq: mockEqRead });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUser });
+      const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate });
 
       (createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
         auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
-      });
-      (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
-        from: vi.fn().mockReturnValue({ update: mockUpdate }),
+        from: mockFrom,
       });
 
       await markAllAsReadAction();

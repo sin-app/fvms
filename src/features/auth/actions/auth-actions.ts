@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server-client";
 import { createAdminClient } from "@/lib/supabase/admin-client";
-import { loginSchema, resetPasswordSchema } from "../schema/auth-schema";
+import { loginSchema, resetPasswordSchema, updatePasswordSchema } from "../schema/auth-schema";
 import { isLoginRateLimited, registerLoginFailure, registerLoginSuccess, isEmailRateLimited, registerEmailFailure, isIpRateLimited, registerIpFailure } from "@/lib/auth/rate-limit";
 import type { ActionResponse } from "@/types/common";
 
@@ -119,12 +119,9 @@ export async function resetPasswordAction(
 }
 
 export async function updatePasswordAction(
-  prevState: ActionResponse,
+  _prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   if (isIpRateLimited("update-password", ip)) {
     return {
@@ -133,25 +130,21 @@ export async function updatePasswordAction(
     };
   }
 
-  if (password !== confirmPassword) {
+  const parsed = updatePasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) {
     return {
       success: false,
-      error: "Password tidak cocok",
-      fieldErrors: { confirmPassword: ["Password tidak cocok"] },
-    };
-  }
-
-  if (password.length < 6) {
-    return {
-      success: false,
-      error: "Password minimal 6 karakter",
-      fieldErrors: { password: ["Password minimal 6 karakter"] },
+      error: "Validasi gagal",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
     };
   }
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.updateUser({ password });
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
 
   if (error) {
     registerIpFailure("update-password", ip);

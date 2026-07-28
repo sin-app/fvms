@@ -21,7 +21,6 @@ export default function SchedulesPage() {
   const [blockNo, setBlockNo] = useState("");
   const [noPlot, setNoPlot] = useState("");
   const [nis, setNis] = useState("");
-  const [tglTanam, setTglTanam] = useState("");
   const [status, setStatus] = useState("all");
   const [cgr, setCgr] = useState("");
   const [userId, setUserId] = useState("");
@@ -32,6 +31,7 @@ export default function SchedulesPage() {
   const [dateTo, setDateTo] = useState("");
   const [varietas, setVarietas] = useState("");
   const [panenStatus, setPanenStatus] = useState("all");
+  const [label, setLabel] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
 
   const debouncedMemberName = useDebounce(memberName, 300);
@@ -61,6 +61,9 @@ export default function SchedulesPage() {
       nis: s.nis ?? "—",
       ph_tanah: s.ph_tanah?.toString() ?? "—",
       real_tanam: s.real_tanam_ha?.toString() ?? "—",
+      gagal_tanam: s.gagal_tanam?.toString() ?? "—",
+      detaseling: s.detaseling ?? "—",
+      label: s.label ?? "—",
       sisa_lahan: s.sisa_di_lahan_ha?.toString() ?? "—",
       panen: s.tgl_panen ?? s.real_panen ?? (s.rencana_panen ? "Renc: "+s.rencana_panen : "—"),
       status: s.status,
@@ -79,6 +82,9 @@ export default function SchedulesPage() {
       { header: "NIS", dataKey: "nis" },
       { header: "PH Tanah", dataKey: "ph_tanah" },
       { header: "Real Tanam", dataKey: "real_tanam" },
+      { header: "Gagal Tanam", dataKey: "gagal_tanam" },
+      { header: "Detaseling", dataKey: "detaseling" },
+      { header: "Label", dataKey: "label" },
       { header: "Sisa Lahan", dataKey: "sisa_lahan" },
       { header: "Panen", dataKey: "panen" },
       { header: "Status", dataKey: "status" },
@@ -96,7 +102,6 @@ export default function SchedulesPage() {
     block_no: blockNo.trim() || undefined,
     no_plot: noPlot.trim() || undefined,
     nis: nis.trim() || undefined,
-    tgl_tanam: tglTanam.trim() || undefined,
     status: status !== "all" ? status : undefined,
     user_id: isProduksi ? undefined : (userId || undefined),
     cgr: cgr.trim() || undefined,
@@ -106,6 +111,7 @@ export default function SchedulesPage() {
     date_to: dateTo || undefined,
     varietas: varietas.trim() || undefined,
     panen_status: panenStatus !== "all" ? panenStatus : undefined,
+    label: label !== "all" ? label : undefined,
   };
 
   return (
@@ -142,8 +148,6 @@ export default function SchedulesPage() {
         onNoPlotChange={setNoPlot}
         nis={nis}
         onNisChange={setNis}
-        tglTanam={tglTanam}
-        onTglTanamChange={setTglTanam}
         status={status}
         onStatusChange={setStatus}
         userId={userId}
@@ -164,6 +168,8 @@ export default function SchedulesPage() {
         onVarietasChange={setVarietas}
         panenStatus={panenStatus}
         onPanenStatusChange={setPanenStatus}
+        label={label}
+        onLabelChange={setLabel}
         hidePetugasFilter={isProduksi}
       />
 

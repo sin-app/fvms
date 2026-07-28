@@ -168,6 +168,7 @@ export async function bulkImportSchedules(
     nis?: string;
     real_tanam_ha?: number;
     gagal_tanam?: number;
+    detaseling?: string;
     sisa_di_lahan_ha?: number;
     latitude?: number;
     longitude?: number;
@@ -241,6 +242,10 @@ export async function bulkImportSchedules(
       const n = parseNumber(row[mapping.gagal_tanam]);
       if (n !== null) v.gagal_tanam = n;
     }
+    if (mapping.detaseling) {
+      const txt = row[mapping.detaseling]?.trim();
+      if (txt) v.detaseling = txt;
+    }
     if (mapping.sisa_di_lahan_ha) {
       const n = parseNumber(row[mapping.sisa_di_lahan_ha]);
       if (n !== null) v.sisa_di_lahan_ha = n;
@@ -277,6 +282,7 @@ export async function bulkImportSchedules(
     desa_id: string;
     visit_date: string;
     created_by: string;
+    status?: string;
     tgl_tanam?: string;
     tgl_panen?: string;
     rencana_panen?: string;
@@ -291,12 +297,14 @@ export async function bulkImportSchedules(
     nis?: string;
     real_tanam_ha?: number;
     gagal_tanam?: number;
+    detaseling?: string;
     sisa_di_lahan_ha?: number;
     latitude?: number;
     longitude?: number;
     accuracy?: number;
     visit_time?: string;
     notes?: string;
+    panen_keterangan?: string;
   }> = [];
 
   for (const r of valid) {
@@ -336,6 +344,7 @@ export async function bulkImportSchedules(
       ...(r.nis !== undefined ? { nis: r.nis } : {}),
       ...(r.real_tanam_ha !== undefined ? { real_tanam_ha: r.real_tanam_ha } : {}),
       ...(r.gagal_tanam !== undefined ? { gagal_tanam: r.gagal_tanam } : {}),
+      ...(r.detaseling !== undefined ? { detaseling: r.detaseling } : {}),
       ...(r.sisa_di_lahan_ha !== undefined ? { sisa_di_lahan_ha: r.sisa_di_lahan_ha } : {}),
       ...(r.latitude !== undefined ? { latitude: r.latitude } : {}),
       ...(r.longitude !== undefined ? { longitude: r.longitude } : {}),
@@ -344,6 +353,9 @@ export async function bulkImportSchedules(
       ...(r.notes !== undefined ? { notes: r.notes } : {}),
     });
   }
+
+  // Infer panen/bongkar status from sisa_di_lahan_ha + gagal_tanam
+  applyAutoDerivation(schedulesToInsert);
 
   if (schedulesToInsert.length > 0) {
     const unique = dedupeSchedules(schedulesToInsert);
@@ -380,7 +392,6 @@ export async function bulkImportSchedules(
 
       const matches = existingMap.get(k);
       if (matches && matches.length > 0) {
-        // Update SEMUA existing record dengan key ini (handle duplikat DB sebelumnya)
         for (const match of matches) {
           const { id, status: currentStatus } = match;
           const updateData: Record<string, unknown> = {};
@@ -395,6 +406,7 @@ export async function bulkImportSchedules(
           if (r.nis !== undefined) updateData.nis = r.nis;
           if (r.real_tanam_ha !== undefined) updateData.real_tanam_ha = r.real_tanam_ha;
           if (r.gagal_tanam !== undefined) updateData.gagal_tanam = r.gagal_tanam;
+          if (r.detaseling !== undefined) updateData.detaseling = r.detaseling;
           if (r.sisa_di_lahan_ha !== undefined) updateData.sisa_di_lahan_ha = r.sisa_di_lahan_ha;
           if (r.tgl_panen !== undefined) updateData.tgl_panen = r.tgl_panen;
           if (r.rencana_panen !== undefined) updateData.rencana_panen = r.rencana_panen;
@@ -404,7 +416,7 @@ export async function bulkImportSchedules(
           if (r.accuracy !== undefined) updateData.accuracy = r.accuracy;
           if (r.visit_time !== undefined) updateData.visit_time = r.visit_time;
           if (r.notes !== undefined) updateData.notes = r.notes;
-          // Jangan ubah status jika sudah completed
+          if (r.panen_keterangan !== undefined) updateData.panen_keterangan = r.panen_keterangan;
           if (currentStatus !== "completed") {
             updateData.status = "pending";
           }
@@ -461,6 +473,34 @@ export async function bulkImportSchedules(
   return result;
 }
 
+export function applyAutoDerivation(
+  schedules: Array<{
+    real_tanam_ha?: number;
+    gagal_tanam?: number;
+    sisa_di_lahan_ha?: number;
+    tgl_panen?: string;
+    visit_date: string;
+    status?: string;
+    panen_keterangan?: string;
+  }>,
+): void {
+  for (const s of schedules) {
+    if (s.real_tanam_ha != null && s.gagal_tanam != null && (s.real_tanam_ha - s.gagal_tanam) <= 0) {
+      s.status = "gagal_total";
+      s.panen_keterangan = "Bongkar Total";
+    } else if (s.sisa_di_lahan_ha === 0) {
+      if (s.gagal_tanam && s.gagal_tanam > 0) {
+        s.panen_keterangan = "Bongkar Total";
+  } else if (!s.tgl_panen) {
+      s.tgl_panen = s.visit_date;
+      s.status = "completed";
+    } else {
+      s.status = "completed";
+    }
+    }
+  }
+}
+
 function isValidDate(value: string): boolean {
   if (/^\d+(\.\d+)?$/.test(value)) return false;
   const iso = /^\d{4}-\d{2}-\d{2}$/;
@@ -499,6 +539,7 @@ function dedupeSchedules(
     desa_id: string;
     visit_date: string;
     created_by: string;
+    status?: string;
     tgl_tanam?: string;
     tgl_panen?: string;
     rencana_panen?: string;
@@ -513,12 +554,14 @@ function dedupeSchedules(
     nis?: string;
     real_tanam_ha?: number;
     gagal_tanam?: number;
+    detaseling?: string;
     sisa_di_lahan_ha?: number;
     latitude?: number;
     longitude?: number;
     accuracy?: number;
     visit_time?: string;
     notes?: string;
+    panen_keterangan?: string;
   }>,
 ): typeof rows {
   const seen = new Set<string>();

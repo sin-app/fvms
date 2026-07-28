@@ -10,3 +10,10 @@ export const userSchema = z.object({
 });
 
 export type UserInput = z.infer<typeof userSchema>;
+
+export const setPasswordSchema = z.object({
+  id: z.string().min(1, "ID wajib diisi"),
+  password: z.string().min(6, "Password minimal 6 karakter").max(100, "Password maksimal 100 karakter"),
+});
+
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>;

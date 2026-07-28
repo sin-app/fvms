@@ -10,9 +10,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { LabelBadge } from "@/components/shared/label-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatDateDay, isTodayDate } from "@/lib/utils/date";
+import { formatDateDay, isTodayDate, todayString, dateString } from "@/lib/utils/date";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { useBulkAction } from "../hooks/use-schedules";
 import { ScheduleForm } from "./schedule-form";
@@ -40,11 +41,11 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const isAdmin = user?.role === "admin";
   const canDelete = user?.role === "admin";
   const canBulkShift = user?.role === "admin" || user?.role === "qc";
-  const canEdit = (schedule: Schedule) => user?.role === "admin" || user?.role === "qc" || schedule.user_id === user?.id;
+  const canEdit = (schedule: Schedule) => user?.role === "admin" || schedule.user_id === user?.id;
   const shiftSchedule = useShiftScheduleDate();
 
   function canShift(schedule: Schedule) {
-    if (user?.role === "admin" || user?.role === "qc") return true;
+    if (user?.role === "admin") return true;
     return schedule.user_id === user?.id;
   }
 
@@ -136,15 +137,6 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleBulk("on_the_way")}
-                disabled={bulkAction.isPending}
-                className="h-8 text-xs"
-              >
-                🚗 OTW
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={() => handleBulk("in_progress")}
                 disabled={bulkAction.isPending}
                 className="h-8 text-xs"
@@ -214,18 +206,21 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       aria-label="Pilih semua"
                     />
                   </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Kabupaten</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Kecamatan</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kabupaten</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Kecamatan</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Desa</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Petugas</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">CGR</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Block/Plot</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Member</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Doc No</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">NIS</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">PH Tanah</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Real Tanam</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Sisa Lahan</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">CGR</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Block/Plot</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Member</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Doc No</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">NIS</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">PH Tanah</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Tanam</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Gagal Tanam</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Sisa Lahan</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden xl:table-cell">Detaseling</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap w-20">Label</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Panen</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
                   <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap min-w-[120px] sm:min-w-[160px]">Aksi</th>
@@ -240,7 +235,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                   <Fragment key={schedule.id}>
                     {showGroup && (
                       <tr className="bg-muted/70">
-                          <td colSpan={16} className="p-2.5 px-3">
+                          <td colSpan={17} className="p-2.5 px-3">
                           <div className="flex items-center gap-2 text-sm font-semibold">
                             {formatDateDay(displayDate)}
                             {isTodayDate(displayDate) && (
@@ -265,43 +260,52 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                           aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
                         />
                       </td>
-                      <td className="p-3 text-sm hidden md:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm hidden md:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {(schedule as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "—"}
                       </td>
-                       <td className="p-3 text-sm">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {(schedule as unknown as { desa?: { name: string } }).desa?.name ?? "—"}
                       </td>
                       <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.users?.name ?? schedule.user?.name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap hidden sm:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.cgr ?? "—"}
                         {schedule.cgr_code ? <span className="text-muted-foreground text-xs block">{schedule.cgr_code}</span> : null}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap hidden lg:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.block_no ?? "—"}
                         {schedule.no_plot ? <span className="text-muted-foreground text-xs block">Plot: {schedule.no_plot}</span> : null}
                       </td>
-                       <td className="p-3 text-sm hidden sm:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.member_name ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap hidden lg:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.document_no ?? "—"}
                       </td>
-                      <td className="p-3 text-sm whitespace-nowrap hidden md:table-cell">
+                      <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.nis ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap hidden lg:table-cell">
+                      <td className="p-3 text-sm text-right whitespace-nowrap">
                         {schedule.ph_tanah ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap hidden lg:table-cell">
+                      <td className="p-3 text-sm text-right whitespace-nowrap">
                         {schedule.real_tanam_ha ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap hidden lg:table-cell">
+                      <td className="p-3 text-sm text-right whitespace-nowrap">
+                        {schedule.gagal_tanam ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm text-right whitespace-nowrap">
                         {schedule.sisa_di_lahan_ha ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm whitespace-nowrap hidden xl:table-cell">
+                        {schedule.detaseling ?? "—"}
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        <LabelBadge label={schedule.label} />
                       </td>
                       <td className="p-3 whitespace-nowrap">
                         {schedule.tgl_panen || schedule.real_panen ? (
@@ -309,7 +313,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                             <Sprout className="h-3 w-3" />
                             {schedule.tgl_panen ?? schedule.real_panen}
                           </span>
-                        ) : schedule.rencana_panen && schedule.rencana_panen <= new Date().toISOString().split("T")[0] ? (
+                        ) : schedule.rencana_panen && schedule.rencana_panen <= todayString() ? (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded-full px-2 py-0.5">
                             Jatuh Tempo {schedule.rencana_panen}
                           </span>

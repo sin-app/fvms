@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/lib/supabase/admin-client", () => ({
   createAdminClient: vi.fn(),
@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/admin-client", () => ({
 
 vi.mock("@/lib/config", () => ({
   getConfig: () => ({
-    supabaseUrl: "https://example.com",
+    supabaseUrl: "http://localhost",
     supabaseAnonKey: "anon",
     supabaseServiceRoleKey: "service",
   }),
@@ -18,10 +18,18 @@ import { uploadVisitPhoto, deleteVisitPhoto } from "@/features/visits/services/v
 describe("visit-photo-service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   function createMockFile(name = "test.jpg", type = "image/jpeg", size = 1024): File {
-    const blob = new Blob(["x".repeat(size)], { type });
+    // Magic bytes for JPEG: FF D8 FF
+    const header = new Uint8Array([0xff, 0xd8, 0xff]);
+    const body = new Uint8Array(size - header.length);
+    const blob = new Blob([header, body], { type });
     return new File([blob], name, { type });
   }
 
@@ -29,42 +37,35 @@ describe("visit-photo-service", () => {
     it("uploads file and inserts photo record", async () => {
       const mockFile = createMockFile();
 
-      const mockUpload = vi.fn().mockResolvedValue({ error: null });
-      const mockGetPublicUrl = vi.fn().mockReturnValue({ data: { publicUrl: "https://example.com/photo.jpg" } });
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: { url: "https://example.com/photo.jpg", file_size: 1024, mime_type: "image/jpeg" },
-        error: null,
-      });
-      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-      const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
-
-      (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
-        from: vi.fn().mockImplementation((table: string) => {
-          if (table === "visit_photos") return { insert: mockInsert };
-          return {};
-        }),
-        storage: {
-          from: vi.fn().mockReturnValue({
-            upload: mockUpload,
-            getPublicUrl: mockGetPublicUrl,
-          }),
-        },
+      let fetchCallCount = 0;
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        fetchCallCount++;
+        if (fetchCallCount === 1) {
+          // Storage upload response
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve(JSON.stringify({ Key: "visits/sched-1/photo.jpg" })),
+          });
+        }
+        // DB insert response
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(JSON.stringify([{ url: "visits/sched-1/photo.jpg", file_size: 1024, mime_type: "image/jpeg" }])),
+        });
       });
 
       const result = await uploadVisitPhoto("sched-1", mockFile);
-      expect(mockUpload).toHaveBeenCalled();
-      expect(result.url).toBe("https://example.com/photo.jpg");
+      expect(result.url).toContain("photo.jpg");
+      expect(result.file_size).toBe(1024);
     });
 
     it("throws on upload error", async () => {
       const mockFile = createMockFile();
-      const mockUpload = vi.fn().mockResolvedValue({ error: new Error("Upload failed") });
 
-      (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
-        from: vi.fn().mockReturnValue({}),
-        storage: {
-          from: vi.fn().mockReturnValue({ upload: mockUpload, getPublicUrl: vi.fn() }),
-        },
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve("Upload failed"),
       });
 
       await expect(uploadVisitPhoto("sched-1", mockFile)).rejects.toThrow("Upload failed");

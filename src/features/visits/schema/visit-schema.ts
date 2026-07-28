@@ -12,7 +12,7 @@ export type VisitNotesInput = z.infer<typeof visitNotesSchema>;
 
 export const visitStatusSchema = z.object({
   id: z.string().min(1),
-  status: z.enum(["pending", "on_the_way", "in_progress", "completed", "cancelled"]),
+  status: z.enum(["pending", "in_progress", "completed", "gagal_total"]),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   accuracy: z.number().optional(),

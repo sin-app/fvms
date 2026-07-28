@@ -22,7 +22,7 @@ function buildQuery(response: unknown) {
     then: (resolve: (v: unknown) => void) => resolve(response),
     catch: () => {},
   };
-  const methods = ["select", "is", "gte", "lte", "eq", "lt", "gt", "not", "order", "limit", "in"];
+  const methods = ["select", "is", "gte", "lte", "eq", "lt", "gt", "not", "order", "limit", "in", "or", "neq"];
   for (const m of methods) {
     chain[m] = vi.fn((...args: unknown[]) => {
       captured.push({ method: m, args });

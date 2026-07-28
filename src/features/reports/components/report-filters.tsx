@@ -1,7 +1,6 @@
 "use client";
 
-import { useAllKabupaten } from "@/features/master-data";
-import { useAllKecamatan } from "@/features/master-data";
+import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
 import { useAllUsers } from "@/features/schedules/hooks/use-users";
 
 interface ReportFiltersProps {
@@ -10,6 +9,7 @@ interface ReportFiltersProps {
   userId: string;
   kabupatenId: string;
   kecamatanId: string;
+  label: string;
   showUserFilter: boolean;
   scopeKabupatenIds?: string[];
   onDateFromChange: (v: string) => void;
@@ -17,6 +17,7 @@ interface ReportFiltersProps {
   onUserChange: (v: string) => void;
   onKabupatenChange: (v: string) => void;
   onKecamatanChange: (v: string) => void;
+  onLabelChange: (v: string) => void;
   onReset: () => void;
 }
 
@@ -26,6 +27,7 @@ export function ReportFiltersView({
   userId,
   kabupatenId,
   kecamatanId,
+  label,
   showUserFilter,
   scopeKabupatenIds,
   onDateFromChange,
@@ -33,6 +35,7 @@ export function ReportFiltersView({
   onUserChange,
   onKabupatenChange,
   onKecamatanChange,
+  onLabelChange,
   onReset,
 }: ReportFiltersProps) {
   const { data: users } = useAllUsers();
@@ -108,6 +111,19 @@ export function ReportFiltersView({
           </select>
         </div>
       )}
+      <div>
+        <label className="text-xs font-medium text-muted-foreground block mb-1">Label</label>
+        <select
+          value={label}
+          onChange={(e) => onLabelChange(e.target.value)}
+          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-36"
+        >
+          <option value="">Semua</option>
+          <option value="hijau">Hijau</option>
+          <option value="kuning">Kuning</option>
+          <option value="merah">Merah</option>
+        </select>
+      </div>
       <button
         onClick={onReset}
         className="h-9 px-3 rounded-lg border border-input text-sm hover:bg-muted transition-colors"

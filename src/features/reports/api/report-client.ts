@@ -1,6 +1,7 @@
 "use server";
 
 import { getReportData, getReportRows, exportToExcel } from "../services/report-service";
+import { todayString } from "@/lib/utils/date";
 import type { ReportFilters } from "../types";
 
 export async function fetchReportData(filters: ReportFilters) {
@@ -17,6 +18,6 @@ export async function downloadExcelAction(filters: ReportFilters): Promise<{ dat
   const base64 = Buffer.from(new Uint8Array(buffer)).toString("base64");
   return {
     data: base64,
-    filename: `laporan-kunjungan-${new Date().toISOString().split("T")[0]}.xlsx`,
+    filename: `laporan-kunjungan-${todayString()}.xlsx`,
   };
 }

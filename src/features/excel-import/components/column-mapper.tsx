@@ -20,6 +20,7 @@ const TARGET_FIELDS = [
   { key: "nis", label: "NIS" },
   { key: "real_tanam_ha", label: "Real Tanam (HA)" },
   { key: "gagal_tanam", label: "Gagal Tanam" },
+  { key: "detaseling", label: "Detaseling" },
   { key: "sisa_di_lahan_ha", label: "Sisa LahAN (HA)" },
   { key: "rencana_panen", label: "Rencana Panen" },
   { key: "real_panen", label: "Real Panen" },

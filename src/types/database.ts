@@ -2,10 +2,9 @@ export type UserRole = "admin" | "qc" | "produksi";
 
 export type VisitStatus =
   | "pending"
-  | "on_the_way"
   | "in_progress"
   | "completed"
-  | "cancelled";
+  | "gagal_total";
 
 export type NotificationType = "info" | "warning" | "success" | "error";
 
@@ -23,6 +22,7 @@ export interface User {
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface Kabupaten {
@@ -83,12 +83,13 @@ export interface Schedule {
   member_name: string | null;
   real_tanam_ha: number | null;
   gagal_tanam: number | null;
-  detaseling: number | null;
+  detaseling: string | null;
   sisa_di_lahan_ha: number | null;
   tgl_panen: string | null;
   panen_keterangan: string | null;
   rencana_panen: string | null;
   real_panen: string | null;
+  label: 'hijau' | 'kuning' | 'merah' | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -157,6 +158,7 @@ export interface ExcelImport {
   column_mapping: Record<string, string> | null;
   status: ImportStatus;
   error_log: Record<string, unknown>[] | null;
+  created_master: Record<string, unknown> | null;
   created_at: string;
 }
 

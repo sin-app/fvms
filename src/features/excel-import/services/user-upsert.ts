@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createAuthUser, setPassword } from "@/features/auth/services/user-service";
+import { logger } from "@/lib/logger";
 
 interface ResolveOutput {
   map: Map<string, string>;
@@ -93,7 +94,7 @@ export function createUserUpserter(): UserUpsertResult {
     }
 
     if (authErrors.length > 0) {
-      console.error("[user-upsert] Auth account errors:", authErrors.join("; "));
+      logger.error("[user-upsert] Auth account errors", { errors: authErrors.join("; ") });
     }
 
     return { map, created };

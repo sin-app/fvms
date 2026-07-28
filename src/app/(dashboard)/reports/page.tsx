@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { StatCard } from "@/components/shared/stat-card";
 import { CalendarCheck, Clock, AlertTriangle, CheckCircle, Sprout, Loader2 } from "lucide-react";
 import { useAuth } from "@/features/auth/components/auth-context";
+import { todayString } from "@/lib/utils/date";
 import type { ReportFilters } from "@/features/reports";
 
 export default function ReportsPage() {
@@ -17,7 +18,7 @@ export default function ReportsPage() {
   const scopeKabupatenIds =
     user?.role === "qc" ? (user.assigned_kabupaten_ids ?? []) : undefined;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayString();
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
 
   const [dateFrom, setDateFrom] = useState(firstOfMonth);
@@ -25,6 +26,7 @@ export default function ReportsPage() {
   const [userId, setUserId] = useState("");
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
+  const [label, setLabel] = useState("");
 
   const filters: ReportFilters = useMemo(() => ({
     date_from: dateFrom || undefined,
@@ -32,7 +34,8 @@ export default function ReportsPage() {
     user_id: userId || undefined,
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
-  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId]);
+    label: label || undefined,
+  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label]);
 
   const { data, isLoading, isFetching, isError, refetch } = useReportData(filters);
   const { data: rows, isLoading: rowsLoading, isFetching: rowsFetching } = useReportRows(filters);
@@ -43,6 +46,7 @@ export default function ReportsPage() {
     setUserId("");
     setKabupatenId("");
     setKecamatanId("");
+    setLabel("");
   }
 
   const handleDownload = async () => {
@@ -67,6 +71,7 @@ export default function ReportsPage() {
         userId={userId}
         kabupatenId={kabupatenId}
         kecamatanId={kecamatanId}
+        label={label}
         showUserFilter={isPrivileged}
         scopeKabupatenIds={scopeKabupatenIds}
         onDateFromChange={setDateFrom}
@@ -74,6 +79,7 @@ export default function ReportsPage() {
         onUserChange={setUserId}
         onKabupatenChange={setKabupatenId}
         onKecamatanChange={setKecamatanId}
+        onLabelChange={setLabel}
         onReset={handleReset}
       />
 
@@ -102,7 +108,7 @@ export default function ReportsPage() {
             />
             <StatCard
               title="Dalam Proses"
-              value={data.on_the_way + data.in_progress}
+              value={data.in_progress}
               icon={<Clock className="h-4 w-4" />}
             />
             <StatCard

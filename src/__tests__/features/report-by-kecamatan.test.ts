@@ -10,6 +10,7 @@ vi.mock("@/lib/auth/authorization", () => ({
 }));
 
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { getAuthContext } from "@/lib/auth/authorization";
 import { getReportData } from "@/features/reports/services/report-service";
 
 function mockQuery<T>(result: { data: T | null; error: null }) {
@@ -66,16 +67,19 @@ const SCHEDULES_WITH_KECAMATAN = [
 describe("getReportData — by_kecamatan breakdown", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    const { getAuthContext } = vi.mocked(require("@/lib/auth/authorization"));
-    getAuthContext.mockResolvedValue({ userId: "admin", role: "admin" });
+    vi.mocked(getAuthContext).mockResolvedValue({ userId: "admin", role: "admin" } as never);
 
+    const mockChain = mockQuery({ data: [], error: null });
+    (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
+      from: vi.fn().mockReturnValue(mockChain),
+    });
+  });
+
+  it("groups by kecamatan correctly", async () => {
     const admin = createAdminClient();
     vi.mocked(admin.from).mockReturnValue(
       mockQuery({ data: SCHEDULES_WITH_KECAMATAN, error: null }),
     );
-  });
-
-  it("groups by kecamatan correctly", async () => {
     const result = await getReportData({
       date_from: "2026-07-01",
       date_to: "2026-07-31",

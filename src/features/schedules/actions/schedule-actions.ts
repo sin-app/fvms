@@ -9,8 +9,9 @@ import {
   getScheduleOwnerIds,
 } from "../services/schedule-service";
 import type { ActionResponse } from "@/types/common";
-import { STATUS_TRANSITIONS } from "@/lib/constants/status";
+import { STATUS_TRANSITIONS, SCHEDULE_STATUSES } from "@/lib/constants/status";
 import type { VisitStatus } from "@/types";
+import { dateString, todayString } from "@/lib/utils/date";
 import { getAuthContext, isPrivileged, canAccessSchedule, qcKabupatenScope } from "@/lib/auth/authorization";
 import { revalidateSchedulePaths } from "@/lib/revalidate";
 
@@ -23,6 +24,17 @@ export async function createScheduleAction(
 
   const parsed = parseAndValidateSchedule(formData);
   if (!parsed.success) return parsed;
+
+  if (
+    parsed.data.real_tanam_ha != null &&
+    parsed.data.gagal_tanam != null &&
+    parsed.data.real_tanam_ha - parsed.data.gagal_tanam <= 0
+  ) {
+    parsed.data.status = "gagal_total";
+    parsed.data.panen_keterangan = "Bongkar Total";
+  } else if (parsed.data.tgl_panen) {
+    parsed.data.status = "completed";
+  }
 
   // Non-privileged users can only create schedules assigned to themselves.
   if (!isPrivileged(ctx.role) && parsed.data.user_id !== ctx.userId) {
@@ -52,6 +64,18 @@ export async function updateScheduleAction(
   const parsed = parseAndValidateSchedule(formData);
   if (!parsed.success) return parsed;
 
+  if (
+    parsed.data.real_tanam_ha != null &&
+    parsed.data.gagal_tanam != null &&
+    parsed.data.real_tanam_ha - parsed.data.gagal_tanam <= 0
+  ) {
+    parsed.data.status = "gagal_total";
+    parsed.data.panen_keterangan = "Bongkar Total";
+  } else if (parsed.data.tgl_panen) {
+    parsed.data.status = "completed";
+  }
+
+  // Non-privileged users can only update their own schedules.
   if (!isPrivileged(ctx.role)) {
     if (!(await canAccessSchedule(id, ctx))) {
       return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
@@ -131,7 +155,7 @@ export async function deleteScheduleAction(
 
   if (ctx.role === "admin") {
     // admin may delete any schedule
-  } else if (ctx.role === "produksi") {
+  } else if (ctx.role === "produksi" || ctx.role === "qc") {
     const { data } = await createAdminClient()
       .from("schedules")
       .select("user_id")
@@ -139,7 +163,6 @@ export async function deleteScheduleAction(
       .maybeSingle();
     if (data?.user_id !== ctx.userId) return { success: false, error: "Tidak memiliki akses" };
   } else {
-    // QC and other non-admin/non-produksi roles cannot delete
     return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
   }
 
@@ -149,6 +172,42 @@ export async function deleteScheduleAction(
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal";
+    return { success: false, error: msg };
+  }
+}
+
+export async function updateLabelAction(
+  _prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+
+  const id = formData.get("id") as string;
+  const label = formData.get("label") as string;
+
+  if (!id) return { success: false, error: "ID tidak valid" };
+  if (label && label !== "hijau" && label !== "kuning" && label !== "merah") {
+    return { success: false, error: "Label tidak valid" };
+  }
+
+  if (!(await canAccessSchedule(id, ctx))) {
+    return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
+  }
+
+  // Only admin and QC can set labels
+  if (ctx.role !== "admin" && ctx.role !== "qc") {
+    return { success: false, error: "Hanya admin dan QC yang dapat memberi label" };
+  }
+
+  try {
+    await createAdminClient()
+      .from("schedules")
+      .update({ label: label || null })
+      .eq("id", id);
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal mengupdate label";
     return { success: false, error: msg };
   }
 }
@@ -175,8 +234,8 @@ export async function bulkActionSchedules(
   if (!ids.length) return { success: false, error: "Tidak ada data dipilih" };
 
   // Only admin may delete schedules. Produksi may only delete their own,
-  // and QC may not delete at all.
-  if (action === "delete" && ctx.role !== "admin" && ctx.role !== "produksi") {
+  // Only admin may delete schedules. Others may only delete their own.
+  if (action === "delete" && ctx.role !== "admin" && ctx.role !== "produksi" && ctx.role !== "qc") {
     return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
   }
 
@@ -210,7 +269,7 @@ export async function bulkActionSchedules(
     } else if (action === "approve") {
       const query = admin
         .from("schedules")
-        .update({ status: "on_the_way" })
+        .update({ status: "in_progress" })
         .in("id", ids)
         .eq("status", "pending");
       if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
@@ -219,9 +278,9 @@ export async function bulkActionSchedules(
     } else if (action === "cancel") {
       const query = admin
         .from("schedules")
-        .update({ status: "cancelled" })
+        .update({ status: "gagal_total" })
         .in("id", ids)
-        .in("status", ["pending", "on_the_way"]);
+        .in("status", ["pending"]);
       if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
       const { error } = await query;
       if (error) throw error;
@@ -235,7 +294,7 @@ export async function bulkActionSchedules(
       for (const s of toShift ?? []) {
         const next = new Date(s.visit_date + "T00:00:00");
         next.setDate(next.getDate() + 1);
-        await admin.from("schedules").update({ visit_date: next.toISOString().split("T")[0] }).eq("id", s.id);
+        await admin.from("schedules").update({ visit_date: dateString(next) }).eq("id", s.id);
       }
     } else if (action === "shift_backward") {
       const { data: toShift, error: fetchErr } = await admin
@@ -247,14 +306,14 @@ export async function bulkActionSchedules(
       for (const s of toShift ?? []) {
         const prev = new Date(s.visit_date + "T00:00:00");
         prev.setDate(prev.getDate() - 1);
-        await admin.from("schedules").update({ visit_date: prev.toISOString().split("T")[0] }).eq("id", s.id);
+        await admin.from("schedules").update({ visit_date: dateString(prev) }).eq("id", s.id);
       }
-    } else if (["pending", "on_the_way", "in_progress", "completed"].includes(action)) {
+    } else if (["pending", "in_progress", "completed"].includes(action)) {
       const query = admin
         .from("schedules")
         .update({ status: action })
         .in("id", ids)
-        .neq("status", "cancelled");
+        .neq("status", "gagal_total");
       if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
       const { error } = await query;
       if (error) throw error;
@@ -295,8 +354,8 @@ export async function updateVisitStatusAction(
     return { success: false, error: "Data tidak lengkap" };
   }
 
-  const validStatuses = ["pending", "on_the_way", "in_progress", "completed", "cancelled"];
-  if (!validStatuses.includes(status)) {
+  const validStatuses = SCHEDULE_STATUSES;
+  if (!validStatuses.includes(status as VisitStatus)) {
     return { success: false, error: "Status tidak valid" };
   }
 
@@ -304,21 +363,23 @@ export async function updateVisitStatusAction(
     return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
   }
 
-  // Cegah regresi status (completed/cancelled tidak bisa diubah lagi) dan
-  // validasi transisi yang diizinkan.
   const { data: current } = await createAdminClient()
     .from("schedules")
     .select("status")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
-  const currentStatus = (current?.status ?? "pending") as (typeof validStatuses)[number] as VisitStatus;
-  const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
-  if (!allowed.includes(status as VisitStatus)) {
-    return {
-      success: false,
-      error: `Transisi status ${currentStatus} -> ${status} tidak diizinkan`,
-    };
+  const currentStatus: VisitStatus = current && SCHEDULE_STATUSES.includes(current.status as VisitStatus)
+    ? (current.status as VisitStatus)
+    : "pending";
+  if (currentStatus !== status) {
+    const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
+    if (!allowed.includes(status as VisitStatus)) {
+      return {
+        success: false,
+        error: `Transisi status ${currentStatus} -> ${status} tidak diizinkan`,
+      };
+    }
   }
 
   const lat = latitude ? Number(latitude) : NaN;
@@ -336,7 +397,7 @@ export async function updateVisitStatusAction(
       updateData.longitude = lon;
     }
 
-    if (status === "completed") {
+    if (status === "completed" && ctx.role !== "qc") {
       updateData.visit_time = new Date().toISOString();
     }
 
@@ -376,11 +437,13 @@ function parseAndValidateSchedule(formData: FormData) {
     ph_tanah: formData.get("ph_tanah") as string,
     real_tanam_ha: formData.get("real_tanam_ha") as string,
     gagal_tanam: formData.get("gagal_tanam") as string,
+    detaseling: (formData.get("detaseling") as string) || undefined,
     sisa_di_lahan_ha: formData.get("sisa_di_lahan_ha") as string,
     tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
     rencana_panen: (formData.get("rencana_panen") as string) || undefined,
     real_panen: (formData.get("real_panen") as string) || undefined,
     tgl_panen: (formData.get("tgl_panen") as string) || undefined,
+    panen_keterangan: (formData.get("panen_keterangan") as string) || undefined,
   };
 
   const parsed = scheduleSchema.safeParse(raw);
