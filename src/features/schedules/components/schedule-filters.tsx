@@ -1,7 +1,6 @@
 "use client";
 
 import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
-import { useAllCgr } from "../hooks/use-cgr";
 import { useAllUsers } from "../hooks/use-users";
 import { STATUS_LABELS } from "@/lib/constants/status";
 import { dateString } from "@/lib/utils/date";
@@ -116,7 +115,6 @@ export function ScheduleFilters({
   const { data: kabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
   const { data: users } = useAllUsers();
-  const { data: cgrList } = useAllCgr();
 
   function handleDateRange(value: string) {
     onDateRangeChange(value);
@@ -165,16 +163,12 @@ export function ScheduleFilters({
           placeholder="NIS"
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
         />
-        <select
+        <input
           value={cgr}
           onChange={(e) => onCgrChange(e.target.value)}
+          placeholder="Cari CGR (mis. Lukito)"
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-48"
-        >
-          <option value="">Semua CGR</option>
-          {cgrList?.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        />
         {onPanenStatusChange && (
           <select
             value={panenStatus}
