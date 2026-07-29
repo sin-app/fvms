@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";
 import { panenSchema } from "../schema/panen-schema";
 import type { ActionResponse } from "@/types/common";
+import { deriveScheduleStatus } from "../services/panen-logic";
 
 export async function savePanenAction(
   prevState: ActionResponse,
@@ -34,7 +35,7 @@ export async function savePanenAction(
 
   try {
     const admin = createAdminClient();
-    const update: Record<string, string | null> = {
+    const update: Record<string, string | null | undefined> = {
       updated_at: new Date().toISOString(),
     };
     if (parsed.data.tgl_panen) {
@@ -42,10 +43,28 @@ export async function savePanenAction(
       update.status = "completed";
     } else {
       update.tgl_panen = null;
+      // When panen is cleared, re-derive status from real_tanam_ha/gagal_tanam
+      const { data: schedule } = await admin
+        .from("schedules")
+        .select("real_tanam_ha, gagal_tanam")
+        .eq("id", raw.schedule_id)
+        .is("deleted_at", null)
+        .single();
+      if (schedule) {
+        const derived = deriveScheduleStatus({
+          real_tanam_ha: schedule.real_tanam_ha,
+          gagal_tanam: schedule.gagal_tanam,
+          tgl_panen: null,
+        });
+        if (derived) {
+          update.status = derived.status;
+          if (derived.panen_keterangan) update.panen_keterangan = derived.panen_keterangan;
+        }
+      }
     }
     if (parsed.data.panen_keterangan) {
       update.panen_keterangan = parsed.data.panen_keterangan;
-    } else {
+    } else if (!update.panen_keterangan) {
       update.panen_keterangan = null;
     }
 

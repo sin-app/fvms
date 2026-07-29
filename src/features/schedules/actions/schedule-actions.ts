@@ -13,6 +13,7 @@ import { STATUS_TRANSITIONS, SCHEDULE_STATUSES } from "@/lib/constants/status";
 import type { VisitStatus } from "@/types";
 import { dateString, todayString } from "@/lib/utils/date";
 import { getAuthContext, isPrivileged, canAccessSchedule, qcKabupatenScope } from "@/lib/auth/authorization";
+import { deriveScheduleStatus } from "@/features/panen/services/panen-logic";
 import { revalidateSchedulePaths } from "@/lib/revalidate";
 
 export async function createScheduleAction(
@@ -25,15 +26,10 @@ export async function createScheduleAction(
   const parsed = parseAndValidateSchedule(formData);
   if (!parsed.success) return parsed;
 
-  if (
-    parsed.data.real_tanam_ha != null &&
-    parsed.data.gagal_tanam != null &&
-    parsed.data.real_tanam_ha - parsed.data.gagal_tanam <= 0
-  ) {
-    parsed.data.status = "gagal_total";
-    parsed.data.panen_keterangan = "Bongkar Total";
-  } else if (parsed.data.tgl_panen) {
-    parsed.data.status = "completed";
+  const derived = deriveScheduleStatus(parsed.data);
+  if (derived) {
+    parsed.data.status = derived.status;
+    if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
   }
 
   // Non-privileged users can only create schedules assigned to themselves.
@@ -64,15 +60,10 @@ export async function updateScheduleAction(
   const parsed = parseAndValidateSchedule(formData);
   if (!parsed.success) return parsed;
 
-  if (
-    parsed.data.real_tanam_ha != null &&
-    parsed.data.gagal_tanam != null &&
-    parsed.data.real_tanam_ha - parsed.data.gagal_tanam <= 0
-  ) {
-    parsed.data.status = "gagal_total";
-    parsed.data.panen_keterangan = "Bongkar Total";
-  } else if (parsed.data.tgl_panen) {
-    parsed.data.status = "completed";
+  const derived = deriveScheduleStatus(parsed.data);
+  if (derived) {
+    parsed.data.status = derived.status;
+    if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
   }
 
   // Non-privileged users can only update their own schedules.

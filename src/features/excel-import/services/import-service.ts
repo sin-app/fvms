@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createMasterUpserter } from "./master-upsert";
 import { createUserUpserter } from "./user-upsert";
-import { calcRencanaPanen } from "@/features/panen/services/panen-logic";
+import { calcRencanaPanen, deriveScheduleStatus } from "@/features/panen/services/panen-logic";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
 import { notifyImportCompleted } from "@/features/notifications/services/notification-service";
 
@@ -481,24 +481,22 @@ export function applyAutoDerivation(
     gagal_tanam?: number;
     sisa_di_lahan_ha?: number;
     tgl_panen?: string;
+    real_panen?: string;
     visit_date: string;
     status?: string;
     panen_keterangan?: string;
   }>,
 ): void {
   for (const s of schedules) {
-    if (s.real_tanam_ha != null && s.gagal_tanam != null && (s.real_tanam_ha - s.gagal_tanam) <= 0) {
-      s.status = "gagal_total";
-      s.panen_keterangan = "Bongkar Total";
-    } else if (s.sisa_di_lahan_ha === 0) {
-      if (s.gagal_tanam && s.gagal_tanam > 0) {
-        s.panen_keterangan = "Bongkar Total";
-  } else if (!s.tgl_panen) {
-      s.tgl_panen = s.visit_date;
-      s.status = "completed";
-    } else {
-      s.status = "completed";
-    }
+    const derived = deriveScheduleStatus({
+      real_tanam_ha: s.real_tanam_ha,
+      gagal_tanam: s.gagal_tanam,
+      tgl_panen: s.tgl_panen,
+      real_panen: s.real_panen,
+    });
+    if (derived) {
+      s.status = derived.status;
+      if (derived.panen_keterangan) s.panen_keterangan = derived.panen_keterangan;
     }
   }
 }

@@ -38,20 +38,21 @@ All status transitions are unrestricted (any → any). Transitions defined in `S
 - **Composite key** for matching: `user_id|desa_id|visit_date|block_no|no_plot|member_name`
 - **Intra-file dedup** — duplicate rows within same Excel file are skipped
 - **Status preservation** — records already marked `completed` in the app keep their status
-- **Auto-derivation**:
-  - `real_tanam_ha - gagal_tanam <= 0` → status `gagal_total`, `panen_keterangan = "Bongkar Total"`
-  - `tgl_panen` terisi → status `completed`
-  - `sisa_di_lahan_ha = 0` + `gagal_tanam > 0` → `panen_keterangan = "Bongkar Total"`
-  - `sisa_di_lahan_ha = 0` + no `gagal_tanam` → `tgl_panen = visit_date` (tandai panen)
+- **Auto-derivation** (`deriveScheduleStatus()` in `src/features/panen/services/panen-logic.ts`):
+  - `real_tanam_ha - gagal_tanam <= 0` AND `tgl_panen` null → status `gagal_total`, `panen_keterangan = "Bongkar Total"`
+  - `real_tanam_ha - gagal_tanam >= real_tanam_ha` (gagal = 0) AND `tgl_panen` null → status `pending`
+  - `0 < real_tanam_ha - gagal_tanam < real_tanam_ha` (sisa masih ada) → status `in_progress`
+  - `real_tanam_ha - gagal_tanam <= 0` AND `tgl_panen` terisi → status `completed`
+- Applied in: Excel import (`applyAutoDerivation`), form create/update (`createScheduleAction`/`updateScheduleAction`), panen save (`savePanenAction`)
 - **Master data auto-creation** — kabupaten/kecamatan/desa/users are auto-created if missing
 - **Reset** — separate `resetAllData` action (admin-only) wipes all operational data
 
 ## Panen Status Logic
 
-- Derived from `tgl_panen`/`real_panen`/`rencana_panen` fields
-- Function `getPanenStatus()` in `src/features/panen/services/panen-logic.ts`
+- Derived from `tgl_panen`/`real_panen`/`rencana_panen` fields; computed by `getPanenStatus()` in `src/features/panen/services/panen-logic.ts`
 - States: "Panen" (harvested), "Jatuh Tempo" (overdue), "Renc: YYYY-MM-DD" (scheduled), or "—" (none)
 - Filterable in schedules list and dashboard via `panen_status` filter
+- **Schedule status** is auto-derived by `deriveScheduleStatus()` from `real_tanam_ha` & `gagal_tanam` (see Excel Import > Auto-derivation above)
 
 ## Tech Stack
 
