@@ -21,7 +21,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   let query = admin
     .from("schedules")
-    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, users!schedules_user_id_fkey(name), kabupaten!inner(name), kecamatan(name), visit_time", { count: "exact" })
+    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time", { count: "exact" })
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to);
@@ -193,7 +193,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   let query = admin
     .from("schedules")
-    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, users!schedules_user_id_fkey(name), kabupaten!inner(name), kecamatan!inner(name), desa!inner(name)")
+    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), desa(name)")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to)
