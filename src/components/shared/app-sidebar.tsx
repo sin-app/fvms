@@ -3,12 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  ChevronDown,
-  MapPin,
-  LogOut,
-  Users,
-} from "lucide-react";
+import { ChevronDown, LogOut, Users, Sprout } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { logoutAction } from "@/features/auth/actions/auth-actions";
@@ -45,9 +40,9 @@ export function AppSidebar() {
   return (
     <aside className="hidden md:flex flex-col w-60 border-r bg-card shrink-0">
       <div className="p-5 border-b">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <MapPin className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">FVMS</span>
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <Sprout className="size-6 text-primary" />
+          <span className="font-bold text-lg tracking-tight">FVMS</span>
         </Link>
       </div>
 
