@@ -5,7 +5,7 @@ import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
 import { SCHEDULE_STATUSES } from "@/lib/constants/status";
-import { getPanenStatus } from "@/features/panen/services/panen-logic";
+import { deriveScheduleStatus, getPanenStatus } from "@/features/panen/services/panen-logic";
 
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
   const admin = createAdminClient();
@@ -22,7 +22,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   let query = admin
     .from("schedules")
-    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time", { count: "exact" })
+    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, tgl_panen, real_panen, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time", { count: "exact" })
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to);
@@ -35,9 +35,6 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   }
   if (filters.kecamatan_id) {
     query = query.eq("kecamatan_id", filters.kecamatan_id);
-  }
-  if (filters.status && SCHEDULE_STATUSES.includes(filters.status as (typeof SCHEDULE_STATUSES)[number])) {
-    query = query.eq("status", filters.status);
   }
   if (filters.label) {
     query = query.eq("label", filters.label);
@@ -70,9 +67,9 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     }
   }
 
-  const { data: schedules } = await query;
+  const { data: rawSchedules } = await query;
 
-  if (!schedules) {
+  if (!rawSchedules) {
     return {
       total_schedules: 0, completed: 0, pending: 0,
       in_progress: 0, gagal_partial: 0, gagal_total: 0, completion_rate: 0, late_count: 0,
@@ -80,16 +77,30 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     };
   }
 
+  // Derive actual status from real_tanam_ha/gagal_tanam, not just stored status
+  const schedules = rawSchedules.map((s) => {
+    const derived = deriveScheduleStatus({
+      real_tanam_ha: (s as unknown as ReportRowRelation).real_tanam_ha,
+      gagal_tanam: (s as unknown as ReportRowRelation).gagal_tanam,
+      tgl_panen: (s as unknown as ReportRowRelation).tgl_panen,
+      real_panen: (s as unknown as ReportRowRelation).real_panen,
+    });
+    return {
+      ...s,
+      actualStatus: derived ? derived.status : s.status,
+    };
+  });
+
   const total = schedules.length;
-  const completed = schedules.filter((s) => s.status === "completed").length;
-  const pending = schedules.filter((s) => s.status === "pending").length;
-  const in_progress = schedules.filter((s) => s.status === "in_progress").length;
-  const gagal_partial = schedules.filter((s) => s.status === "gagal_partial").length;
-  const gagal_total = schedules.filter((s) => s.status === "gagal_total").length;
+  const completed = schedules.filter((s) => s.actualStatus === "completed").length;
+  const pending = schedules.filter((s) => s.actualStatus === "pending").length;
+  const in_progress = schedules.filter((s) => s.actualStatus === "in_progress").length;
+  const gagal_partial = schedules.filter((s) => s.actualStatus === "gagal_partial").length;
+  const gagal_total = schedules.filter((s) => s.actualStatus === "gagal_total").length;
 
   const today = todayString();
   const late_count = schedules.filter(
-    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.status),
+    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.actualStatus),
   ).length;
 
   // By officer
@@ -102,7 +113,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     const uname = (s as unknown as ReportRowRelation).users?.name ?? "Unknown";
     const existing = officerMap.get(uid) ?? { name: uname, total: 0, completed: 0 };
     existing.total++;
-    if (s.status === "completed") existing.completed++;
+    if (s.actualStatus === "completed") existing.completed++;
     officerMap.set(uid, existing);
   });
 
@@ -124,7 +135,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     const kname = (s as unknown as ReportRowRelation).kabupaten?.name ?? "Unknown";
     const existing = kabMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
     existing.total++;
-    if (s.status === "completed") existing.completed++;
+    if (s.actualStatus === "completed") existing.completed++;
     kabMap.set(kid, existing);
   });
 
@@ -146,7 +157,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     const kname = (s as unknown as ReportRowRelation).kecamatan?.name ?? "Unknown";
     const existing = kecMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
     existing.total++;
-    if (s.status === "completed") existing.completed++;
+    if (s.actualStatus === "completed") existing.completed++;
     kecMap.set(kid, existing);
   });
 
@@ -163,7 +174,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     const date = s.visit_date;
     const existing = dayMap.get(date) ?? { total: 0, completed: 0 };
     existing.total++;
-    if (s.status === "completed") existing.completed++;
+    if (s.actualStatus === "completed") existing.completed++;
     dayMap.set(date, existing);
   });
 
@@ -293,6 +304,13 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
       tgl_tanam: s.tgl_tanam,
       cgr: s.cgr,
     });
+    const derived = deriveScheduleStatus({
+      real_tanam_ha: s.real_tanam_ha,
+      gagal_tanam: s.gagal_tanam,
+      tgl_panen: s.tgl_panen,
+      real_panen: s.real_panen,
+    });
+    const actualStatus = derived ? derived.status : s.status;
     return {
       id: s.id,
       visit_date: s.visit_date,
@@ -300,7 +318,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
       kabupaten_name: s.kabupaten?.name ?? "—",
       kecamatan_name: s.kecamatan?.name ?? "—",
       desa_name: s.desa?.name ?? "—",
-      status: s.status,
+      status: actualStatus,
       visit_time: s.visit_time,
       has_notes: false,
       rencana_panen: s.rencana_panen ?? null,

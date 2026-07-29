@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { Plus, FileSpreadsheet, Calendar, BarChart3 } from "lucide-react";
+import { useAuth } from "@/features/auth/components/auth-context";
 
-const actions = [
+const allActions = [
   {
     href: "/import",
     label: "Import Excel",
     description: "Upload jadwal dari Excel",
     icon: FileSpreadsheet,
     color: "text-blue-500 bg-blue-50",
+    adminOnly: true,
   },
   {
     href: "/schedules",
@@ -17,6 +19,7 @@ const actions = [
     description: "Buat jadwal manual",
     icon: Plus,
     color: "text-green-500 bg-green-50",
+    adminOnly: false,
   },
   {
     href: "/schedules/calendar",
@@ -24,6 +27,7 @@ const actions = [
     description: "Lihat kalender kunjungan",
     icon: Calendar,
     color: "text-purple-500 bg-purple-50",
+    adminOnly: false,
   },
   {
     href: "/reports",
@@ -31,10 +35,17 @@ const actions = [
     description: "Export laporan kunjungan",
     icon: BarChart3,
     color: "text-amber-500 bg-amber-50",
+    adminOnly: false,
   },
 ];
 
 export function QuickActions() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const actions = allActions.filter((a) => !a.adminOnly || isAdmin);
+
+  if (actions.length === 0) return null;
+
   return (
     <div className="rounded-xl border bg-card p-4">
       <h2 className="font-semibold mb-4">Aksi Cepat</h2>
