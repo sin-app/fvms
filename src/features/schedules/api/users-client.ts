@@ -13,7 +13,7 @@ export async function fetchAllFieldOfficers(): Promise<Pick<User, "id" | "name" 
   const { data } = await admin
     .from("users")
     .select("id, name, email, role")
-    .in("role", ["produksi", "qc"])
+    .in("role", ["produksi"])
     .eq("is_active", true)
     .order("name");
 
