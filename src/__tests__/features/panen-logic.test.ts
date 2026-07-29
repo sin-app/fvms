@@ -72,9 +72,8 @@ describe("deriveScheduleStatus", () => {
     expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 
-  it("returns gagal_partial when gagal_tanam is 0 (sisa > 0)", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0 });
-    expect(result).toEqual({ status: "gagal_partial" });
+  it("returns null when gagal_tanam is 0 (no actual failure)", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0 })).toBeNull();
   });
 
   it("returns gagal_partial when 0 < sisa < real_tanam", () => {

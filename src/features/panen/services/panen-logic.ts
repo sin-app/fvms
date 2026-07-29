@@ -34,6 +34,7 @@ export function deriveScheduleStatus(input: {
 }): { status: string; panen_keterangan?: string } | null {
   const { real_tanam_ha, gagal_tanam } = input;
   if (real_tanam_ha == null || gagal_tanam == null) return null;
+  if (gagal_tanam <= 0) return null;
 
   const sisa = real_tanam_ha - gagal_tanam;
 
