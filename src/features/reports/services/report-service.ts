@@ -82,8 +82,6 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     const derived = deriveScheduleStatus({
       real_tanam_ha: (s as unknown as ReportRowRelation).real_tanam_ha,
       gagal_tanam: (s as unknown as ReportRowRelation).gagal_tanam,
-      tgl_panen: (s as unknown as ReportRowRelation).tgl_panen,
-      real_panen: (s as unknown as ReportRowRelation).real_panen,
     });
     return {
       ...s,
@@ -307,8 +305,6 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     const derived = deriveScheduleStatus({
       real_tanam_ha: s.real_tanam_ha,
       gagal_tanam: s.gagal_tanam,
-      tgl_panen: s.tgl_panen,
-      real_panen: s.real_panen,
     });
     const actualStatus = derived ? derived.status : s.status;
     return {

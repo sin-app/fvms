@@ -464,8 +464,6 @@ export async function bulkImportSchedules(
             const merged = {
               real_tanam_ha: (r.real_tanam_ha !== undefined ? r.real_tanam_ha : exReal) ?? undefined,
               gagal_tanam: (r.gagal_tanam !== undefined ? r.gagal_tanam : exGagal) ?? undefined,
-              tgl_panen: (r.tgl_panen !== undefined ? r.tgl_panen : exTgl) ?? undefined,
-              real_panen: (r.real_panen !== undefined ? r.real_panen : exRealPanen) ?? undefined,
             };
             const derived = deriveScheduleStatus(merged);
             if (derived) {
@@ -557,8 +555,6 @@ export function applyAutoDerivation(
     const derived = deriveScheduleStatus({
       real_tanam_ha: s.real_tanam_ha,
       gagal_tanam: s.gagal_tanam,
-      tgl_panen: s.tgl_panen,
-      real_panen: s.real_panen,
     });
     if (derived) {
       s.status = derived.status;

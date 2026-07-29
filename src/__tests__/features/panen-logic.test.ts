@@ -72,28 +72,28 @@ describe("deriveScheduleStatus", () => {
     expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 
-  it("returns pending when gagal_tanam is 0 and no panen", () => {
+  it("returns gagal_partial when gagal_tanam is 0 (sisa > 0)", () => {
     const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0 });
-    expect(result).toEqual({ status: "pending" });
+    expect(result).toEqual({ status: "gagal_partial" });
   });
 
-  it("returns gagal_partial when 0 < sisa < real_tanam and no panen", () => {
+  it("returns gagal_partial when 0 < sisa < real_tanam", () => {
     const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3 });
     expect(result).toEqual({ status: "gagal_partial" });
   });
 
-  it("returns completed when sisa <= 0 and tgl_panen is set", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10, tgl_panen: "2026-07-01" });
-    expect(result).toEqual({ status: "completed" });
+  it("returns gagal_total when sisa <= 0 regardless of tgl_panen", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 });
+    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 
-  it("returns completed when sisa <= 0 and real_panen is set", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10, real_panen: "2026-07-01" });
-    expect(result).toEqual({ status: "completed" });
+  it("returns gagal_total when sisa <= 0 regardless of real_panen", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 });
+    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 
-  it("handles partial failure with real_panen set", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3, real_panen: "2026-07-01" });
-    expect(result).toBeNull();
+  it("returns gagal_partial for partial failure regardless of real_panen", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3 });
+    expect(result).toEqual({ status: "gagal_partial" });
   });
 });

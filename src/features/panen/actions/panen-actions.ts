@@ -54,7 +54,6 @@ export async function savePanenAction(
         const derived = deriveScheduleStatus({
           real_tanam_ha: schedule.real_tanam_ha,
           gagal_tanam: schedule.gagal_tanam,
-          tgl_panen: null,
         });
         if (derived) {
           update.status = derived.status;

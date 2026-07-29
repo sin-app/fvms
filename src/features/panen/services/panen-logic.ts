@@ -31,27 +31,17 @@ export function calcRencanaPanen(
 export function deriveScheduleStatus(input: {
   real_tanam_ha?: number | null;
   gagal_tanam?: number | null;
-  sisa_di_lahan_ha?: number | null;
-  tgl_panen?: string | null;
-  real_panen?: string | null;
 }): { status: string; panen_keterangan?: string } | null {
-  const { real_tanam_ha, gagal_tanam, tgl_panen, real_panen } = input;
+  const { real_tanam_ha, gagal_tanam } = input;
   if (real_tanam_ha == null || gagal_tanam == null) return null;
 
   const sisa = real_tanam_ha - gagal_tanam;
-  const sudahPanen = Boolean(tgl_panen || real_panen);
 
-  if (sisa <= 0 && !sudahPanen) {
-    return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
-  }
-  if (sisa >= real_tanam_ha && !sudahPanen) {
-    return { status: "pending" };
-  }
-  if (sisa > 0 && sisa < real_tanam_ha) {
+  if (sisa > 0) {
     return { status: "gagal_partial" };
   }
-  if (sisa <= 0 && sudahPanen) {
-    return { status: "completed" };
+  if (sisa <= 0) {
+    return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
   }
 
   return null;
