@@ -30,7 +30,10 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
-      <h1 className="flex-1 text-lg font-semibold sm:text-xl">{title}</h1>
+      <h1 className="flex-1 text-lg font-semibold sm:text-xl">
+        <span className="sm:hidden">FVMS</span>
+        <span className="hidden sm:inline">{title}</span>
+      </h1>
 
       <div className="flex items-center gap-1">
         <ThemeToggle />
