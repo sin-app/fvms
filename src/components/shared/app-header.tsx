@@ -31,19 +31,20 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
-      <div className="flex-1 flex items-center gap-2 min-w-0">
-        <Sprout className="size-5 shrink-0" />
-        <h1 className="font-semibold text-lg sm:text-xl">FVMS</h1>
-        <span className="hidden sm:inline text-muted-foreground text-sm truncate">
-          / {title}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <Sprout className="size-6 shrink-0 text-primary" />
+        <h1 className="font-bold text-lg tracking-tight">FVMS</h1>
+        <span className="hidden sm:block w-px h-5 bg-border" />
+        <span className="hidden sm:block text-sm font-medium truncate">
+          {title}
         </span>
       </div>
 
       <div className="flex items-center gap-1">
         <ThemeToggle />
         <NotificationBell />
-        <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground ml-1">
-          <span>{user?.name}</span>
+        <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground ml-2">
+          <span className="font-medium">{user?.name}</span>
         </div>
       </div>
     </header>
