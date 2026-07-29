@@ -37,13 +37,13 @@ export function ScheduleForm({
     { success: false },
   );
 
-  const { data: users } = useAllUsers();
-  const { user } = useAuth();
-  const isPrivileged = user?.role === "admin";
-
   const [kabupatenId, setKabupatenId] = useState(defaultValues?.kabupaten_id ?? "");
   const [kecamatanId, setKecamatanId] = useState(defaultValues?.kecamatan_id ?? "");
   const [desaId, setDesaId] = useState(defaultValues?.desa_id ?? "");
+
+  const { data: users } = useAllUsers(kabupatenId);
+  const { user } = useAuth();
+  const isPrivileged = user?.role === "admin";
 
   const isEditing = !!defaultValues;
 

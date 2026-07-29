@@ -1,5 +1,7 @@
 "use server";
 
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { getAuthContext } from "@/lib/auth/authorization";
 import {
   getKabupatenList,
   getKecamatanList,
@@ -22,7 +24,15 @@ export async function fetchDesaList(kecamatanId?: string, search?: string, page?
 }
 
 export async function fetchAllKabupaten() {
-  return getAllKabupaten();
+  const ctx = await getAuthContext();
+  const result = await getAllKabupaten();
+
+  if (ctx?.role === "qc" && ctx.assignedKabupatenIds.length > 0) {
+    const allowed = new Set(ctx.assignedKabupatenIds);
+    return result.filter((k) => allowed.has(k.id));
+  }
+
+  return result;
 }
 
 export async function fetchAllKecamatan(kabupatenId: string) {

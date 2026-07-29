@@ -114,7 +114,7 @@ export function ScheduleFilters({
 }: ScheduleFiltersProps) {
   const { data: kabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
-  const { data: users } = useAllUsers();
+  const { data: users } = useAllUsers(kabupatenId);
 
   function handleDateRange(value: string) {
     onDateRangeChange(value);
