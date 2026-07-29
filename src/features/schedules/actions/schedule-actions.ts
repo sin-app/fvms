@@ -299,7 +299,7 @@ export async function bulkActionSchedules(
         prev.setDate(prev.getDate() - 1);
         await admin.from("schedules").update({ visit_date: dateString(prev) }).eq("id", s.id);
       }
-    } else if (["pending", "in_progress", "completed"].includes(action)) {
+    } else if (["pending", "in_progress", "gagal_partial", "completed"].includes(action)) {
       const query = admin
         .from("schedules")
         .update({ status: action })

@@ -74,7 +74,7 @@ export async function getScheduleList(
     if (status === "late") {
       query = query
         .lt("visit_date", todayString())
-        .not("status", "in", "(completed,gagal_total)");
+        .not("status", "in", "(completed,gagal_partial,gagal_total)");
     } else {
       query = query.eq("status", status);
     }

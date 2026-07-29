@@ -3,6 +3,7 @@ export type UserRole = "admin" | "qc" | "produksi";
 export type VisitStatus =
   | "pending"
   | "in_progress"
+  | "gagal_partial"
   | "completed"
   | "gagal_total";
 

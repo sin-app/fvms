@@ -16,6 +16,7 @@ interface VisitStatusSelectorProps {
 const STATUS_ICONS: Record<VisitStatus, string> = {
   pending: "⏳",
   in_progress: "📋",
+  gagal_partial: "⚠️",
   completed: "✅",
   gagal_total: "❌",
 };

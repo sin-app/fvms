@@ -47,7 +47,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   if (!schedules) {
     return {
       total_schedules: 0, completed: 0, pending: 0,
-      in_progress: 0, gagal_total: 0, completion_rate: 0, late_count: 0,
+      in_progress: 0, gagal_partial: 0, gagal_total: 0, completion_rate: 0, late_count: 0,
       by_officer: [], by_kabupaten: [], by_kecamatan: [], daily_data: [],
     };
   }
@@ -56,11 +56,12 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   const completed = schedules.filter((s) => s.status === "completed").length;
   const pending = schedules.filter((s) => s.status === "pending").length;
   const in_progress = schedules.filter((s) => s.status === "in_progress").length;
+  const gagal_partial = schedules.filter((s) => s.status === "gagal_partial").length;
   const gagal_total = schedules.filter((s) => s.status === "gagal_total").length;
 
   const today = todayString();
   const late_count = schedules.filter(
-    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.status),
+    (s) => s.visit_date < today && !["completed", "gagal_partial", "gagal_total"].includes(s.status),
   ).length;
 
   // By officer
@@ -147,6 +148,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     completed,
     pending,
     in_progress,
+    gagal_partial,
     gagal_total,
     completion_rate: total > 0 ? Math.round((completed / total) * 100) : 0,
     late_count,

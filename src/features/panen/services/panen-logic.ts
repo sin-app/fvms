@@ -48,7 +48,7 @@ export function deriveScheduleStatus(input: {
     return { status: "pending" };
   }
   if (sisa > 0 && sisa < real_tanam_ha) {
-    return { status: "in_progress" };
+    return { status: "gagal_partial" };
   }
   if (sisa <= 0 && sudahPanen) {
     return { status: "completed" };

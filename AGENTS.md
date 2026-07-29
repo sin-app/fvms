@@ -18,6 +18,7 @@ Modern web application for Field Officers (Produksi) to manage field visit sched
 |--------|-------|---------|-------------|
 | `pending` | amber | admin, qc, produksi | Belum dikunjungi |
 | `in_progress` | yellow | admin, qc, produksi | Sedang dikerjakan |
+| `gagal_partial` | orange | admin, qc, produksi | Sebagian gagal tanam |
 | `completed` | green | admin, qc, produksi | Selesai |
 | `gagal_total` | red | admin, qc, produksi | Gagal total |
 
@@ -39,11 +40,10 @@ All status transitions are unrestricted (any → any). Transitions defined in `S
 - **Intra-file dedup** — duplicate rows within same Excel file are skipped
 - **Status preservation** — records already marked `completed` in the app keep their status
 - **Auto-derivation** (`deriveScheduleStatus()` in `src/features/panen/services/panen-logic.ts`):
-  - `real_tanam_ha - gagal_tanam <= 0` AND `tgl_panen` null → status `gagal_total`, `panen_keterangan = "Bongkar Total"`
+  - `real_tanam_ha - gagal_tanam <= 0` AND `tgl_panen` null → status `gagal_total`
   - `real_tanam_ha - gagal_tanam >= real_tanam_ha` (gagal = 0) AND `tgl_panen` null → status `pending`
-  - `0 < real_tanam_ha - gagal_tanam < real_tanam_ha` (sisa masih ada) → status `in_progress`
+  - `0 < real_tanam_ha - gagal_tanam < real_tanam_ha` (sebagian gagal) → status `gagal_partial`
   - `real_tanam_ha - gagal_tanam <= 0` AND `tgl_panen` terisi → status `completed`
-- Applied in: Excel import (`applyAutoDerivation`), form create/update (`createScheduleAction`/`updateScheduleAction`), panen save (`savePanenAction`)
 - **Master data auto-creation** — kabupaten/kecamatan/desa/users are auto-created if missing
 - **Reset** — separate `resetAllData` action (admin-only) wipes all operational data
 

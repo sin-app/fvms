@@ -13,6 +13,7 @@ export interface ReportData {
   completed: number;
   pending: number;
   in_progress: number;
+  gagal_partial: number;
   gagal_total: number;
   completion_rate: number;
   late_count: number;

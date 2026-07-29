@@ -62,7 +62,7 @@ export async function getDashboardData(
     .lte("visit_date", weekEnd);
   const lateQuery = applyFilters(baseQuery())
     .lt("visit_date", today)
-    .not("status", "in", "(completed,gagal_total)");
+    .not("status", "in", "(completed,gagal_partial,gagal_total)");
   const completedQuery = applyFilters(baseQuery())
     .eq("status", "completed")
     .gte("visit_date", monthStart)
@@ -80,7 +80,7 @@ export async function getDashboardData(
     .is("real_panen", null)
     .is("tgl_panen", null)
     .lt("rencana_panen", today)
-    .not("status", "in", "(completed,gagal_total)");
+    .not("status", "in", "(completed,gagal_partial,gagal_total)");
   const belumPanenQuery = applyFilters(baseQuery())
     .is("real_panen", null)
     .is("tgl_panen", null)
