@@ -46,7 +46,7 @@ export async function savePanenAction(
       // When panen is cleared, re-derive status from real_tanam_ha/gagal_tanam
       const { data: schedule } = await admin
         .from("schedules")
-        .select("real_tanam_ha, gagal_tanam")
+        .select("real_tanam_ha, gagal_tanam, sisa_di_lahan_ha")
         .eq("id", raw.schedule_id)
         .is("deleted_at", null)
         .single();
@@ -54,6 +54,7 @@ export async function savePanenAction(
         const derived = deriveScheduleStatus({
           real_tanam_ha: schedule.real_tanam_ha,
           gagal_tanam: schedule.gagal_tanam,
+          sisa_di_lahan_ha: schedule.sisa_di_lahan_ha,
         });
         if (derived) {
           update.status = derived.status;

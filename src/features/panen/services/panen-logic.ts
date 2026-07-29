@@ -31,18 +31,25 @@ export function calcRencanaPanen(
 export function deriveScheduleStatus(input: {
   real_tanam_ha?: number | null;
   gagal_tanam?: number | null;
+  sisa_di_lahan_ha?: number | null;
 }): { status: string; panen_keterangan?: string } | null {
-  const { real_tanam_ha, gagal_tanam } = input;
-  if (real_tanam_ha == null || gagal_tanam == null) return null;
-  if (gagal_tanam <= 0) return null;
+  const { real_tanam_ha, gagal_tanam, sisa_di_lahan_ha } = input;
 
-  const sisa = real_tanam_ha - gagal_tanam;
-
-  if (sisa > 0) {
-    return { status: "gagal_partial" };
+  if (sisa_di_lahan_ha != null) {
+    if (sisa_di_lahan_ha <= 0) {
+      return { status: "completed" };
+    }
+    if (gagal_tanam != null && gagal_tanam > 0) {
+      return { status: "gagal_partial" };
+    }
+    return { status: "pending" };
   }
-  if (sisa <= 0) {
-    return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
+
+  if (real_tanam_ha != null && gagal_tanam != null && gagal_tanam > 0) {
+    const sisa = real_tanam_ha - gagal_tanam;
+    if (sisa <= 0) {
+      return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
+    }
   }
 
   return null;

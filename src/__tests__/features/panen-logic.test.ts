@@ -54,45 +54,66 @@ describe("getPanenStatus", () => {
 });
 
 describe("deriveScheduleStatus", () => {
-  it("returns null when real_tanam_ha is missing", () => {
+  // ── sisa_di_lahan_ha = 0 ──
+  it("returns completed when sisa_di_lahan_ha = 0 (no gagal)", () => {
+    expect(deriveScheduleStatus({ sisa_di_lahan_ha: 0 })).toEqual({ status: "completed" });
+  });
+
+  it("returns completed when sisa_di_lahan_ha = 0 (with gagal)", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 5, sisa_di_lahan_ha: 0 })).toEqual({ status: "completed" });
+  });
+
+  it("returns completed when sisa_di_lahan_ha = 0 (all fields)", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10, sisa_di_lahan_ha: 0 })).toEqual({ status: "completed" });
+  });
+
+  // ── sisa_di_lahan_ha > 0 ──
+  it("returns gagal_partial when sisa > 0 and gagal > 0", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3, sisa_di_lahan_ha: 7 })).toEqual({ status: "gagal_partial" });
+  });
+
+  it("returns pending when sisa > 0 and gagal = 0", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0, sisa_di_lahan_ha: 10 })).toEqual({ status: "pending" });
+  });
+
+  it("returns pending when sisa > 0 and gagal is null", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, sisa_di_lahan_ha: 10 })).toEqual({ status: "pending" });
+  });
+
+  // ── sisa_di_lahan_ha = null ──
+  it("returns null when sisa is null and no data", () => {
+    expect(deriveScheduleStatus({})).toBeNull();
+  });
+
+  it("returns null when sisa is null and real_tanam_ha missing", () => {
     expect(deriveScheduleStatus({ gagal_tanam: 1 })).toBeNull();
   });
 
-  it("returns null when gagal_tanam is missing", () => {
+  it("returns null when sisa is null and gagal_tanam missing", () => {
     expect(deriveScheduleStatus({ real_tanam_ha: 10 })).toBeNull();
   });
 
-  it("returns gagal_total when sisa <= 0 and no panen", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 });
-    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
+  it("returns gagal_total when sisa is null and real <= gagal", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 })).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 
-  it("returns gagal_total when gagal exceeds real_tanam and no panen", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 5, gagal_tanam: 8 });
-    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
+  it("returns gagal_total when gagal exceeds real_tanam (null sisa)", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 5, gagal_tanam: 8 })).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 
-  it("returns null when gagal_tanam is 0 (no actual failure)", () => {
+  it("returns null when sisa is null and gagal_tanam is 0", () => {
     expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0 })).toBeNull();
   });
 
-  it("returns gagal_partial when 0 < sisa < real_tanam", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3 });
-    expect(result).toEqual({ status: "gagal_partial" });
+  it("returns null when sisa is null and partial failure (sisa > 0)", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3 })).toBeNull();
   });
 
-  it("returns gagal_total when sisa <= 0 regardless of tgl_panen", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 });
-    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
+  it("returns gagal_total when sisa is null, sisa <= 0 regardless of tgl_panen", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 })).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 
-  it("returns gagal_total when sisa <= 0 regardless of real_panen", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 });
-    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
-  });
-
-  it("returns gagal_partial for partial failure regardless of real_panen", () => {
-    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3 });
-    expect(result).toEqual({ status: "gagal_partial" });
+  it("returns gagal_total when sisa is null, sisa <= 0 regardless of real_panen", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 })).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
   });
 });
