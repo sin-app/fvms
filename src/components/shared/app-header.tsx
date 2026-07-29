@@ -31,11 +31,13 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
-      <h1 className="flex-1 text-lg font-semibold sm:text-xl flex items-center gap-2">
-        <Sprout className="size-5" />
-        <span className="sm:hidden">FVMS</span>
-        <span className="hidden sm:inline">{title}</span>
-      </h1>
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        <Sprout className="size-5 shrink-0" />
+        <h1 className="font-semibold text-lg sm:text-xl">FVMS</h1>
+        <span className="hidden sm:inline text-muted-foreground text-sm truncate">
+          / {title}
+        </span>
+      </div>
 
       <div className="flex items-center gap-1">
         <ThemeToggle />
