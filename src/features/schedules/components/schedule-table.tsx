@@ -216,8 +216,8 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Doc No</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">NIS</th>
                   <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">PH Tanah</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Tanam</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Tgl Tanam</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Real Tanam</th>
                   <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Gagal Tanam</th>
                   <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Sisa Lahan</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap hidden xl:table-cell">Detaseling</th>
@@ -293,11 +293,11 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       <td className="p-3 text-sm text-right whitespace-nowrap">
                         {schedule.ph_tanah ?? "—"}
                       </td>
-                      <td className="p-3 text-sm text-right whitespace-nowrap">
-                        {schedule.real_tanam_ha ?? "—"}
-                      </td>
                       <td className="p-3 text-sm whitespace-nowrap">
                         {schedule.tgl_tanam ?? "—"}
+                      </td>
+                      <td className="p-3 text-sm text-right whitespace-nowrap">
+                        {schedule.real_tanam_ha ?? "—"}
                       </td>
                       <td className="p-3 text-sm text-right whitespace-nowrap">
                         {schedule.gagal_tanam ?? "—"}

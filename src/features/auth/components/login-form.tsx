@@ -1,17 +1,25 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { loginAction } from "@/features/auth/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import type { ActionResponse } from "@/types/common";
 
 const initialState: ActionResponse = { success: false };
 
 export function LoginForm() {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+
+  useEffect(() => {
+    if (state.success) {
+      router.replace("/dashboard");
+    }
+  }, [state.success, router]);
 
   return (
     <form action={formAction} className="space-y-4">

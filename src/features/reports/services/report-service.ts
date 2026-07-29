@@ -71,7 +71,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const uid = (s as unknown as ReportRowRelation).user_id;
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const uname = (s as unknown as ReportRowRelation).user?.name ?? "Unknown";
+    const uname = (s as unknown as ReportRowRelation).users?.name ?? "Unknown";
     const existing = officerMap.get(uid) ?? { name: uname, total: 0, completed: 0 };
     existing.total++;
     if (s.status === "completed") existing.completed++;
@@ -171,7 +171,7 @@ interface ReportRowRelation {
   real_panen: string | null;
   tgl_panen: string | null;
   label: string | null;
-  user?: { name: string } | null;
+  users?: { name: string } | null;
   kabupaten?: { name: string } | null;
   kecamatan?: { name: string } | null;
   desa?: { name: string } | null;
@@ -221,7 +221,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
   return (data as unknown as ReportRowRelation[]).map((s) => ({
     id: s.id,
     visit_date: s.visit_date,
-    user_name: s.user?.name ?? "—",
+    user_name: s.users?.name ?? "—",
     kabupaten_name: s.kabupaten?.name ?? "—",
     kecamatan_name: s.kecamatan?.name ?? "—",
     desa_name: s.desa?.name ?? "—",

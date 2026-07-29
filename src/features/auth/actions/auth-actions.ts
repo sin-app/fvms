@@ -65,7 +65,7 @@ export async function loginAction(
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  return { success: true, data: undefined };
 }
 
 export async function logoutAction(): Promise<void> {

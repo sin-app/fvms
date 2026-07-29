@@ -20,6 +20,19 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient();
+
+  // Resolve role-based scope from the API key's user.
+  const { data: apiUser } = await admin
+    .from("users")
+    .select("role, assigned_kabupaten_ids")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  const role = (apiUser?.role ?? "produksi") as "admin" | "qc" | "produksi";
+  const kabScope = role === "qc" && Array.isArray(apiUser?.assigned_kabupaten_ids)
+    ? (apiUser.assigned_kabupaten_ids as string[])
+    : null;
+
   let query = admin
     .from("schedules")
     .select("id, status, visit_date, kabupaten_id, user_id", { count: "exact" })
@@ -27,11 +40,18 @@ export async function GET(request: Request) {
     .gte("visit_date", dateFrom)
     .lte("visit_date", dateTo);
 
+  // Apply scope — QC sees only assigned kabupaten, produksi sees own schedules only.
+  if (kabScope !== null) {
+    query = query.in("kabupaten_id", kabScope.length > 0 ? kabScope : ["__none__"]);
+  } else if (role !== "admin") {
+    query = query.eq("user_id", auth.userId);
+  }
+
   const kabupatenId = searchParams.get("kabupaten_id");
-  if (kabupatenId) query = query.eq("kabupaten_id", kabupatenId);
+  if (kabupatenId && kabScope === null) query = query.eq("kabupaten_id", kabupatenId);
 
   const userId = searchParams.get("user_id");
-  if (userId) query = query.eq("user_id", userId);
+  if (userId && kabScope === null && role === "admin") query = query.eq("user_id", userId);
 
   const { data, count, error } = await query;
 

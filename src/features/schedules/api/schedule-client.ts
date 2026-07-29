@@ -30,5 +30,6 @@ export async function fetchCalendarEvents(start: string, end: string) {
 }
 
 export async function fetchDistinctCgr(): Promise<string[]> {
-  return getDistinctCgr();
+  const ctx = await getAuthContext();
+  return getDistinctCgr(ctx ?? undefined);
 }

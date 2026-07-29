@@ -274,12 +274,22 @@ export async function getScheduleOwnerIds(
   return (data ?? []) as { id: string; user_id: string }[];
 }
 
-export async function getDistinctCgr(): Promise<string[]> {
+export async function getDistinctCgr(ctx?: AuthContext): Promise<string[]> {
   const admin = createAdminClient();
-  const { data, error } = await admin
+  const scope = ctx ? qcKabupatenScope(ctx) : null;
+
+  let query = admin
     .from("schedules")
     .select("cgr")
     .not("cgr", "is", null);
+
+  if (scope !== null) {
+    query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
+  } else if (ctx && ctx.role !== "admin") {
+    query = query.eq("user_id", ctx.userId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
