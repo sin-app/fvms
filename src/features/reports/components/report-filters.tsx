@@ -38,7 +38,7 @@ export function ReportFiltersView({
   onLabelChange,
   onReset,
 }: ReportFiltersProps) {
-  const { data: users } = useAllUsers();
+  const { data: users } = useAllUsers(kabupatenId || undefined);
   const { data: allKabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
   const kabupaten = scopeKabupatenIds

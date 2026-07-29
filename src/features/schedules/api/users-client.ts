@@ -20,6 +20,8 @@ export async function fetchAllFieldOfficers(
 
   if (kabupatenId) {
     query = query.overlaps("assigned_kabupaten_ids", [kabupatenId]);
+  } else if (ctx.role === "qc" && ctx.assignedKabupatenIds.length > 0) {
+    query = query.overlaps("assigned_kabupaten_ids", ctx.assignedKabupatenIds);
   }
 
   const { data } = await query.order("name");

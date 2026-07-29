@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal membuat API key" }, { status: 500 });
   }
 
   return NextResponse.json({ key: data });
@@ -70,7 +70,7 @@ export async function DELETE(req: Request) {
     .eq("user_id", ctx.userId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal menghapus API key" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

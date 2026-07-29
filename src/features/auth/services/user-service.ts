@@ -18,20 +18,25 @@ export async function createAuthUser(params: {
   name: string;
   role: UserInput["role"];
   password?: string;
+  assigned_kabupaten_ids?: string[];
 }): Promise<void> {
   const admin = createAdminClient();
+  const app_metadata: Record<string, unknown> = { role: params.role };
+  if (params.assigned_kabupaten_ids?.length) {
+    app_metadata.assigned_kabupaten_ids = params.assigned_kabupaten_ids;
+  }
   const { data, error } = await admin.auth.admin.createUser({
     id: params.id,
     email: params.email,
     password: params.password ?? randomPassword(),
     email_confirm: true,
     user_metadata: { name: params.name, role: params.role },
-    app_metadata: { role: params.role },
+    app_metadata,
   });
   if (error) throw error;
   if (data.user) {
     await admin.auth.admin.updateUserById(data.user.id, {
-      app_metadata: { role: params.role },
+      app_metadata,
       email_confirm: true,
     });
   }
@@ -75,12 +80,16 @@ export async function createUserWithPassword(
   data: UserInput & { password?: string },
 ): Promise<{ id: string }> {
   const admin = createAdminClient();
+  const app_metadata: Record<string, unknown> = { role: data.role };
+  if (data.assigned_kabupaten_ids?.length) {
+    app_metadata.assigned_kabupaten_ids = data.assigned_kabupaten_ids;
+  }
   const { data: created, error } = await admin.auth.admin.createUser({
     email: data.email,
     password: data.password ?? randomPassword(),
     email_confirm: true,
     user_metadata: { name: data.name, role: data.role },
-    app_metadata: { role: data.role },
+    app_metadata,
   });
   if (error) throw error;
   const id = created.user.id;
@@ -92,6 +101,7 @@ export async function createUserWithPassword(
     role: data.role,
     phone: data.phone ?? null,
     is_active: data.is_active,
+    assigned_kabupaten_ids: data.assigned_kabupaten_ids ?? [],
   });
   if (dbError) throw dbError;
 
@@ -123,18 +133,22 @@ export async function getUsers(): Promise<User[]> {
 export async function createUser(data: UserInput) {
   const admin = createAdminClient();
 
+  const app_metadata: Record<string, unknown> = { role: data.role };
+  if (data.assigned_kabupaten_ids?.length) {
+    app_metadata.assigned_kabupaten_ids = data.assigned_kabupaten_ids;
+  }
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: data.email,
     password: randomPassword(),
     email_confirm: true,
     user_metadata: { name: data.name, role: data.role },
-    app_metadata: { role: data.role },
+    app_metadata,
   });
 
   if (createError) throw createError;
 
   const { error: metaError } = await admin.auth.admin.updateUserById(created.user.id, {
-    app_metadata: { role: data.role },
+    app_metadata,
     user_metadata: { role: data.role, name: data.name },
     email_confirm: true,
   });
@@ -147,6 +161,7 @@ export async function createUser(data: UserInput) {
     role: data.role,
     phone: data.phone ?? null,
     is_active: data.is_active,
+    assigned_kabupaten_ids: data.assigned_kabupaten_ids ?? [],
   });
 
   if (dbError) throw dbError;
@@ -157,15 +172,22 @@ export async function createUser(data: UserInput) {
 export async function updateUser(id: string, data: Partial<UserInput>) {
   const admin = createAdminClient();
 
-  if (data.email) {
-    await admin.auth.admin.updateUserById(id, { email: data.email });
+  const app_metadata: Record<string, unknown> = {};
+  if (data.role) {
+    app_metadata.role = data.role;
+  }
+  if (data.assigned_kabupaten_ids !== undefined) {
+    app_metadata.assigned_kabupaten_ids = data.assigned_kabupaten_ids;
+  }
+  if (Object.keys(app_metadata).length > 0) {
+    await admin.auth.admin.updateUserById(id, {
+      app_metadata,
+      user_metadata: data.role ? { role: data.role } : undefined,
+    });
   }
 
-  if (data.role) {
-    await admin.auth.admin.updateUserById(id, {
-      app_metadata: { role: data.role },
-      user_metadata: { role: data.role },
-    });
+  if (data.email) {
+    await admin.auth.admin.updateUserById(id, { email: data.email });
   }
 
   const { error } = await admin

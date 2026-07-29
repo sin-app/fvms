@@ -145,6 +145,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
           <div className="rounded-xl border p-5">
             <VisitGps
               scheduleId={id}
+              currentStatus={schedule.status}
               currentLatitude={schedule.latitude}
               currentLongitude={schedule.longitude}
               currentAccuracy={schedule.accuracy}

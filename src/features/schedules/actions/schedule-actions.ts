@@ -66,12 +66,12 @@ export async function updateScheduleAction(
     if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
   }
 
-  // Non-privileged users can only update their own schedules.
-  if (!isPrivileged(ctx.role)) {
+  // Non-admin users must pass the access check.
+  if (ctx.role !== "admin") {
     if (!(await canAccessSchedule(id, ctx))) {
       return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
     }
-    if (parsed.data.user_id !== ctx.userId) {
+    if (!isPrivileged(ctx.role) && parsed.data.user_id !== ctx.userId) {
       return { success: false, error: "Tidak dapat mengubah jadwal untuk user lain" };
     }
   }
@@ -146,13 +146,17 @@ export async function deleteScheduleAction(
 
   if (ctx.role === "admin") {
     // admin may delete any schedule
-  } else if (ctx.role === "produksi" || ctx.role === "qc") {
+  } else if (ctx.role === "produksi") {
     const { data } = await createAdminClient()
       .from("schedules")
       .select("user_id")
       .eq("id", id)
       .maybeSingle();
     if (data?.user_id !== ctx.userId) return { success: false, error: "Tidak memiliki akses" };
+  } else if (ctx.role === "qc") {
+    if (!(await canAccessSchedule(id, ctx))) {
+      return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
+    }
   } else {
     return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 interface EmptyStateProps {
@@ -21,12 +22,12 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
       <p className="text-sm text-muted-foreground mb-6 max-w-sm">{description}</p>
       {action && (
         action.href ? (
-          <a
+          <Link
             href={action.href}
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             {action.label}
-          </a>
+          </Link>
         ) : (
           <button
             onClick={action.onClick}

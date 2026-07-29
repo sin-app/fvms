@@ -7,6 +7,7 @@ import { useUpdateVisitStatus } from "@/features/schedules/hooks/use-schedules";
 
 interface VisitGpsProps {
   scheduleId: string;
+  currentStatus?: string;
   currentLatitude?: number | null;
   currentLongitude?: number | null;
   currentAccuracy?: number | null;
@@ -15,6 +16,7 @@ interface VisitGpsProps {
 
 export function VisitGps({
   scheduleId,
+  currentStatus,
   currentLatitude,
   currentLongitude,
   currentAccuracy,
@@ -52,9 +54,10 @@ export function VisitGps({
         setLocation(loc);
         setCapturing(false);
 
+        const newStatus = currentStatus === "pending" ? "in_progress" : currentStatus;
         await updateStatus.mutateAsync({
           id: scheduleId,
-          status: "in_progress",
+          status: newStatus ?? "in_progress",
           latitude: loc.latitude,
           longitude: loc.longitude,
         });

@@ -2,7 +2,7 @@
 
 import { Search, X } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface SearchInputProps {
   value: string;
@@ -17,14 +17,21 @@ export function SearchInput({
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(value);
   const debouncedValue = useDebounce(localValue, 300);
+  const initialRender = useRef(true);
 
   useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
+    }
     onChange(debouncedValue);
   }, [debouncedValue, onChange]);
 
-  if (value !== localValue && value === "") {
-    setLocalValue("");
-  }
+  useEffect(() => {
+    if (value === "" && localValue !== "") {
+      setLocalValue("");
+    }
+  }, [value, localValue]);
 
   return (
     <div className="relative">
@@ -37,7 +44,7 @@ export function SearchInput({
       />
       {localValue && (
         <button
-          onClick={() => setLocalValue("")}
+          onClick={() => { setLocalValue(""); onChange(""); }}
           className="absolute right-3 top-1/2 -translate-y-1/2"
         >
           <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />

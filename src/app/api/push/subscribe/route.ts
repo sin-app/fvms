@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return Response.json({ error: "Gagal menyimpan subscription" }, { status: 500 });
 
   return Response.json({ success: true });
 }

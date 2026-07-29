@@ -277,6 +277,25 @@ export async function bulkImportSchedules(
   );
   const userOut = await userUpsert.resolveAll(valid.map((r) => r.user));
 
+  // Collect assigned kabupaten per user from the import rows.
+  const userKabMap = new Map<string, Set<string>>();
+  for (const r of valid) {
+    const kabId = master.kabupaten.get(r.kab.toLowerCase());
+    const uId = userOut.map.get(r.user.toLowerCase());
+    if (kabId && uId) {
+      const set = userKabMap.get(uId) ?? new Set();
+      set.add(kabId);
+      userKabMap.set(uId, set);
+    }
+  }
+  // Batch-update assigned_kabupaten_ids so user filters work correctly.
+  for (const [uId, kabSet] of userKabMap) {
+    await admin
+      .from("users")
+      .update({ assigned_kabupaten_ids: [...kabSet] })
+      .eq("id", uId);
+  }
+
   const schedulesToInsert: Array<{
     user_id: string;
     kabupaten_id: string;
@@ -464,26 +483,41 @@ export async function bulkImportSchedules(
       }
     }
 
-    const { error: insertError } = await admin.from("schedules").insert(toInsert);
-    if (insertError) {
-      errors.push({ row: 0, message: `Gagal insert: ${insertError.message}` });
-    } else {
-      result.success = toInsert.length;
-      result.duplicates = schedulesToInsert.length - unique.length;
+    const BATCH_SIZE = 500;
+    let insertedCount = 0;
+    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+      const batch = toInsert.slice(i, i + BATCH_SIZE);
+      const { error: batchError } = await admin.from("schedules").insert(batch);
+      if (batchError) {
+        errors.push({ row: 0, message: `Gagal insert batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batchError.message}` });
+        break;
+      }
+      insertedCount += batch.length;
     }
+    result.success = insertedCount;
+    result.duplicates = schedulesToInsert.length - unique.length;
 
     let replaced = 0;
     if (toUpdate.length > 0) {
-      const updateResults = await Promise.all(
-        toUpdate.map((u) =>
-          admin.from("schedules").update(u.data).eq("id", u.id).select("id").maybeSingle(),
-        ),
-      );
-      replaced = updateResults.filter((r) => r.data).length;
-      const updateErrors = updateResults.filter((r) => r.error);
-      if (updateErrors.length > 0) {
-        const sampleError = updateErrors.find((r) => r.error)?.error?.message ?? "unknown";
-        errors.push({ row: 0, message: `${updateErrors.length} jadwal gagal diupdate (contoh: ${sampleError})` });
+      const UPDATE_BATCH_SIZE = 200;
+      let updateErrors = 0;
+      let lastError = "";
+      for (let i = 0; i < toUpdate.length; i += UPDATE_BATCH_SIZE) {
+        const batch = toUpdate.slice(i, i + UPDATE_BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map((u) =>
+            admin.from("schedules").update(u.data).eq("id", u.id).select("id").maybeSingle(),
+          ),
+        );
+        replaced += batchResults.filter((r) => r.data).length;
+        const errs = batchResults.filter((r) => r.error);
+        updateErrors += errs.length;
+        if (errs.length > 0 && !lastError) {
+          lastError = errs.find((r) => r.error)?.error?.message ?? "unknown";
+        }
+      }
+      if (updateErrors > 0) {
+        errors.push({ row: 0, message: `${updateErrors} jadwal gagal diupdate (contoh: ${lastError})` });
       }
     }
     result.replaced = replaced;

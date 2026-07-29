@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createAuthUser, setPassword } from "@/features/auth/services/user-service";
 import { logger } from "@/lib/logger";

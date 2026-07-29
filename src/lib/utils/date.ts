@@ -48,7 +48,7 @@ export function isTodayDate(visitDate: string): boolean {
 }
 
 export function todayString(): string {
-  return startOfDay(new Date()).toISOString().split("T")[0];
+  return dateString(new Date());
 }
 
 export function firstOfMonthString(): string {

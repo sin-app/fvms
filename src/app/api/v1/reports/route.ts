@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   const { data, count, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memuat data laporan" }, { status: 500 });
   }
 
   const total = count ?? 0;
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
   const in_progress = data?.filter((s) => s.status === "in_progress").length ?? 0;
   const today = todayString();
   const late_count = data?.filter(
-    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.status),
+    (s) => s.visit_date < today && !["completed", "gagal_partial", "gagal_total"].includes(s.status),
   ).length ?? 0;
 
   return NextResponse.json({

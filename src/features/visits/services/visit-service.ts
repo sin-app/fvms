@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getConfig } from "@/lib/config";
 import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";

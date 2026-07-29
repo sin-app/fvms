@@ -64,8 +64,10 @@ describe("schedule-actions auto-derivation", () => {
       );
     });
 
-    it("sets status to completed when tgl_panen is set", async () => {
+    it("sets status to completed when tgl_panen is set and sisa <= 0", async () => {
       const fd = baseFormData();
+      fd.set("real_tanam_ha", "2");
+      fd.set("gagal_tanam", "2");
       fd.set("tgl_panen", "2026-08-20");
 
       await createScheduleAction(emptyResponse, fd);
@@ -75,11 +77,19 @@ describe("schedule-actions auto-derivation", () => {
       );
     });
 
-    it("does not override status when no derivation applies", async () => {
+    it("sets status to gagal_partial when 0 < sisa < real_tanam_ha", async () => {
       const fd = baseFormData();
       fd.set("real_tanam_ha", "5");
       fd.set("gagal_tanam", "1");
-      fd.set("tgl_panen", "");
+
+      await createScheduleAction(emptyResponse, fd);
+
+      const callArgs = vi.mocked(createSchedule).mock.calls[0][0];
+      expect(callArgs.status).toBe("gagal_partial");
+    });
+
+    it("does not override status when real_tanam_ha/gagal_tanam are missing", async () => {
+      const fd = baseFormData();
 
       await createScheduleAction(emptyResponse, fd);
 
@@ -103,9 +113,11 @@ describe("schedule-actions auto-derivation", () => {
       );
     });
 
-    it("sets status to completed via update when tgl_panen is set", async () => {
+    it("sets status to completed via update when tgl_panen is set and sisa <= 0", async () => {
       const fd = baseFormData();
       fd.set("id", "sched-1");
+      fd.set("real_tanam_ha", "2");
+      fd.set("gagal_tanam", "2");
       fd.set("tgl_panen", "2026-08-20");
 
       await updateScheduleAction(emptyResponse, fd);
@@ -116,11 +128,9 @@ describe("schedule-actions auto-derivation", () => {
       );
     });
 
-    it("does not override status when derivation does not apply", async () => {
+    it("does not override status when real_tanam_ha/gagal_tanam are missing", async () => {
       const fd = baseFormData();
       fd.set("id", "sched-1");
-      fd.set("real_tanam_ha", "5");
-      fd.set("gagal_tanam", "2");
 
       await updateScheduleAction(emptyResponse, fd);
 

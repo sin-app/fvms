@@ -54,38 +54,51 @@ async function writeRow(row: RateLimitRow): Promise<void> {
   }
 }
 
-export function isLoginRateLimited(email: string, ip: string | null): boolean {
+export async function isLoginRateLimited(email: string, ip: string | null): Promise<boolean> {
   return isRateLimited("login", email, ip);
 }
 
-export function registerLoginFailure(email: string, ip: string | null): void {
-  registerFailure("login", email, ip);
+export async function registerLoginFailure(email: string, ip: string | null): Promise<void> {
+  await registerFailure("login", email, ip);
 }
 
 export function registerLoginSuccess(email: string, ip: string | null): void {
   void deleteKey(keyFor("login", email, ip));
 }
 
-export function isEmailRateLimited(namespace: string, email: string, ip: string | null): boolean {
+export async function isEmailRateLimited(namespace: string, email: string, ip: string | null): Promise<boolean> {
   return isRateLimited(namespace, email, ip);
 }
 
-export function registerEmailFailure(namespace: string, email: string, ip: string | null): void {
-  registerFailure(namespace, email, ip);
+export async function registerEmailFailure(namespace: string, email: string, ip: string | null): Promise<void> {
+  await registerFailure(namespace, email, ip);
 }
 
-export function isIpRateLimited(namespace: string, ip: string | null): boolean {
+export async function isIpRateLimited(namespace: string, ip: string | null): Promise<boolean> {
   return isRateLimited(namespace, "__ip__", ip);
 }
 
-export function registerIpFailure(namespace: string, ip: string | null): void {
-  registerFailure(namespace, "__ip__", ip);
+export async function registerIpFailure(namespace: string, ip: string | null): Promise<void> {
+  await registerFailure(namespace, "__ip__", ip);
 }
 
-function isRateLimited(namespace: string, email: string, ip: string | null): boolean {
+async function isRateLimited(namespace: string, email: string, ip: string | null): Promise<boolean> {
   const key = keyFor(namespace, email, ip);
   const now = Date.now();
-  const row = readRowSync(key);
+
+  // Check memory store first for speed
+  const cached = memoryStore.get(key);
+  if (cached) {
+    if (now < new Date(cached.blocked_until).getTime()) return true;
+    if (now - new Date(cached.first_at).getTime() > WINDOW_MS) {
+      void deleteKey(key);
+      return false;
+    }
+    if (cached.count >= MAX_ATTEMPTS) return true;
+  }
+
+  // Then check DB
+  const row = await readRow(key);
   if (!row) return false;
   if (now < new Date(row.blocked_until).getTime()) return true;
   if (now - new Date(row.first_at).getTime() > WINDOW_MS) {
@@ -95,13 +108,13 @@ function isRateLimited(namespace: string, email: string, ip: string | null): boo
   return row.count >= MAX_ATTEMPTS;
 }
 
-function registerFailure(namespace: string, email: string, ip: string | null): void {
+async function registerFailure(namespace: string, email: string, ip: string | null): Promise<void> {
   const key = keyFor(namespace, email, ip);
   const now = Date.now();
-  const existing = readRowSync(key);
+  const existing = await readRow(key);
 
   if (!existing || now - new Date(existing.first_at).getTime() > WINDOW_MS) {
-    void writeRow({
+    await writeRow({
       key,
       count: 1,
       first_at: new Date(now).toISOString(),
@@ -113,24 +126,12 @@ function registerFailure(namespace: string, email: string, ip: string | null): v
   const count = existing.count + 1;
   const blockedUntil =
     count >= MAX_ATTEMPTS ? new Date(now + BLOCK_MS).toISOString() : existing.blocked_until;
-  void writeRow({
+  await writeRow({
     key,
     count,
     first_at: existing.first_at,
     blocked_until: blockedUntil,
   });
-}
-
-// Synchronous bridge: read current best-known state (memory cache first, then DB).
-function readRowSync(key: string): RateLimitRow | null {
-  if (memoryStore.has(key)) return memoryStore.get(key) ?? null;
-  // Kick an async refresh but return current memory value (may be null first pass).
-  void readRow(key).then((row) => {
-    if (row) memoryStore.set(key, row);
-  }).catch(() => {
-    // Background refresh failed; will retry on next access.
-  });
-  return memoryStore.get(key) ?? null;
 }
 
 async function deleteKey(key: string): Promise<void> {

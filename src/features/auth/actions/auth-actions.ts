@@ -28,7 +28,7 @@ export async function loginAction(
   }
 
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  if (isLoginRateLimited(parsed.data.email, ip)) {
+  if (await isLoginRateLimited(parsed.data.email, ip)) {
     return {
       success: false,
       error: "Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.",
@@ -43,7 +43,7 @@ export async function loginAction(
   });
 
   if (error) {
-    registerLoginFailure(parsed.data.email, ip);
+    await registerLoginFailure(parsed.data.email, ip);
     if (error.message.includes("Invalid login credentials")) {
       return { success: false, error: "Email atau password salah" };
     }
@@ -91,7 +91,7 @@ export async function resetPasswordAction(
   }
 
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  if (isEmailRateLimited("reset-password", parsed.data.email, ip)) {
+  if (await isEmailRateLimited("reset-password", parsed.data.email, ip)) {
     return {
       success: false,
       error: "Terlalu banyak permintaan. Coba lagi dalam 15 menit.",
@@ -108,7 +108,7 @@ export async function resetPasswordAction(
   );
 
   if (error) {
-    registerEmailFailure("reset-password", parsed.data.email, ip);
+    await registerEmailFailure("reset-password", parsed.data.email, ip);
     return { success: false, error: error.message };
   }
 
@@ -123,7 +123,7 @@ export async function updatePasswordAction(
   formData: FormData,
 ): Promise<ActionResponse> {
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  if (isIpRateLimited("update-password", ip)) {
+  if (await isIpRateLimited("update-password", ip)) {
     return {
       success: false,
       error: "Terlalu banyak percobaan. Coba lagi dalam 15 menit.",
@@ -147,7 +147,7 @@ export async function updatePasswordAction(
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
 
   if (error) {
-    registerIpFailure("update-password", ip);
+    await registerIpFailure("update-password", ip);
     return { success: false, error: error.message };
   }
 

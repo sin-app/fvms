@@ -61,7 +61,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   const today = todayString();
   const late_count = schedules.filter(
-    (s) => s.visit_date < today && !["completed", "gagal_partial", "gagal_total"].includes(s.status),
+    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.status),
   ).length;
 
   // By officer

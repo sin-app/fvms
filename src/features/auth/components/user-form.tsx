@@ -102,7 +102,7 @@ export function UserForm({ action, defaultValues, onSuccess, open, onOpenChange 
           </select>
         </div>
 
-        {role === "qc" && (
+        {(role === "qc" || role === "produksi") && (
           <div className="space-y-2">
             <Label>Wilayah Tugas (Kabupaten)</Label>
             <div className="max-h-40 overflow-y-auto rounded-lg border border-input p-2 space-y-1">
