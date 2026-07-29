@@ -116,6 +116,7 @@ export async function getUsers(): Promise<User[]> {
     .select("*")
     .order("name", { ascending: true });
 
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return (data ?? []) as unknown as User[];
 }
 

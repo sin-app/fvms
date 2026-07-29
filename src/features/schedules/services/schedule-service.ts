@@ -124,6 +124,7 @@ export async function getScheduleList(
   if (error) throw error;
 
   return {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     data: (data ?? []) as unknown as Schedule[],
     total: count ?? 0,
     page,
@@ -141,6 +142,7 @@ export async function getScheduleById(id: string): Promise<Schedule | null> {
     .is("deleted_at", null)
     .single();
 
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return data as unknown as Schedule | null;
 }
 
@@ -255,6 +257,7 @@ export async function getCalendarEvents(
   }
 
   const { data } = await query;
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return (data ?? []) as unknown as Schedule[];
 }
 

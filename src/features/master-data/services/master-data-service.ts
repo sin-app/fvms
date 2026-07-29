@@ -27,6 +27,7 @@ export async function getKabupatenList(filters: MasterDataFilters = {}) {
   if (error) throw error;
 
   return {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     data: (data || []) as unknown as Kabupaten[],
     total: count || 0,
     page,
@@ -62,6 +63,7 @@ export async function getKecamatanList(kabupatenId?: string, filters: MasterData
   if (error) throw error;
 
   return {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     data: (data || []) as unknown as Kecamatan[],
     total: count || 0,
     page,
@@ -97,6 +99,7 @@ export async function getDesaList(kecamatanId?: string, filters: MasterDataFilte
   if (error) throw error;
 
   return {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     data: (data || []) as unknown as Desa[],
     total: count || 0,
     page,

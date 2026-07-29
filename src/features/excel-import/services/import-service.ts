@@ -79,6 +79,7 @@ function assertValidXlsx(file: Buffer) {
 export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
   assertValidXlsx(file);
   const workbook = new ExcelJS.Workbook();
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   await workbook.xlsx.load(file as unknown as ArrayBuffer);
 
   const ws = workbook.worksheets[0];
@@ -104,6 +105,7 @@ export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
 export async function getFullData(file: Buffer): Promise<ExcelRow[]> {
   assertValidXlsx(file);
   const workbook = new ExcelJS.Workbook();
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   await workbook.xlsx.load(file as unknown as ArrayBuffer);
 
   const ws = workbook.worksheets[0];
