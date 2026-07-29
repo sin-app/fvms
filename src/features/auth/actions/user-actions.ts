@@ -152,6 +152,57 @@ export async function toggleUserActiveAction(
   }
 }
 
+export async function backfillUserKabupatenAction(): Promise<{
+  success: boolean;
+  updated: number;
+  error?: string;
+}> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, updated: 0, error: "Unauthorized" };
+  if (ctx.role !== "admin") return { success: false, updated: 0, error: "Hanya admin yang diizinkan" };
+
+  const admin = createAdminClient();
+
+  const { data: schedules } = await admin
+    .from("schedules")
+    .select("user_id, kabupaten_id")
+    .is("deleted_at", null)
+    .not("kabupaten_id", "is", null);
+
+  if (!schedules || schedules.length === 0) {
+    return { success: true, updated: 0 };
+  }
+
+  const userKabMap = new Map<string, Set<string>>();
+  for (const s of schedules) {
+    if (!s.user_id || !s.kabupaten_id) continue;
+    const set = userKabMap.get(s.user_id) ?? new Set();
+    set.add(s.kabupaten_id);
+    userKabMap.set(s.user_id, set);
+  }
+
+  let updated = 0;
+  for (const [userId, kabSet] of userKabMap) {
+    const kabIds = [...kabSet];
+    const { error: dbErr } = await admin
+      .from("users")
+      .update({ assigned_kabupaten_ids: kabIds })
+      .eq("id", userId);
+    if (dbErr) continue;
+
+    const { data: existingUser } = await admin.auth.admin.getUserById(userId).catch(() => ({ data: null }));
+    const existingMeta = existingUser?.user?.app_metadata ?? {};
+    await admin.auth.admin.updateUserById(userId, {
+      app_metadata: { ...existingMeta, assigned_kabupaten_ids: kabIds },
+    }).catch(() => {});
+
+    updated++;
+  }
+
+  revalidatePath("/users");
+  return { success: true, updated };
+}
+
 export async function getUsersAction(): Promise<User[]> {
   const ctx = await getAuthContext();
   if (!ctx) throw new Error("Unauthorized");
