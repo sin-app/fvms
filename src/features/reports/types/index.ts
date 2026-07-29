@@ -6,6 +6,13 @@ export interface ReportFilters {
   kecamatan_id?: string;
   status?: string;
   label?: string;
+  member_name?: string;
+  block_no?: string;
+  no_plot?: string;
+  nis?: string;
+  cgr?: string;
+  varietas?: string;
+  panen_status?: string;
 }
 
 export interface ReportData {

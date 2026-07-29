@@ -5,6 +5,7 @@ import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
 import { SCHEDULE_STATUSES } from "@/lib/constants/status";
+import { getPanenStatus } from "@/features/panen/services/panen-logic";
 
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
   const admin = createAdminClient();
@@ -40,6 +41,33 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   }
   if (filters.label) {
     query = query.eq("label", filters.label);
+  }
+  if (filters.member_name) {
+    query = query.ilike("member_name", `%${filters.member_name}%`);
+  }
+  if (filters.block_no) {
+    query = query.ilike("block_no", `%${filters.block_no}%`);
+  }
+  if (filters.no_plot) {
+    query = query.ilike("no_plot", `%${filters.no_plot}%`);
+  }
+  if (filters.nis) {
+    query = query.ilike("nis", `%${filters.nis}%`);
+  }
+  if (filters.cgr) {
+    query = query.ilike("cgr", `%${filters.cgr}%`);
+  }
+  if (filters.varietas) {
+    query = query.ilike("document_no", `%${filters.varietas}%`);
+  }
+  if (filters.panen_status && filters.panen_status !== "all") {
+    if (filters.panen_status === "sudah") {
+      query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
+    } else if (filters.panen_status === "jatuh_tempo") {
+      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString()).not("status", "in", "(completed,gagal_total)");
+    } else if (filters.panen_status === "belum") {
+      query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
+    }
   }
 
   const { data: schedules } = await query;
@@ -171,6 +199,18 @@ interface ReportRowRelation {
   real_panen: string | null;
   tgl_panen: string | null;
   label: string | null;
+  member_name: string | null;
+  block_no: string | null;
+  no_plot: string | null;
+  nis: string | null;
+  cgr: string | null;
+  document_no: string | null;
+  tgl_tanam: string | null;
+  ph_tanah: string | null;
+  real_tanam_ha: number | null;
+  gagal_tanam: number | null;
+  sisa_di_lahan_ha: number | null;
+  detaseling: string | null;
   users?: { name: string } | null;
   kabupaten?: { name: string } | null;
   kecamatan?: { name: string } | null;
@@ -193,7 +233,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   let query = admin
     .from("schedules")
-    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), desa(name)")
+    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, member_name, block_no, no_plot, nis, cgr, document_no, tgl_tanam, ph_tanah, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), desa(name)")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to)
@@ -212,27 +252,76 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
   if (filters.label) {
     query = query.eq("label", filters.label);
   }
+  if (filters.member_name) {
+    query = query.ilike("member_name", `%${filters.member_name}%`);
+  }
+  if (filters.block_no) {
+    query = query.ilike("block_no", `%${filters.block_no}%`);
+  }
+  if (filters.no_plot) {
+    query = query.ilike("no_plot", `%${filters.no_plot}%`);
+  }
+  if (filters.nis) {
+    query = query.ilike("nis", `%${filters.nis}%`);
+  }
+  if (filters.cgr) {
+    query = query.ilike("cgr", `%${filters.cgr}%`);
+  }
+  if (filters.varietas) {
+    query = query.ilike("document_no", `%${filters.varietas}%`);
+  }
+  if (filters.panen_status && filters.panen_status !== "all") {
+    if (filters.panen_status === "sudah") {
+      query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
+    } else if (filters.panen_status === "jatuh_tempo") {
+      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString()).not("status", "in", "(completed,gagal_total)");
+    } else if (filters.panen_status === "belum") {
+      query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
+    }
+  }
 
   const { data } = await query;
 
   if (!data) return [];
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return (data as unknown as ReportRowRelation[]).map((s) => ({
-    id: s.id,
-    visit_date: s.visit_date,
-    user_name: s.users?.name ?? "—",
-    kabupaten_name: s.kabupaten?.name ?? "—",
-    kecamatan_name: s.kecamatan?.name ?? "—",
-    desa_name: s.desa?.name ?? "—",
-    status: s.status,
-    visit_time: s.visit_time,
-    has_notes: false,
-    rencana_panen: s.rencana_panen ?? null,
-    real_panen: s.real_panen ?? null,
-    tgl_panen: s.tgl_panen ?? null,
-    label: s.label ?? null,
-  }));
+  return (data as unknown as ReportRowRelation[]).map((s) => {
+    const ps = getPanenStatus({
+      tgl_panen: s.tgl_panen,
+      real_panen: s.real_panen,
+      rencana_panen: s.rencana_panen,
+      tgl_tanam: s.tgl_tanam,
+      cgr: s.cgr,
+    });
+    return {
+      id: s.id,
+      visit_date: s.visit_date,
+      user_name: s.users?.name ?? "—",
+      kabupaten_name: s.kabupaten?.name ?? "—",
+      kecamatan_name: s.kecamatan?.name ?? "—",
+      desa_name: s.desa?.name ?? "—",
+      status: s.status,
+      visit_time: s.visit_time,
+      has_notes: false,
+      rencana_panen: s.rencana_panen ?? null,
+      real_panen: s.real_panen ?? null,
+      tgl_panen: s.tgl_panen ?? null,
+      label: s.label ?? null,
+      member_name: s.member_name ?? null,
+      block_no: s.block_no ?? null,
+      no_plot: s.no_plot ?? null,
+      nis: s.nis ?? null,
+      cgr: s.cgr ?? null,
+      varietas: s.document_no ?? null,
+      panen_status: ps.label,
+      ph_tanah: s.ph_tanah ?? null,
+      tgl_tanam: s.tgl_tanam ?? null,
+      real_tanam_ha: s.real_tanam_ha ?? null,
+      gagal_tanam: s.gagal_tanam ?? null,
+      sisa_di_lahan_ha: s.sisa_di_lahan_ha ?? null,
+      detaseling: s.detaseling ?? null,
+    };
+  });
 }
 
 export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
@@ -241,31 +330,49 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
 
   ws.columns = [
     { header: "Tanggal", key: "Tanggal" },
-    { header: "Produksi", key: "Produksi" },
     { header: "Kabupaten", key: "Kabupaten" },
     { header: "Kecamatan", key: "Kecamatan" },
     { header: "Desa", key: "Desa" },
-    { header: "Status", key: "Status" },
+    { header: "Petugas", key: "Petugas" },
+    { header: "CGR", key: "CGR" },
+    { header: "Block", key: "Block" },
+    { header: "Plot", key: "Plot" },
+    { header: "Member", key: "Member" },
+    { header: "Doc No", key: "DocNo" },
+    { header: "NIS", key: "NIS" },
+    { header: "PH Tanah", key: "PHTanah" },
+    { header: "Tgl Tanam", key: "TglTanam" },
+    { header: "Real Tanam", key: "RealTanam" },
+    { header: "Gagal Tanam", key: "GagalTanam" },
+    { header: "Sisa Lahan", key: "SisaLahan" },
+    { header: "Detaseling", key: "Detaseling" },
     { header: "Label", key: "Label" },
-    { header: "Rencana Panen", key: "Rencana Panen" },
-    { header: "Real Panen", key: "Real Panen" },
-    { header: "Tgl Panen", key: "Tgl Panen" },
-    { header: "Waktu Kunjungan", key: "Waktu Kunjungan" },
+    { header: "Panen", key: "Panen" },
+    { header: "Status", key: "Status" },
   ];
 
   for (const r of rows) {
     ws.addRow({
       Tanggal: r.visit_date,
-      Produksi: r.user_name,
       Kabupaten: r.kabupaten_name,
       Kecamatan: r.kecamatan_name,
       Desa: r.desa_name,
-      Status: r.status,
+      Petugas: r.user_name,
+      CGR: r.cgr ?? "",
+      Block: r.block_no ?? "",
+      Plot: r.no_plot ?? "",
+      Member: r.member_name ?? "",
+      DocNo: r.varietas ?? "",
+      NIS: r.nis ?? "",
+      PHTanah: r.ph_tanah ?? "",
+      TglTanam: r.tgl_tanam ?? "",
+      RealTanam: r.real_tanam_ha?.toString() ?? "",
+      GagalTanam: r.gagal_tanam?.toString() ?? "",
+      SisaLahan: r.sisa_di_lahan_ha?.toString() ?? "",
+      Detaseling: r.detaseling ?? "",
       Label: r.label ?? "",
-      "Rencana Panen": r.rencana_panen ?? "",
-      "Real Panen": r.real_panen ?? "",
-      "Tgl Panen": r.tgl_panen ?? "",
-      "Waktu Kunjungan": r.visit_time ?? "",
+      Panen: r.panen_status ?? "",
+      Status: r.status,
     });
   }
 

@@ -2,134 +2,274 @@
 
 import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
 import { useAllUsers } from "@/features/schedules/hooks/use-users";
+import { STATUS_LABELS } from "@/lib/constants/status";
+import { dateString } from "@/lib/utils/date";
 
 interface ReportFiltersProps {
+  memberName: string;
+  onMemberNameChange: (value: string) => void;
+  blockNo: string;
+  onBlockNoChange: (value: string) => void;
+  noPlot: string;
+  onNoPlotChange: (value: string) => void;
+  nis: string;
+  onNisChange: (value: string) => void;
+  status: string;
+  onStatusChange: (value: string) => void;
+  userId: string;
+  onUserIdChange: (value: string) => void;
+  cgr: string;
+  onCgrChange: (value: string) => void;
+  kabupatenId: string;
+  onKabupatenChange: (value: string) => void;
+  kecamatanId: string;
+  onKecamatanChange: (value: string) => void;
+  dateRange: string;
+  onDateRangeChange: (value: string) => void;
   dateFrom: string;
   dateTo: string;
-  userId: string;
-  kabupatenId: string;
-  kecamatanId: string;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
+  varietas: string;
+  onVarietasChange: (value: string) => void;
+  panenStatus?: string;
+  onPanenStatusChange?: (value: string) => void;
   label: string;
-  showUserFilter: boolean;
+  onLabelChange: (value: string) => void;
+  hidePetugasFilter?: boolean;
   scopeKabupatenIds?: string[];
-  onDateFromChange: (v: string) => void;
-  onDateToChange: (v: string) => void;
-  onUserChange: (v: string) => void;
-  onKabupatenChange: (v: string) => void;
-  onKecamatanChange: (v: string) => void;
-  onLabelChange: (v: string) => void;
-  onReset: () => void;
+}
+
+const DATE_PRESETS = [
+  { value: "", label: "Semua Tanggal" },
+  { value: "today", label: "Hari Ini" },
+  { value: "week", label: "Minggu Ini" },
+  { value: "month", label: "Bulan Ini" },
+  { value: "custom", label: "Kustom" },
+];
+
+function getDateRange(preset: string) {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const today = `${y}-${m}-${d}`;
+
+  switch (preset) {
+    case "today":
+      return { from: today, to: today };
+    case "week": {
+      const start = new Date(now);
+      start.setDate(now.getDate() - now.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return {
+        from: dateString(start),
+        to: dateString(end),
+      };
+    }
+    case "month": {
+      const last = new Date(y, now.getMonth() + 1, 0);
+      return {
+        from: `${y}-${m}-01`,
+        to: dateString(last),
+      };
+    }
+    default:
+      return { from: "", to: "" };
+  }
 }
 
 export function ReportFiltersView({
+  memberName,
+  onMemberNameChange,
+  blockNo,
+  onBlockNoChange,
+  noPlot,
+  onNoPlotChange,
+  nis,
+  onNisChange,
+  status,
+  onStatusChange,
+  userId,
+  onUserIdChange,
+  cgr,
+  onCgrChange,
+  kabupatenId,
+  onKabupatenChange,
+  kecamatanId,
+  onKecamatanChange,
+  dateRange,
+  onDateRangeChange,
   dateFrom,
   dateTo,
-  userId,
-  kabupatenId,
-  kecamatanId,
-  label,
-  showUserFilter,
-  scopeKabupatenIds,
   onDateFromChange,
   onDateToChange,
-  onUserChange,
-  onKabupatenChange,
-  onKecamatanChange,
+  varietas,
+  onVarietasChange,
+  panenStatus = "all",
+  onPanenStatusChange,
+  label = "all",
   onLabelChange,
-  onReset,
+  hidePetugasFilter = false,
+  scopeKabupatenIds,
 }: ReportFiltersProps) {
-  const { data: users } = useAllUsers(kabupatenId || undefined);
   const { data: allKabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
+  const { data: users } = useAllUsers(kabupatenId);
   const kabupaten = scopeKabupatenIds
     ? (allKabupaten ?? []).filter((k) => scopeKabupatenIds.includes(k.id))
     : allKabupaten;
 
+  function handleDateRange(value: string) {
+    onDateRangeChange(value);
+    if (value !== "custom") {
+      const range = getDateRange(value);
+      onDateFromChange(range.from);
+      onDateToChange(range.to);
+    }
+  }
+
+  function handleKabupaten(value: string) {
+    onKabupatenChange(value);
+    onKecamatanChange("");
+  }
+
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1">Dari</label>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => onDateFromChange(e.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-36"
+          value={memberName}
+          onChange={(e) => onMemberNameChange(e.target.value)}
+          placeholder="Nama Member"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
         />
-      </div>
-      <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1">Sampai</label>
         <input
-          type="date"
-          value={dateTo}
-          onChange={(e) => onDateToChange(e.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-36"
+          value={varietas}
+          onChange={(e) => onVarietasChange(e.target.value)}
+          placeholder="Kode Varietas (mis. JP-06)"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
         />
-      </div>
-      {showUserFilter && (
-        <div>
-          <label className="text-xs font-medium text-muted-foreground block mb-1">Produksi</label>
+        <input
+          value={blockNo}
+          onChange={(e) => onBlockNoChange(e.target.value)}
+          placeholder="Block"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+        />
+        <input
+          value={noPlot}
+          onChange={(e) => onNoPlotChange(e.target.value)}
+          placeholder="Plot"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+        />
+        <input
+          value={nis}
+          onChange={(e) => onNisChange(e.target.value)}
+          placeholder="NIS"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+        />
+        <input
+          value={cgr}
+          onChange={(e) => onCgrChange(e.target.value)}
+          placeholder="Cari CGR (mis. Lukito)"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-48"
+        />
+        {onPanenStatusChange && (
           <select
-            value={userId}
-            onChange={(e) => onUserChange(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-40"
+            value={panenStatus}
+            onChange={(e) => onPanenStatusChange(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
           >
-            <option value="">Semua</option>
-            {users?.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
+            <option value="all">Semua Panen</option>
+            <option value="sudah">Sudah Panen</option>
+            <option value="jatuh_tempo">Jatuh Tempo</option>
+            <option value="belum">Belum Panen</option>
           </select>
-        </div>
-      )}
-      <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1">Kabupaten</label>
-        <select
-          value={kabupatenId}
-          onChange={(e) => {
-            onKabupatenChange(e.target.value);
-            onKecamatanChange("");
-          }}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-40"
-        >
-          <option value="">Semua</option>
-          {kabupaten?.map((k) => (
-            <option key={k.id} value={k.id}>{k.name}</option>
-          ))}
-        </select>
-      </div>
-      {kabupatenId && (
-        <div>
-          <label className="text-xs font-medium text-muted-foreground block mb-1">Kecamatan</label>
-          <select
-            value={kecamatanId}
-            onChange={(e) => onKecamatanChange(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-40"
-          >
-            <option value="">Semua</option>
-            {kecamatan?.map((k) => (
-              <option key={k.id} value={k.id}>{k.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-      <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1">Label</label>
+        )}
         <select
           value={label}
           onChange={(e) => onLabelChange(e.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm w-36"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
         >
-          <option value="">Semua</option>
+          <option value="all">Semua Label</option>
           <option value="hijau">Hijau</option>
           <option value="kuning">Kuning</option>
           <option value="merah">Merah</option>
         </select>
+        <select
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+        >
+          <option value="all">Semua Status</option>
+          {Object.entries(STATUS_LABELS).map(([key, val]) => (
+            <option key={key} value={key}>{val}</option>
+          ))}
+        </select>
+        {!hidePetugasFilter && (
+          <select
+            value={userId}
+            onChange={(e) => onUserIdChange(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
+          >
+            <option value="">Semua Produksi</option>
+            {users?.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        )}
+        <select
+          value={kabupatenId}
+          onChange={(e) => handleKabupaten(e.target.value)}
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
+        >
+          <option value="">Semua Kabupaten</option>
+          {kabupaten?.map((k) => (
+            <option key={k.id} value={k.id}>{k.name}</option>
+          ))}
+        </select>
+        {kabupatenId && (
+          <select
+            value={kecamatanId}
+            onChange={(e) => onKecamatanChange(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
+          >
+            <option value="">Semua Kecamatan</option>
+            {kecamatan?.map((k) => (
+              <option key={k.id} value={k.id}>{k.name}</option>
+            ))}
+          </select>
+        )}
       </div>
-      <button
-        onClick={onReset}
-        className="h-9 px-3 rounded-lg border border-input text-sm hover:bg-muted transition-colors"
-      >
-        Reset
-      </button>
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <select
+          value={dateRange}
+          onChange={(e) => handleDateRange(e.target.value)}
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+        >
+          {DATE_PRESETS.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
+        {dateRange === "custom" && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Dari</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => onDateFromChange(e.target.value)}
+              className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+            />
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Sampai</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => onDateToChange(e.target.value)}
+              className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

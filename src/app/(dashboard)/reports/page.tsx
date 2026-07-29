@@ -21,12 +21,21 @@ export default function ReportsPage() {
   const today = todayString();
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
 
-  const [dateFrom, setDateFrom] = useState(firstOfMonth);
-  const [dateTo, setDateTo] = useState(today);
+  const [memberName, setMemberName] = useState("");
+  const [blockNo, setBlockNo] = useState("");
+  const [noPlot, setNoPlot] = useState("");
+  const [nis, setNis] = useState("");
+  const [status, setStatus] = useState("all");
   const [userId, setUserId] = useState("");
+  const [cgr, setCgr] = useState("");
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
-  const [label, setLabel] = useState("");
+  const [dateRange, setDateRange] = useState("month");
+  const [dateFrom, setDateFrom] = useState(firstOfMonth);
+  const [dateTo, setDateTo] = useState(today);
+  const [varietas, setVarietas] = useState("");
+  const [panenStatus, setPanenStatus] = useState("all");
+  const [label, setLabel] = useState("all");
 
   const filters: ReportFilters = useMemo(() => ({
     date_from: dateFrom || undefined,
@@ -34,19 +43,38 @@ export default function ReportsPage() {
     user_id: userId || undefined,
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
-    label: label || undefined,
-  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label]);
+    label: label !== "all" ? label : undefined,
+    member_name: memberName || undefined,
+    block_no: blockNo || undefined,
+    no_plot: noPlot || undefined,
+    nis: nis || undefined,
+    cgr: cgr || undefined,
+    varietas: varietas || undefined,
+    status: status !== "all" ? status : undefined,
+    panen_status: panenStatus !== "all" ? panenStatus : undefined,
+  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label, memberName, blockNo, noPlot, nis, cgr, varietas, status, panenStatus]);
 
   const { data, isLoading, isFetching, isError, refetch } = useReportData(filters);
   const { data: rows, isLoading: rowsLoading, isFetching: rowsFetching } = useReportRows(filters);
 
   function handleReset() {
-    setDateFrom(firstOfMonth);
-    setDateTo(today);
+    const today2 = todayString();
+    const firstOfMonth2 = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+    setDateFrom(firstOfMonth2);
+    setDateTo(today2);
     setUserId("");
     setKabupatenId("");
     setKecamatanId("");
-    setLabel("");
+    setLabel("all");
+    setMemberName("");
+    setBlockNo("");
+    setNoPlot("");
+    setNis("");
+    setCgr("");
+    setVarietas("");
+    setStatus("all");
+    setPanenStatus("all");
+    setDateRange("month");
   }
 
   const handleDownload = async () => {
@@ -66,21 +94,38 @@ export default function ReportsPage() {
       />
 
       <ReportFiltersView
+        memberName={memberName}
+        onMemberNameChange={setMemberName}
+        blockNo={blockNo}
+        onBlockNoChange={setBlockNo}
+        noPlot={noPlot}
+        onNoPlotChange={setNoPlot}
+        nis={nis}
+        onNisChange={setNis}
+        status={status}
+        onStatusChange={setStatus}
+        userId={userId}
+        onUserIdChange={setUserId}
+        cgr={cgr}
+        onCgrChange={setCgr}
+        kabupatenId={kabupatenId}
+        onKabupatenChange={setKabupatenId}
+        kecamatanId={kecamatanId}
+        onKecamatanChange={setKecamatanId}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
         dateFrom={dateFrom}
         dateTo={dateTo}
-        userId={userId}
-        kabupatenId={kabupatenId}
-        kecamatanId={kecamatanId}
-        label={label}
-        showUserFilter={isPrivileged}
-        scopeKabupatenIds={scopeKabupatenIds}
         onDateFromChange={setDateFrom}
         onDateToChange={setDateTo}
-        onUserChange={setUserId}
-        onKabupatenChange={setKabupatenId}
-        onKecamatanChange={setKecamatanId}
+        varietas={varietas}
+        onVarietasChange={setVarietas}
+        panenStatus={panenStatus}
+        onPanenStatusChange={setPanenStatus}
+        label={label}
         onLabelChange={setLabel}
-        onReset={handleReset}
+        hidePetugasFilter={!isPrivileged}
+        scopeKabupatenIds={scopeKabupatenIds}
       />
 
       {isLoading && <LoadingState variant="card" count={4} />}

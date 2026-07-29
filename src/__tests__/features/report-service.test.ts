@@ -96,6 +96,8 @@ describe("report-service", () => {
           user_name: "John", kabupaten_name: "Kab A", kecamatan_name: "Kec B", desa_name: "Desa C",
           has_notes: false,
           rencana_panen: null, real_panen: null, tgl_panen: null, label: null,
+          member_name: null, block_no: null, no_plot: null, nis: null, cgr: null, varietas: null, panen_status: null,
+          ph_tanah: null, tgl_tanam: null, real_tanam_ha: null, gagal_tanam: null, sisa_di_lahan_ha: null, detaseling: null,
         },
       ];
       const result = await exportToExcel(rows);
