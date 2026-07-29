@@ -363,19 +363,38 @@ export async function bulkImportSchedules(
     const unique = dedupeSchedules(schedulesToInsert);
 
     // Update existing records, insert new ones.
-    // When updating, preserve status if already 'completed'.
-    const existingMap = new Map<string, Array<{ id: string; status: string }>>();
+    // Derive status from real_tanam_ha & gagal_tanam instead of blindly resetting.
+    const existingMap = new Map<
+      string,
+      Array<{
+        id: string;
+        status: string;
+        real_tanam_ha?: number | null;
+        gagal_tanam?: number | null;
+        tgl_panen?: string | null;
+        real_panen?: string | null;
+      }>
+    >();
     const allUserIds = [...new Set(unique.map((r) => r.user_id))];
     if (allUserIds.length > 0) {
       const { data: existingRows } = await admin
         .from("schedules")
-        .select("id, user_id, desa_id, visit_date, block_no, no_plot, member_name, status")
+        .select(
+          "id, user_id, desa_id, visit_date, block_no, no_plot, member_name, status, real_tanam_ha, gagal_tanam, tgl_panen, real_panen",
+        )
         .in("user_id", allUserIds)
         .is("deleted_at", null);
       for (const row of existingRows ?? []) {
         const k = makeKey(row);
         const arr = existingMap.get(k) ?? [];
-        arr.push({ id: row.id, status: row.status });
+        arr.push({
+          id: row.id,
+          status: row.status,
+          real_tanam_ha: row.real_tanam_ha,
+          gagal_tanam: row.gagal_tanam,
+          tgl_panen: row.tgl_panen,
+          real_panen: row.real_panen,
+        });
         existingMap.set(k, arr);
       }
     }
@@ -395,7 +414,7 @@ export async function bulkImportSchedules(
       const matches = existingMap.get(k);
       if (matches && matches.length > 0) {
         for (const match of matches) {
-          const { id, status: currentStatus } = match;
+          const { id, status: currentStatus, real_tanam_ha: exReal, gagal_tanam: exGagal, tgl_panen: exTgl, real_panen: exRealPanen } = match;
           const updateData: Record<string, unknown> = {};
           if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
           if (r.cgr !== undefined) updateData.cgr = r.cgr;
@@ -419,8 +438,21 @@ export async function bulkImportSchedules(
           if (r.visit_time !== undefined) updateData.visit_time = r.visit_time;
           if (r.notes !== undefined) updateData.notes = r.notes;
           if (r.panen_keterangan !== undefined) updateData.panen_keterangan = r.panen_keterangan;
-          if (currentStatus !== "completed") {
-            updateData.status = "pending";
+          // Derive status from merged data (existing + new) instead of blindly resetting
+          if (currentStatus === "completed") {
+            // preserve completed status
+          } else {
+            const merged = {
+              real_tanam_ha: (r.real_tanam_ha !== undefined ? r.real_tanam_ha : exReal) ?? undefined,
+              gagal_tanam: (r.gagal_tanam !== undefined ? r.gagal_tanam : exGagal) ?? undefined,
+              tgl_panen: (r.tgl_panen !== undefined ? r.tgl_panen : exTgl) ?? undefined,
+              real_panen: (r.real_panen !== undefined ? r.real_panen : exRealPanen) ?? undefined,
+            };
+            const derived = deriveScheduleStatus(merged);
+            if (derived) {
+              updateData.status = derived.status;
+              if (derived.panen_keterangan) updateData.panen_keterangan = derived.panen_keterangan;
+            }
           }
           updateData.updated_at = new Date().toISOString();
           if (Object.keys(updateData).length > 1) {
