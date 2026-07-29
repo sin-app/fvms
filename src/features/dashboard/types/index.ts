@@ -7,6 +7,7 @@ export interface DashboardStats {
   lateCount: number;
   completedCount: number;
   pendingCount: number;
+  gagalPartialCount: number;
   totalThisMonth: number;
   sudahPanenCount: number;
   jatuhTempoCount: number;

@@ -18,6 +18,7 @@ const STATUS_COLORS_CHART = {
   completed: "#22c55e",
   pending: "#f59e0b",
   in_progress: "#8b5cf6",
+  gagal_partial: "#f97316",
   gagal_total: "#ef4444",
 };
 
@@ -30,6 +31,7 @@ export function ReportCharts({ data }: ReportChartsProps) {
     { name: "Completed", value: data.completed, color: STATUS_COLORS_CHART.completed },
     { name: "Pending", value: data.pending, color: STATUS_COLORS_CHART.pending },
     { name: "In Progress", value: data.in_progress, color: STATUS_COLORS_CHART.in_progress },
+    { name: "Gagal Partial", value: data.gagal_partial, color: STATUS_COLORS_CHART.gagal_partial },
     { name: "Gagal Total", value: data.gagal_total, color: STATUS_COLORS_CHART.gagal_total },
   ].filter((d) => d.value > 0);
 

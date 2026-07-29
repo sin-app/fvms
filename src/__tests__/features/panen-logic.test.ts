@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcRencanaPanen, getPanenStatus } from "@/features/panen/services/panen-logic";
+import { calcRencanaPanen, getPanenStatus, deriveScheduleStatus } from "@/features/panen/services/panen-logic";
 
 describe("calcRencanaPanen", () => {
   it("returns null when tgl_tanam is missing", () => {
@@ -50,5 +50,50 @@ describe("getPanenStatus", () => {
     const result = getPanenStatus({});
     expect(result.label).toBe("—");
     expect(result.harvested).toBe(false);
+  });
+});
+
+describe("deriveScheduleStatus", () => {
+  it("returns null when real_tanam_ha is missing", () => {
+    expect(deriveScheduleStatus({ gagal_tanam: 1 })).toBeNull();
+  });
+
+  it("returns null when gagal_tanam is missing", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10 })).toBeNull();
+  });
+
+  it("returns gagal_total when sisa <= 0 and no panen", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10 });
+    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
+  });
+
+  it("returns gagal_total when gagal exceeds real_tanam and no panen", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 5, gagal_tanam: 8 });
+    expect(result).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
+  });
+
+  it("returns pending when gagal_tanam is 0 and no panen", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0 });
+    expect(result).toEqual({ status: "pending" });
+  });
+
+  it("returns gagal_partial when 0 < sisa < real_tanam and no panen", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3 });
+    expect(result).toEqual({ status: "gagal_partial" });
+  });
+
+  it("returns completed when sisa <= 0 and tgl_panen is set", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10, tgl_panen: "2026-07-01" });
+    expect(result).toEqual({ status: "completed" });
+  });
+
+  it("returns completed when sisa <= 0 and real_panen is set", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10, real_panen: "2026-07-01" });
+    expect(result).toEqual({ status: "completed" });
+  });
+
+  it("handles partial failure with real_panen set", () => {
+    const result = deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3, real_panen: "2026-07-01" });
+    expect(result).toBeNull();
   });
 });

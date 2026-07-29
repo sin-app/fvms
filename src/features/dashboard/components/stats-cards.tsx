@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, CalendarClock, CalendarX, CheckCircle2, ListTodo, AlertTriangle, Sprout, Timer, EyeOff } from "lucide-react";
+import { CalendarCheck, CalendarClock, CalendarX, CheckCircle2, ListTodo, AlertTriangle, Sprout, Timer, EyeOff, AlertOctagon } from "lucide-react";
 import { StatCard } from "@/components/shared/stat-card";
 import type { DashboardStats } from "../types";
 
@@ -47,6 +47,13 @@ export function StatsCards({ stats }: StatsCardsProps) {
         value={stats.pendingCount}
         icon={<CalendarX className="h-5 w-5 text-muted-foreground" />}
       />
+      {stats.gagalPartialCount > 0 && (
+        <StatCard
+          title="Gagal Partial (Bulan Ini)"
+          value={stats.gagalPartialCount}
+          icon={<AlertOctagon className="h-5 w-5 text-orange-500" />}
+        />
+      )}
       <StatCard
         title="Sudah Panen"
         value={stats.sudahPanenCount}

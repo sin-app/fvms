@@ -71,6 +71,10 @@ export async function getDashboardData(
     .eq("status", "pending")
     .gte("visit_date", today)
     .lte("visit_date", monthEnd);
+  const gagalPartialQuery = applyFilters(baseQuery())
+    .eq("status", "gagal_partial")
+    .gte("visit_date", monthStart)
+    .lte("visit_date", monthEnd);
   const monthQuery = applyFilters(baseQuery())
     .gte("visit_date", monthStart)
     .lte("visit_date", monthEnd);
@@ -93,6 +97,7 @@ export async function getDashboardData(
     lateQuery,
     completedQuery,
     pendingQuery,
+    gagalPartialQuery,
     monthQuery,
     sudahPanenQuery,
     jatuhTempoQuery,
@@ -106,10 +111,11 @@ export async function getDashboardData(
     lateCount: counts[3].count ?? 0,
     completedCount: counts[4].count ?? 0,
     pendingCount: counts[5].count ?? 0,
-    totalThisMonth: counts[6].count ?? 0,
-    sudahPanenCount: counts[7].count ?? 0,
-    jatuhTempoCount: counts[8].count ?? 0,
-    belumPanenCount: counts[9].count ?? 0,
+    gagalPartialCount: counts[6].count ?? 0,
+    totalThisMonth: counts[7].count ?? 0,
+    sudahPanenCount: counts[8].count ?? 0,
+    jatuhTempoCount: counts[9].count ?? 0,
+    belumPanenCount: counts[10].count ?? 0,
   };
 
   const [todaySchedulesRes, upcomingSchedulesRes, recentActivityRes] = await Promise.all([
