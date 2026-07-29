@@ -1,5 +1,10 @@
 # FVMS - Field Visit Management System
 
+## Deployment Workflow
+- Setelah setiap commit + push ke `main`, **WAJIB** cek status deploy Vercel via API.
+- Gunakan `$VERCEL_TOKEN` + `https://api.vercel.com/v6/deployments?limit=3&target=production` untuk verifikasi.
+- Laporkan status (SHA, state, timestamp) ke user. Jika ERROR, segera investigasi.
+
 ## Project Overview
 
 Modern web application for Field Officers (Produksi) to manage field visit schedules. Replaces manual Excel-based workflow with a professional, mobile-first web application.
