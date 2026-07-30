@@ -35,14 +35,23 @@ export function deriveScheduleStatus(input: {
 }): { status: string; panen_keterangan?: string } | null {
   const { real_tanam_ha, gagal_tanam, sisa_di_lahan_ha } = input;
 
-  if (sisa_di_lahan_ha != null) {
-    if (sisa_di_lahan_ha <= 0) {
+  if (sisa_di_lahan_ha != null && sisa_di_lahan_ha === 0) {
+    if (gagal_tanam == null || gagal_tanam <= 0) {
       return { status: "completed" };
     }
-    if (gagal_tanam != null && gagal_tanam > 0) {
-      return { status: "gagal_partial" };
+    if (real_tanam_ha != null && real_tanam_ha - gagal_tanam === 0) {
+      return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
     }
-    return { status: "pending" };
+    return { status: "completed" };
+  }
+
+  if (
+    sisa_di_lahan_ha != null && sisa_di_lahan_ha > 0 &&
+    gagal_tanam != null && gagal_tanam > 0 &&
+    real_tanam_ha != null &&
+    real_tanam_ha - gagal_tanam === sisa_di_lahan_ha
+  ) {
+    return { status: "gagal_partial" };
   }
 
   if (real_tanam_ha != null && gagal_tanam != null && gagal_tanam > 0) {

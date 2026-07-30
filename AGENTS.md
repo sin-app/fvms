@@ -45,11 +45,11 @@ All status transitions are unrestricted (any → any). Transitions defined in `S
 - **Intra-file dedup** — duplicate rows within same Excel file are skipped
 - **Status preservation** — records already marked `completed` in the app keep their status
 - **Auto-derivation** (`deriveScheduleStatus()` in `src/features/panen/services/panen-logic.ts`):
-  - `sisa_di_lahan_ha = 0` → `completed` (dengan/tanpa gagal tanam)
-  - `sisa_di_lahan_ha > 0` + `gagal_tanam > 0` → `gagal_partial`
-  - `sisa_di_lahan_ha > 0` + `gagal_tanam ≤ 0` → `pending`
-  - `sisa_di_lahan_ha = null` + `real_tanam_ha = gagal_tanam > 0` → `gagal_total`
-  - Lainnya → `null` (gunakan status DB apa adanya)
+  - `sisa_di_lahan_ha = 0` + `gagal_tanam` null/0 → `completed`
+  - `sisa_di_lahan_ha = 0` + `gagal_tanam > 0` + `real-gagal = 0` → `gagal_total`
+  - `sisa_di_lahan_ha > 0` + `gagal_tanam > 0` + `real-gagal = sisa` → `gagal_partial`
+  - `sisa_di_lahan_ha = null` + `real ≤ gagal` + `gagal > 0` → `gagal_total`
+  - Lainnya → `null` (aktivitas menentukan pending/in_progress)
 - **Master data auto-creation** — kabupaten/kecamatan/desa/users are auto-created if missing
 - **Reset** — separate `resetAllData` action (admin-only) wipes all operational data
 
