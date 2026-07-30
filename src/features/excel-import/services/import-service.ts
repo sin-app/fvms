@@ -392,6 +392,9 @@ export async function bulkImportSchedules(
         gagal_tanam?: number | null;
         tgl_panen?: string | null;
         real_panen?: string | null;
+        visit_time?: string | null;
+        notes?: string | null;
+        latitude?: number | null;
       }>
     >();
     const allUserIds = [...new Set(unique.map((r) => r.user_id))];
@@ -399,7 +402,7 @@ export async function bulkImportSchedules(
       const { data: existingRows } = await admin
         .from("schedules")
         .select(
-          "id, user_id, desa_id, visit_date, block_no, no_plot, member_name, status, real_tanam_ha, gagal_tanam, tgl_panen, real_panen",
+          "id, user_id, desa_id, visit_date, block_no, no_plot, member_name, status, real_tanam_ha, gagal_tanam, tgl_panen, real_panen, visit_time, notes, latitude",
         )
         .in("user_id", allUserIds)
         .is("deleted_at", null);
@@ -413,6 +416,9 @@ export async function bulkImportSchedules(
           gagal_tanam: row.gagal_tanam,
           tgl_panen: row.tgl_panen,
           real_panen: row.real_panen,
+          visit_time: row.visit_time,
+          notes: row.notes,
+          latitude: row.latitude,
         });
         existingMap.set(k, arr);
       }
@@ -433,7 +439,7 @@ export async function bulkImportSchedules(
       const matches = existingMap.get(k);
       if (matches && matches.length > 0) {
         for (const match of matches) {
-          const { id, status: currentStatus, real_tanam_ha: exReal, gagal_tanam: exGagal, tgl_panen: exTgl, real_panen: exRealPanen } = match;
+          const { id, status: currentStatus, real_tanam_ha: exReal, gagal_tanam: exGagal, tgl_panen: exTgl, real_panen: exRealPanen, visit_time: exVisit, notes: exNotes, latitude: exLat } = match;
           const updateData: Record<string, unknown> = {};
           if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
           if (r.cgr !== undefined) updateData.cgr = r.cgr;
@@ -461,10 +467,12 @@ export async function bulkImportSchedules(
           if (currentStatus === "completed") {
             // preserve completed status
           } else {
+            const hasActivity = !!(exVisit || exNotes || exLat);
             const merged = {
               real_tanam_ha: (r.real_tanam_ha !== undefined ? r.real_tanam_ha : exReal) ?? undefined,
               gagal_tanam: (r.gagal_tanam !== undefined ? r.gagal_tanam : exGagal) ?? undefined,
               sisa_di_lahan_ha: (r.sisa_di_lahan_ha !== undefined ? r.sisa_di_lahan_ha : undefined) ?? undefined,
+              hasActivity,
             };
             const derived = deriveScheduleStatus(merged);
             if (derived) {
@@ -557,6 +565,7 @@ export function applyAutoDerivation(
       real_tanam_ha: s.real_tanam_ha,
       gagal_tanam: s.gagal_tanam,
       sisa_di_lahan_ha: s.sisa_di_lahan_ha,
+      hasActivity: false,
     });
     if (derived) {
       s.status = derived.status;
