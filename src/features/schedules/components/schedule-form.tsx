@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,19 @@ export function ScheduleForm({
   const [kabupatenId, setKabupatenId] = useState(defaultValues?.kabupaten_id ?? "");
   const [kecamatanId, setKecamatanId] = useState(defaultValues?.kecamatan_id ?? "");
   const [desaId, setDesaId] = useState(defaultValues?.desa_id ?? "");
+
+  const [realTanamStr, setRealTanamStr] = useState(defaultValues?.real_tanam_ha?.toString() ?? "");
+  const [gagalTanamStr, setGagalTanamStr] = useState(defaultValues?.gagal_tanam?.toString() ?? "");
+  const sisaRef = useRef<HTMLInputElement>(null);
+
+  const autoCalcSisa = useCallback((real: string, gagal: string) => {
+    const r = parseFloat(real);
+    const g = parseFloat(gagal);
+    if (!isNaN(r) && !isNaN(g)) {
+      const sisa = r - g;
+      if (sisaRef.current) sisaRef.current.value = sisa >= 0 ? sisa.toFixed(2) : "0";
+    }
+  }, []);
 
   const { data: users } = useAllUsers(kabupatenId);
   const { user } = useAuth();
@@ -187,6 +200,11 @@ export function ScheduleForm({
                 step="0.01"
                 defaultValue={defaultValues?.real_tanam_ha ?? ""}
                 className={cn(state.fieldErrors?.real_tanam_ha && "border-destructive")}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setRealTanamStr(v);
+                  autoCalcSisa(v, gagalTanamStr);
+                }}
               />
               {state.fieldErrors?.real_tanam_ha && (
                 <p className="text-sm text-destructive">{state.fieldErrors.real_tanam_ha[0]}</p>
@@ -201,6 +219,11 @@ export function ScheduleForm({
                 step="0.01"
                 defaultValue={defaultValues?.gagal_tanam ?? ""}
                 className={cn(state.fieldErrors?.gagal_tanam && "border-destructive")}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setGagalTanamStr(v);
+                  autoCalcSisa(realTanamStr, v);
+                }}
               />
               {state.fieldErrors?.gagal_tanam && (
                 <p className="text-sm text-destructive">{state.fieldErrors.gagal_tanam[0]}</p>
@@ -226,6 +249,7 @@ export function ScheduleForm({
                 type="number"
                 step="0.01"
                 defaultValue={defaultValues?.sisa_di_lahan_ha ?? ""}
+                ref={sisaRef}
                 className={cn(state.fieldErrors?.sisa_di_lahan_ha && "border-destructive")}
               />
               {state.fieldErrors?.sisa_di_lahan_ha && (

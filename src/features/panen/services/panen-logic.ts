@@ -32,8 +32,9 @@ export function deriveScheduleStatus(input: {
   real_tanam_ha?: number | null;
   gagal_tanam?: number | null;
   sisa_di_lahan_ha?: number | null;
+  hasActivity?: boolean;
 }): { status: string; panen_keterangan?: string } | null {
-  const { real_tanam_ha, gagal_tanam, sisa_di_lahan_ha } = input;
+  const { real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, hasActivity } = input;
 
   if (sisa_di_lahan_ha != null && sisa_di_lahan_ha === 0) {
     if (gagal_tanam == null || gagal_tanam <= 0) {
@@ -59,6 +60,10 @@ export function deriveScheduleStatus(input: {
     if (sisa <= 0) {
       return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
     }
+  }
+
+  if (hasActivity != null) {
+    return { status: hasActivity ? "in_progress" : "pending" };
   }
 
   return null;

@@ -49,7 +49,9 @@ All status transitions are unrestricted (any → any). Transitions defined in `S
   - `sisa_di_lahan_ha = 0` + `gagal_tanam > 0` + `real-gagal = 0` → `gagal_total`
   - `sisa_di_lahan_ha > 0` + `gagal_tanam > 0` + `real-gagal = sisa` → `gagal_partial`
   - `sisa_di_lahan_ha = null` + `real ≤ gagal` + `gagal > 0` → `gagal_total`
-  - Lainnya → `null` (aktivitas menentukan pending/in_progress)
+  - Jika formula tidak match + `hasActivity = true` → `in_progress`
+  - Jika formula tidak match + `hasActivity = false` → `pending`
+  - Jika formula tidak match + `hasActivity = undefined` → `null` (fallback ke status DB)
 - **Master data auto-creation** — kabupaten/kecamatan/desa/users are auto-created if missing
 - **Reset** — separate `resetAllData` action (admin-only) wipes all operational data
 

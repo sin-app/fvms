@@ -46,15 +46,17 @@ export async function savePanenAction(
       // When panen is cleared, re-derive status from real_tanam_ha/gagal_tanam
       const { data: schedule } = await admin
         .from("schedules")
-        .select("real_tanam_ha, gagal_tanam, sisa_di_lahan_ha")
+        .select("real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, visit_time, notes, latitude")
         .eq("id", raw.schedule_id)
         .is("deleted_at", null)
         .single();
       if (schedule) {
+        const hasActivity = !!(schedule.visit_time || schedule.notes || schedule.latitude);
         const derived = deriveScheduleStatus({
           real_tanam_ha: schedule.real_tanam_ha,
           gagal_tanam: schedule.gagal_tanam,
           sisa_di_lahan_ha: schedule.sisa_di_lahan_ha,
+          hasActivity,
         });
         if (derived) {
           update.status = derived.status;

@@ -22,7 +22,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   let query = admin
     .from("schedules")
-    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, tgl_panen, real_panen, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time", { count: "exact" })
+    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, tgl_panen, real_panen, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time, notes, latitude", { count: "exact" })
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to);
@@ -79,10 +79,13 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   // Derive actual status from real_tanam_ha/gagal_tanam, not just stored status
   const schedules = rawSchedules.map((s) => {
+    const row = s as unknown as ReportRowRelation;
+    const hasActivity = row.visit_time != null || row.notes != null || row.latitude != null;
     const derived = deriveScheduleStatus({
-      real_tanam_ha: (s as unknown as ReportRowRelation).real_tanam_ha,
-      gagal_tanam: (s as unknown as ReportRowRelation).gagal_tanam,
-      sisa_di_lahan_ha: (s as unknown as ReportRowRelation).sisa_di_lahan_ha,
+      real_tanam_ha: row.real_tanam_ha,
+      gagal_tanam: row.gagal_tanam,
+      sisa_di_lahan_ha: row.sisa_di_lahan_ha,
+      hasActivity,
     });
     return {
       ...s,
@@ -205,6 +208,8 @@ interface ReportRowRelation {
   kabupaten_id: string;
   kecamatan_id: string;
   visit_time: string | null;
+  notes: string | null;
+  latitude: number | null;
   rencana_panen: string | null;
   real_panen: string | null;
   tgl_panen: string | null;

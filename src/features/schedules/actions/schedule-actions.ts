@@ -26,7 +26,7 @@ export async function createScheduleAction(
   const parsed = parseAndValidateSchedule(formData);
   if (!parsed.success) return parsed;
 
-  const derived = deriveScheduleStatus(parsed.data);
+  const derived = deriveScheduleStatus({ ...parsed.data, hasActivity: false });
   if (derived) {
     parsed.data.status = derived.status;
     if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
@@ -60,7 +60,16 @@ export async function updateScheduleAction(
   const parsed = parseAndValidateSchedule(formData);
   if (!parsed.success) return parsed;
 
-  const derived = deriveScheduleStatus(parsed.data);
+  // Check if schedule has activity (visit_time, notes, latitude) to derive pending/in_progress
+  const { data: existing } = await createAdminClient()
+    .from("schedules")
+    .select("visit_time, notes, latitude")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  const hasActivity = !!(existing?.visit_time || existing?.notes || existing?.latitude);
+  const derived = deriveScheduleStatus({ ...parsed.data, hasActivity });
   if (derived) {
     parsed.data.status = derived.status;
     if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;

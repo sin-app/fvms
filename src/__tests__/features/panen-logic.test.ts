@@ -108,4 +108,33 @@ describe("deriveScheduleStatus", () => {
   it("returns null when sisa is null and partial failure (sisa > 0)", () => {
     expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3 })).toBeNull();
   });
+
+  // ── hasActivity fallback (pending / in_progress) ──
+  it("returns pending when hasActivity=false and formula doesn't match", () => {
+    expect(deriveScheduleStatus({ hasActivity: false })).toEqual({ status: "pending" });
+  });
+
+  it("returns in_progress when hasActivity=true and formula doesn't match", () => {
+    expect(deriveScheduleStatus({ hasActivity: true })).toEqual({ status: "in_progress" });
+  });
+
+  it("returns pending when sisa>0, gagal=0, hasActivity=false", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0, sisa_di_lahan_ha: 10, hasActivity: false })).toEqual({ status: "pending" });
+  });
+
+  it("returns in_progress when sisa>0, gagal=0, hasActivity=true", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 0, sisa_di_lahan_ha: 10, hasActivity: true })).toEqual({ status: "in_progress" });
+  });
+
+  it("returns gagal_partial even when hasActivity=false (formula takes priority)", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 3, sisa_di_lahan_ha: 7, hasActivity: false })).toEqual({ status: "gagal_partial" });
+  });
+
+  it("returns completed even when hasActivity=false (formula takes priority)", () => {
+    expect(deriveScheduleStatus({ sisa_di_lahan_ha: 0, hasActivity: false })).toEqual({ status: "completed" });
+  });
+
+  it("returns gagal_total even when hasActivity=false (formula takes priority)", () => {
+    expect(deriveScheduleStatus({ real_tanam_ha: 10, gagal_tanam: 10, sisa_di_lahan_ha: 0, hasActivity: false })).toEqual({ status: "gagal_total", panen_keterangan: "Bongkar Total" });
+  });
 });
