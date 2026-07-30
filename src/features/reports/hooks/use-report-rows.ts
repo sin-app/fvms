@@ -8,6 +8,5 @@ export function useReportRows(filters: ReportFilters) {
   return useQuery({
     queryKey: ["report-rows", filters],
     queryFn: () => fetchReportRows(filters),
-    placeholderData: (prev) => prev,
   });
 }

@@ -61,7 +61,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     if (filters.panen_status === "sudah") {
       query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
     } else if (filters.panen_status === "jatuh_tempo") {
-      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString()).not("status", "in", "(completed,gagal_total)");
+      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString());
     } else if (filters.panen_status === "belum") {
       query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
     }
@@ -293,7 +293,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     if (filters.panen_status === "sudah") {
       query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
     } else if (filters.panen_status === "jatuh_tempo") {
-      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString()).not("status", "in", "(completed,gagal_total)");
+      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString());
     } else if (filters.panen_status === "belum") {
       query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
     }

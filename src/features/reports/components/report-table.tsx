@@ -17,7 +17,6 @@ interface ReportTableProps {
 }
 
 export function ReportTable({ rows, onDownload, downloading }: ReportTableProps) {
-  const today = todayString();
 
   function handleDownloadPdf() {
     if (!rows.length) return;
@@ -41,7 +40,7 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
       detaseling: r.detaseling ?? "—",
       status: STATUS_LABELS[r.status as keyof typeof STATUS_LABELS] ?? r.status,
       label: r.label ?? "—",
-      panen: r.tgl_panen ?? r.real_panen ?? "—",
+      panen: r.panen_status ?? "—",
     }));
     exportPdf(
       "Laporan Kunjungan Lapangan",
@@ -141,19 +140,21 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
                     <LabelBadge label={row.label} />
                   </td>
                   <td className="p-3 whitespace-nowrap">
-                    {row.tgl_panen || row.real_panen ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950 rounded-full px-2 py-0.5">
-                        <Sprout className="h-3 w-3" />
-                        {row.tgl_panen ?? row.real_panen}
-                      </span>
-                    ) : row.rencana_panen && row.rencana_panen <= today ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded-full px-2 py-0.5">
-                        Jatuh Tempo {row.rencana_panen}
-                      </span>
-                    ) : row.rencana_panen ? (
-                      <span className="text-xs text-muted-foreground">
-                        Renc: {row.rencana_panen}
-                      </span>
+                    {row.panen_status && row.panen_status !== "—" ? (
+                      row.panen_status.startsWith("Panen") ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950 rounded-full px-2 py-0.5">
+                          <Sprout className="h-3 w-3" />
+                          {row.panen_status}
+                        </span>
+                      ) : row.panen_status.startsWith("Jatuh Tempo") ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded-full px-2 py-0.5">
+                          {row.panen_status}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {row.panen_status}
+                        </span>
+                      )
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
