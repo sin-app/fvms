@@ -175,7 +175,7 @@ export async function createSchedule(data: {
   const admin = createAdminClient();
   const { data: result, error } = await admin
     .from("schedules")
-    .insert({ ...data, created_by: data.user_id, status: "pending" })
+    .insert({ ...data, created_by: data.user_id, status: data.status || "pending" })
     .select()
     .single();
 
