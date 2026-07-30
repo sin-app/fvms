@@ -78,7 +78,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   }
 
   // Derive actual status from real_tanam_ha/gagal_tanam, not just stored status
-  const schedules = rawSchedules.map((s) => {
+  const rawSchedulesWithStatus = rawSchedules.map((s) => {
     const row = s as unknown as ReportRowRelation;
     const hasActivity = row.visit_time != null || row.notes != null || row.latitude != null;
     const derived = deriveScheduleStatus({
@@ -92,6 +92,10 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
       actualStatus: derived ? derived.status : s.status,
     };
   });
+
+  const schedules = filters.status
+    ? rawSchedulesWithStatus.filter((s) => s.actualStatus === filters.status)
+    : rawSchedulesWithStatus;
 
   const total = schedules.length;
   const completed = schedules.filter((s) => s.actualStatus === "completed").length;
@@ -248,7 +252,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   let query = admin
     .from("schedules")
-    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, member_name, block_no, no_plot, nis, cgr, document_no, tgl_tanam, ph_tanah, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), desa(name)")
+    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, member_name, block_no, no_plot, nis, cgr, document_no, tgl_tanam, ph_tanah, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, notes, latitude, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), desa(name)")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to)
@@ -300,7 +304,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
   if (!data) return [];
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return (data as unknown as ReportRowRelation[]).map((s) => {
+  let rows = (data as unknown as ReportRowRelation[]).map((s) => {
     const ps = getPanenStatus({
       tgl_panen: s.tgl_panen,
       real_panen: s.real_panen,
@@ -308,10 +312,12 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
       tgl_tanam: s.tgl_tanam,
       cgr: s.cgr,
     });
+    const hasActivity = s.visit_time != null || s.notes != null || s.latitude != null;
     const derived = deriveScheduleStatus({
       real_tanam_ha: s.real_tanam_ha,
       gagal_tanam: s.gagal_tanam,
       sisa_di_lahan_ha: s.sisa_di_lahan_ha,
+      hasActivity,
     });
     const actualStatus = derived ? derived.status : s.status;
     return {
@@ -323,7 +329,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
       desa_name: s.desa?.name ?? "—",
       status: actualStatus,
       visit_time: s.visit_time,
-      has_notes: false,
+      has_notes: s.notes != null && s.notes.length > 0,
       rencana_panen: s.rencana_panen ?? null,
       real_panen: s.real_panen ?? null,
       tgl_panen: s.tgl_panen ?? null,
@@ -343,6 +349,12 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
       detaseling: s.detaseling ?? null,
     };
   });
+
+  if (filters.status) {
+    rows = rows.filter((r) => r.status === filters.status);
+  }
+
+  return rows;
 }
 
 export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
