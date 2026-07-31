@@ -12,6 +12,7 @@ interface FlatItem {
   label: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  hideInBottomNav?: boolean;
 }
 
 function flatten(items: typeof navItems): FlatItem[] {
@@ -19,10 +20,10 @@ function flatten(items: typeof navItems): FlatItem[] {
   for (const item of items) {
     if (item.children) {
       for (const child of item.children) {
-        out.push({ href: child.href, label: child.label, icon: item.icon, adminOnly: item.adminOnly });
+        out.push({ href: child.href, label: child.label, icon: item.icon, adminOnly: item.adminOnly, hideInBottomNav: item.hideInBottomNav });
       }
     } else if (item.href) {
-      out.push({ href: item.href, label: item.label, icon: item.icon, adminOnly: item.adminOnly });
+      out.push({ href: item.href, label: item.label, icon: item.icon, adminOnly: item.adminOnly, hideInBottomNav: item.hideInBottomNav });
     }
   }
   return out;
@@ -33,7 +34,9 @@ export function BottomNav() {
   const { user } = useAuth();
 
   const items = flatten(navItems).filter(
-    (item) => !item.adminOnly || user?.role === "admin",
+    (item) =>
+      (!item.adminOnly || user?.role === "admin") &&
+      !item.hideInBottomNav,
   );
 
   const allItems: FlatItem[] = [

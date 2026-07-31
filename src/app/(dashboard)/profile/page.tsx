@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { ChevronRight, Settings } from "lucide-react";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { ProfileForm } from "@/features/auth/components/profile-form";
 import { PageHeader } from "@/components/shared/page-header";
@@ -38,6 +40,17 @@ export default function ProfilePage() {
         </div>
 
         <ProfileForm user={user} />
+      </div>
+
+      <div className="mt-4 rounded-xl border bg-card divide-y">
+        <Link
+          href="/settings"
+          className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium hover:bg-muted/50 transition-colors"
+        >
+          <Settings className="h-4 w-4 text-muted-foreground" />
+          Pengaturan
+          <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
+        </Link>
       </div>
     </div>
   );
