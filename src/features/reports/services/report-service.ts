@@ -4,7 +4,6 @@ import { todayString } from "@/lib/utils/date";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
-import { SCHEDULE_STATUSES } from "@/lib/constants/status";
 import { deriveScheduleStatus, getPanenStatus } from "@/features/panen/services/panen-logic";
 
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
@@ -22,7 +21,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   let query = admin
     .from("schedules")
-    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, tgl_panen, real_panen, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time, notes, latitude", { count: "exact" })
+    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, tgl_panen, real_panen, rencana_panen, tgl_tanam, cgr, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time, notes, latitude", { count: "exact" })
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to);
@@ -57,15 +56,6 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   if (filters.varietas) {
     query = query.ilike("document_no", `%${filters.varietas}%`);
   }
-  if (filters.panen_status && filters.panen_status !== "all") {
-    if (filters.panen_status === "sudah") {
-      query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
-    } else if (filters.panen_status === "jatuh_tempo") {
-      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString());
-    } else if (filters.panen_status === "belum") {
-      query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
-    }
-  }
 
   const { data: rawSchedules } = await query;
 
@@ -77,7 +67,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     };
   }
 
-  // Derive actual status from real_tanam_ha/gagal_tanam, not just stored status
+  // Derive actual status and panen_status from data, not just stored DB values
   const rawSchedulesWithStatus = rawSchedules.map((s) => {
     const row = s as unknown as ReportRowRelation;
     const hasActivity = row.visit_time != null || row.notes != null || row.latitude != null;
@@ -87,15 +77,34 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
       sisa_di_lahan_ha: row.sisa_di_lahan_ha,
       hasActivity,
     });
+    const ps = getPanenStatus({
+      tgl_panen: row.tgl_panen,
+      real_panen: row.real_panen,
+      rencana_panen: row.rencana_panen,
+      tgl_tanam: row.tgl_tanam,
+      cgr: row.cgr,
+    });
     return {
       ...s,
       actualStatus: derived ? derived.status : s.status,
+      actualPanenStatus: ps,
     };
   });
 
-  const schedules = filters.status
+  let schedules = filters.status
     ? rawSchedulesWithStatus.filter((s) => s.actualStatus === filters.status)
     : rawSchedulesWithStatus;
+
+  if (filters.panen_status && filters.panen_status !== "all") {
+    const ps = filters.panen_status;
+    schedules = schedules.filter((s) => {
+      const label = s.actualPanenStatus.label;
+      if (ps === "sudah") return label === "Panen";
+      if (ps === "jatuh_tempo") return label === "Jatuh Tempo";
+      if (ps === "belum") return label !== "Panen" && label !== "Jatuh Tempo";
+      return true;
+    });
+  }
 
   const total = schedules.length;
   const completed = schedules.filter((s) => s.actualStatus === "completed").length;
@@ -225,7 +234,7 @@ interface ReportRowRelation {
   cgr: string | null;
   document_no: string | null;
   tgl_tanam: string | null;
-  ph_tanah: string | null;
+  ph_tanah: number | null;
   real_tanam_ha: number | null;
   gagal_tanam: number | null;
   sisa_di_lahan_ha: number | null;
@@ -289,16 +298,6 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
   if (filters.varietas) {
     query = query.ilike("document_no", `%${filters.varietas}%`);
   }
-  if (filters.panen_status && filters.panen_status !== "all") {
-    if (filters.panen_status === "sudah") {
-      query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
-    } else if (filters.panen_status === "jatuh_tempo") {
-      query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString());
-    } else if (filters.panen_status === "belum") {
-      query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
-    }
-  }
-
   const { data } = await query;
 
   if (!data) return [];
@@ -352,6 +351,16 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   if (filters.status) {
     rows = rows.filter((r) => r.status === filters.status);
+  }
+
+  if (filters.panen_status && filters.panen_status !== "all") {
+    const ps = filters.panen_status;
+    rows = rows.filter((r) => {
+      if (ps === "sudah") return r.panen_status === "Panen";
+      if (ps === "jatuh_tempo") return r.panen_status === "Jatuh Tempo";
+      if (ps === "belum") return r.panen_status !== "Panen" && r.panen_status !== "Jatuh Tempo";
+      return true;
+    });
   }
 
   return rows;

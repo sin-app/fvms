@@ -19,7 +19,7 @@ export interface ReportRow {
   cgr: string | null;
   varietas: string | null;
   panen_status: string | null;
-  ph_tanah: string | null;
+  ph_tanah: number | null;
   tgl_tanam: string | null;
   real_tanam_ha: number | null;
   gagal_tanam: number | null;

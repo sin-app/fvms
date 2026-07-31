@@ -60,16 +60,21 @@ export async function updateScheduleAction(
   const parsed = parseAndValidateSchedule(formData);
   if (!parsed.success) return parsed;
 
-  // Check if schedule has activity (visit_time, notes, latitude) to derive pending/in_progress
+  // Fetch existing DB values so derivation uses actual data when form fields are empty
   const { data: existing } = await createAdminClient()
     .from("schedules")
-    .select("visit_time, notes, latitude")
+    .select("visit_time, notes, latitude, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
 
   const hasActivity = !!(existing?.visit_time || existing?.notes || existing?.latitude);
-  const derived = deriveScheduleStatus({ ...parsed.data, hasActivity });
+  const derived = deriveScheduleStatus({
+    real_tanam_ha: parsed.data.real_tanam_ha ?? existing?.real_tanam_ha ?? undefined,
+    gagal_tanam: parsed.data.gagal_tanam ?? existing?.gagal_tanam ?? undefined,
+    sisa_di_lahan_ha: parsed.data.sisa_di_lahan_ha ?? existing?.sisa_di_lahan_ha ?? undefined,
+    hasActivity,
+  });
   if (derived) {
     parsed.data.status = derived.status;
     if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;

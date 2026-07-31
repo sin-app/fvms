@@ -22,7 +22,6 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
     if (!rows.length) return;
     const pdfRows = rows.map((r) => ({
       date: r.visit_date,
-      user: r.user_name,
       kabupaten: r.kabupaten_name,
       kecamatan: r.kecamatan_name,
       desa: r.desa_name,
@@ -32,7 +31,7 @@ export function ReportTable({ rows, onDownload, downloading }: ReportTableProps)
       member: r.member_name ?? "—",
       docNo: r.varietas ?? "—",
       nis: r.nis ?? "—",
-      phTanah: r.ph_tanah ?? "—",
+      phTanah: r.ph_tanah?.toString() ?? "—",
       tglTanam: r.tgl_tanam ?? "—",
       realTanam: r.real_tanam_ha?.toString() ?? "—",
       gagalTanam: r.gagal_tanam?.toString() ?? "—",
