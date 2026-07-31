@@ -15,7 +15,6 @@ export interface NavItem {
   icon: React.ElementType;
   children?: { href: string; label: string }[];
   adminOnly?: boolean;
-  hideInBottomNav?: boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -34,6 +33,6 @@ export const navItems: NavItem[] = [
   { href: "/schedules/calendar", label: "Kalender", icon: CalendarDays },
   { href: "/import", label: "Import Excel", icon: FileSpreadsheet, adminOnly: true },
   { href: "/reports", label: "Laporan", icon: BarChart3 },
-  { href: "/notifications", label: "Notifikasi", icon: Bell, hideInBottomNav: true },
+  { href: "/notifications", label: "Notifikasi", icon: Bell },
   { href: "/users", label: "Users", icon: Users, adminOnly: true },
 ];
