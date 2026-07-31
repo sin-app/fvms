@@ -11,7 +11,6 @@ import { createScheduleAction } from "@/features/schedules/actions/schedule-acti
 import { useDebounce } from "@/hooks/use-debounce";
 import { exportPdf } from "@/lib/export/pdf";
 import { useAuth } from "@/features/auth/components/auth-context";
-import type { Schedule } from "@/types";
 
 export default function SchedulesPage() {
   const queryClient = useQueryClient();
@@ -36,19 +35,10 @@ export default function SchedulesPage() {
 
   const debouncedMemberName = useDebounce(memberName, 300);
 
-  function handleDownloadPdf() {
-    const qfilters = {
-      status: status !== "all" ? status : undefined,
-      kabupaten_id: kabupatenId || undefined,
-      kecamatan_id: kecamatanId || undefined,
-      user_id: isProduksi ? undefined : (userId || undefined),
-      date_from: dateFrom || undefined,
-      date_to: dateTo || undefined,
-      varietas: varietas.trim() || undefined,
-      page: 1,
-    };
-    const cached = queryClient.getQueryData<{ data: Schedule[] }>(["schedules", qfilters]);
-    const rows = (cached?.data ?? []).map((s) => ({
+  async function handleDownloadPdf() {
+    const { fetchScheduleRows } = await import("@/features/schedules/api/schedule-client");
+    const schedules = await fetchScheduleRows(filters);
+    const rows = (schedules ?? []).map((s) => ({
       date: s.visit_date,
       petugas: s.users?.name ?? "—",
       kabupaten: s.kabupaten?.name ?? "—",

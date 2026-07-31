@@ -10,11 +10,11 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
-export async function getScheduleList(
+function buildScheduleQuery(
   userId: string,
   filters: ScheduleFilters = {},
   ctx?: AuthContext,
-): Promise<ScheduleListResult> {
+) {
   const admin = createAdminClient();
   const {
     status,
@@ -22,8 +22,6 @@ export async function getScheduleList(
     kecamatan_id,
     date_from,
     date_to,
-    page = 1,
-    pageSize = 20,
     user_id,
     cgr,
   } = filters;
@@ -110,10 +108,26 @@ export async function getScheduleList(
     query = query.gte("visit_date", date_from).lte("visit_date", date_to);
   } else if (date_from) {
     query = query.gte("visit_date", date_from);
-  } else   if (date_to) {
+  } else if (date_to) {
     query = query.lte("visit_date", date_to);
   }
 
+  return { query, admin };
+}
+
+export async function getScheduleList(
+  userId: string,
+  filters: ScheduleFilters = {},
+  ctx?: AuthContext,
+): Promise<ScheduleListResult> {
+  const {
+    page = 1,
+    pageSize = 20,
+  } = filters;
+
+  const { query: baseQuery } = buildScheduleQuery(userId, filters, ctx);
+
+  let query = baseQuery;
   query = query.is("deleted_at", null).order("visit_date", { ascending: true });
 
   const from = (page - 1) * pageSize;
@@ -131,6 +145,23 @@ export async function getScheduleList(
     pageSize,
     totalPages: Math.ceil((count ?? 0) / pageSize),
   };
+}
+
+export async function getScheduleRowsForExport(
+  userId: string,
+  filters: ScheduleFilters = {},
+  ctx?: AuthContext,
+): Promise<Schedule[]> {
+  const { query } = buildScheduleQuery(userId, filters, ctx);
+
+  const { data, error } = await query
+    .is("deleted_at", null)
+    .order("visit_date", { ascending: true });
+
+  if (error) throw error;
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return (data ?? []) as unknown as Schedule[];
 }
 
 export async function getScheduleById(id: string): Promise<Schedule | null> {
