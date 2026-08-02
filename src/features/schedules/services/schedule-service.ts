@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { qcKabupatenScope } from "@/lib/auth/authorization";
 import { todayString } from "@/lib/utils/date";
+import { getPanenStatus } from "@/features/panen/services/panen-logic";
 import type { AuthContext } from "@/lib/auth/authorization";
 import type { Schedule } from "@/types";
 import type { ScheduleFilters, ScheduleListResult } from "../types";
@@ -8,6 +9,22 @@ import type { ScheduleFilters, ScheduleListResult } from "../types";
 // Escape LIKE wildcards so user input can't alter the match pattern.
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+const MAX_EXPORT_ROWS = 10000;
+
+function matchPanenStatus(row: Schedule, panenStatus: string): boolean {
+  const { label } = getPanenStatus({
+    tgl_panen: row.tgl_panen,
+    real_panen: row.real_panen,
+    rencana_panen: row.rencana_panen,
+    tgl_tanam: row.tgl_tanam,
+    cgr: row.cgr,
+  });
+  if (panenStatus === "sudah") return label === "Panen";
+  if (panenStatus === "jatuh_tempo") return label === "Jatuh Tempo";
+  if (panenStatus === "belum") return label !== "Panen" && label !== "Jatuh Tempo";
+  return true;
 }
 
 function buildScheduleQuery(
@@ -81,14 +98,6 @@ function buildScheduleQuery(
   if (kabupaten_id) query = query.eq("kabupaten_id", kabupaten_id);
   if (kecamatan_id) query = query.eq("kecamatan_id", kecamatan_id);
 
-  if (filters.panen_status === "sudah") {
-    query = query.or("tgl_panen.not.is.NULL,real_panen.not.is.NULL");
-  } else if (filters.panen_status === "jatuh_tempo") {
-    query = query.is("tgl_panen", null).is("real_panen", null).not("rencana_panen", "is", null).lt("rencana_panen", todayString()).not("status", "in", "(completed,gagal_total)");
-  } else if (filters.panen_status === "belum") {
-    query = query.is("tgl_panen", null).is("real_panen", null).or(`rencana_panen.gte.${todayString()},rencana_panen.is.null`);
-  }
-
   if (filters.varietas && filters.varietas.trim()) {
     // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment.
     query = query.like("document_no", `%/${escapeLike(filters.varietas.trim())}/%`);
@@ -125,10 +134,34 @@ export async function getScheduleList(
     pageSize = 20,
   } = filters;
 
+  const panenStatus =
+    filters.panen_status && filters.panen_status !== "all" ? filters.panen_status : null;
+
   const { query: baseQuery } = buildScheduleQuery(userId, filters, ctx);
 
   let query = baseQuery;
   query = query.is("deleted_at", null).order("visit_date", { ascending: true });
+
+  if (panenStatus) {
+    // Panen status is derived (rencana_panen may be computed from tgl_tanam + cgr),
+    // so candidates are fetched fully then filtered + paginated in memory.
+    query = query.limit(MAX_EXPORT_ROWS);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const filtered = ((data ?? []) as unknown as Schedule[]).filter((s) =>
+      matchPanenStatus(s, panenStatus),
+    );
+
+    const from = (page - 1) * pageSize;
+    return {
+      data: filtered.slice(from, from + pageSize),
+      total: filtered.length,
+      page,
+      pageSize,
+      totalPages: Math.ceil(filtered.length / pageSize),
+    };
+  }
 
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
@@ -152,16 +185,21 @@ export async function getScheduleRowsForExport(
   filters: ScheduleFilters = {},
   ctx?: AuthContext,
 ): Promise<Schedule[]> {
+  const panenStatus =
+    filters.panen_status && filters.panen_status !== "all" ? filters.panen_status : null;
+
   const { query } = buildScheduleQuery(userId, filters, ctx);
 
-  const { data, error } = await query
-    .is("deleted_at", null)
-    .order("visit_date", { ascending: true });
+  let exportQuery = query.is("deleted_at", null).order("visit_date", { ascending: true });
+  if (panenStatus) exportQuery = exportQuery.limit(MAX_EXPORT_ROWS);
+
+  const { data, error } = await exportQuery;
 
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return (data ?? []) as unknown as Schedule[];
+  const all = (data ?? []) as unknown as Schedule[];
+  return panenStatus ? all.filter((s) => matchPanenStatus(s, panenStatus)) : all;
 }
 
 export async function getScheduleById(id: string): Promise<Schedule | null> {

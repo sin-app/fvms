@@ -6,6 +6,11 @@ import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
 import { deriveScheduleStatus, getPanenStatus } from "@/features/panen/services/panen-logic";
 
+// Escape LIKE wildcards so user input can't alter the match pattern.
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
   const admin = createAdminClient();
 
@@ -36,25 +41,30 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     query = query.eq("kecamatan_id", filters.kecamatan_id);
   }
   if (filters.label) {
-    query = query.eq("label", filters.label);
+    if (filters.label === "ada") {
+      query = query.not("label", "is", null);
+    } else {
+      query = query.eq("label", filters.label);
+    }
   }
   if (filters.member_name) {
-    query = query.ilike("member_name", `%${filters.member_name}%`);
+    query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
   }
   if (filters.block_no) {
-    query = query.ilike("block_no", `%${filters.block_no}%`);
+    query = query.ilike("block_no", `%${escapeLike(filters.block_no)}%`);
   }
   if (filters.no_plot) {
-    query = query.ilike("no_plot", `%${filters.no_plot}%`);
+    query = query.ilike("no_plot", `%${escapeLike(filters.no_plot)}%`);
   }
   if (filters.nis) {
-    query = query.ilike("nis", `%${filters.nis}%`);
+    query = query.ilike("nis", `%${escapeLike(filters.nis)}%`);
   }
   if (filters.cgr) {
-    query = query.ilike("cgr", `%${filters.cgr}%`);
+    query = query.ilike("cgr", `%${escapeLike(filters.cgr)}%`);
   }
   if (filters.varietas) {
-    query = query.ilike("document_no", `%${filters.varietas}%`);
+    // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment (same as schedules).
+    query = query.like("document_no", `%/${escapeLike(filters.varietas)}/%`);
   }
 
   const { data: rawSchedules } = await query;
@@ -278,25 +288,30 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     query = query.eq("kecamatan_id", filters.kecamatan_id);
   }
   if (filters.label) {
-    query = query.eq("label", filters.label);
+    if (filters.label === "ada") {
+      query = query.not("label", "is", null);
+    } else {
+      query = query.eq("label", filters.label);
+    }
   }
   if (filters.member_name) {
-    query = query.ilike("member_name", `%${filters.member_name}%`);
+    query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
   }
   if (filters.block_no) {
-    query = query.ilike("block_no", `%${filters.block_no}%`);
+    query = query.ilike("block_no", `%${escapeLike(filters.block_no)}%`);
   }
   if (filters.no_plot) {
-    query = query.ilike("no_plot", `%${filters.no_plot}%`);
+    query = query.ilike("no_plot", `%${escapeLike(filters.no_plot)}%`);
   }
   if (filters.nis) {
-    query = query.ilike("nis", `%${filters.nis}%`);
+    query = query.ilike("nis", `%${escapeLike(filters.nis)}%`);
   }
   if (filters.cgr) {
-    query = query.ilike("cgr", `%${filters.cgr}%`);
+    query = query.ilike("cgr", `%${escapeLike(filters.cgr)}%`);
   }
   if (filters.varietas) {
-    query = query.ilike("document_no", `%${filters.varietas}%`);
+    // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment (same as schedules).
+    query = query.like("document_no", `%/${escapeLike(filters.varietas)}/%`);
   }
   const { data } = await query;
 

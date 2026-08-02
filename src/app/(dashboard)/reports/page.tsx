@@ -167,17 +167,17 @@ export default function ReportsPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <StatCard
                 title="Sudah Panen"
-                value={rows.filter((r) => r.tgl_panen || r.real_panen).length}
+                value={rows.filter((r) => r.panen_status === "Panen").length}
                 icon={<Sprout className="h-4 w-4 text-green-600" />}
               />
               <StatCard
                 title="Rencana Panen"
-                value={rows.filter((r) => r.rencana_panen && !r.tgl_panen && !r.real_panen).length}
+                value={rows.filter((r) => r.panen_status?.startsWith("Renc:")).length}
                 icon={<CalendarCheck className="h-4 w-4 text-amber-500" />}
               />
               <StatCard
                 title="Belum Panen"
-                value={rows.filter((r) => !r.tgl_panen && !r.real_panen).length}
+                value={rows.filter((r) => r.panen_status === "—").length}
                 icon={<Clock className="h-4 w-4 text-muted-foreground" />}
               />
             </div>
