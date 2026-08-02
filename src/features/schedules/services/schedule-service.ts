@@ -49,7 +49,7 @@ function buildScheduleQuery(
     .from("schedules")
     .select(
       "*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name, email)",
-      { count: "exact" },
+      { count: "planned" },
     );
 
   if (scope !== null) {
