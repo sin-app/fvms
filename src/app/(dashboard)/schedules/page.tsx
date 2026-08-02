@@ -34,6 +34,11 @@ export default function SchedulesPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const debouncedMemberName = useDebounce(memberName, 300);
+  const debouncedBlockNo = useDebounce(blockNo, 300);
+  const debouncedNoPlot = useDebounce(noPlot, 300);
+  const debouncedNis = useDebounce(nis, 300);
+  const debouncedCgr = useDebounce(cgr, 300);
+  const debouncedVarietas = useDebounce(varietas, 300);
 
   async function handleDownloadPdf() {
     const { fetchScheduleRows } = await import("@/features/schedules/api/schedule-client");
@@ -87,17 +92,17 @@ export default function SchedulesPage() {
 
   const filters = {
     member_name: debouncedMemberName || undefined,
-    block_no: blockNo.trim() || undefined,
-    no_plot: noPlot.trim() || undefined,
-    nis: nis.trim() || undefined,
+    block_no: debouncedBlockNo || undefined,
+    no_plot: debouncedNoPlot || undefined,
+    nis: debouncedNis || undefined,
     status: status !== "all" ? status : undefined,
     user_id: isProduksi ? undefined : (userId || undefined),
-    cgr: cgr.trim() || undefined,
+    cgr: debouncedCgr || undefined,
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
-    varietas: varietas.trim() || undefined,
+    varietas: debouncedVarietas || undefined,
     panen_status: panenStatus !== "all" ? panenStatus : undefined,
     label: label !== "all" ? label : undefined,
   };

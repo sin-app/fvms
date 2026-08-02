@@ -26,7 +26,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 
   let query = admin
     .from("schedules")
-    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, tgl_panen, real_panen, rencana_panen, tgl_tanam, cgr, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time, notes, latitude", { count: "exact" })
+    .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, tgl_panen, real_panen, rencana_panen, tgl_tanam, cgr, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time, notes, latitude")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to);

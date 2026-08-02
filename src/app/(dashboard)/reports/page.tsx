@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { ReportFiltersView, ReportCharts, ReportTable, useReportData } from "@/features/reports";
-import { useReportRows } from "@/features/reports/hooks/use-report-rows";
+import { ReportFiltersView, ReportCharts, ReportTable } from "@/features/reports";
+import { useReportBundle } from "@/features/reports/hooks/use-report-bundle";
+import { useDebounce } from "@/hooks/use-debounce";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { StatCard } from "@/components/shared/stat-card";
@@ -37,6 +38,13 @@ export default function ReportsPage() {
   const [panenStatus, setPanenStatus] = useState("all");
   const [label, setLabel] = useState("all");
 
+  const debouncedMemberName = useDebounce(memberName, 300);
+  const debouncedBlockNo = useDebounce(blockNo, 300);
+  const debouncedNoPlot = useDebounce(noPlot, 300);
+  const debouncedNis = useDebounce(nis, 300);
+  const debouncedCgr = useDebounce(cgr, 300);
+  const debouncedVarietas = useDebounce(varietas, 300);
+
   const filters: ReportFilters = useMemo(() => ({
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
@@ -44,18 +52,19 @@ export default function ReportsPage() {
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
     label: label !== "all" ? label : undefined,
-    member_name: memberName || undefined,
-    block_no: blockNo || undefined,
-    no_plot: noPlot || undefined,
-    nis: nis || undefined,
-    cgr: cgr || undefined,
-    varietas: varietas || undefined,
+    member_name: debouncedMemberName || undefined,
+    block_no: debouncedBlockNo || undefined,
+    no_plot: debouncedNoPlot || undefined,
+    nis: debouncedNis || undefined,
+    cgr: debouncedCgr || undefined,
+    varietas: debouncedVarietas || undefined,
     status: status !== "all" ? status : undefined,
     panen_status: panenStatus !== "all" ? panenStatus : undefined,
-  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label, memberName, blockNo, noPlot, nis, cgr, varietas, status, panenStatus]);
+  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label, debouncedMemberName, debouncedBlockNo, debouncedNoPlot, debouncedNis, debouncedCgr, debouncedVarietas, status, panenStatus]);
 
-  const { data, isLoading, isFetching, isError, refetch } = useReportData(filters);
-  const { data: rows, isLoading: rowsLoading, isFetching: rowsFetching } = useReportRows(filters);
+  const { data: bundle, isLoading, isFetching, isError, refetch } = useReportBundle(filters);
+  const data = bundle?.data;
+  const rows = bundle?.rows;
 
   function handleReset() {
     const today2 = todayString();
@@ -191,7 +200,7 @@ export default function ReportsPage() {
               onDownload={handleDownload}
             />
           )}
-          {rowsLoading && !rows && <LoadingState variant="table" />}
+          {isLoading && !rows && <LoadingState variant="table" />}
         </>
       )}
     </div>

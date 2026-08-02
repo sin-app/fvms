@@ -2,7 +2,8 @@
 
 import { getReportData, getReportRows, exportToExcel } from "../services/report-service";
 import { todayString } from "@/lib/utils/date";
-import type { ReportFilters } from "../types";
+import type { ReportFilters, ReportData } from "../types";
+import type { ReportRow } from "../types/report-data";
 
 export async function fetchReportData(filters: ReportFilters) {
   return getReportData(filters);
@@ -10,6 +11,14 @@ export async function fetchReportData(filters: ReportFilters) {
 
 export async function fetchReportRows(filters: ReportFilters) {
   return getReportRows(filters);
+}
+
+export async function fetchReportBundle(filters: ReportFilters): Promise<{
+  data: ReportData;
+  rows: ReportRow[];
+}> {
+  const [data, rows] = await Promise.all([getReportData(filters), getReportRows(filters)]);
+  return { data, rows };
 }
 
 export async function downloadExcelAction(filters: ReportFilters): Promise<{ data: string; filename: string }> {
