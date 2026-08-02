@@ -48,7 +48,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/schedules"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -56,7 +56,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <VisitStatusSelector scheduleId={id} currentStatus={schedule.status} editable={canEdit} />
           <VisitLabel scheduleId={id} currentLabel={schedule.label} editable={canLabel} />
         </div>

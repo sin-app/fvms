@@ -38,7 +38,7 @@ export function NotificationList() {
   return (
     <div className="space-y-1">
       {unreadCount > 0 && (
-        <div className="flex items-center justify-between px-1 pb-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-2">
           <p className="text-xs text-muted-foreground">
             {unreadCount} belum dibaca
           </p>

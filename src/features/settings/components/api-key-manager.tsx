@@ -81,13 +81,13 @@ export function ApiKeyManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <input
           type="text"
           value={newKeyName}
           onChange={(e) => setNewKeyName(e.target.value)}
           placeholder="Nama API Key baru..."
-          className="flex-1 h-9 rounded-lg border border-input bg-background px-3 text-sm"
+          className="flex-1 min-w-0 h-9 rounded-lg border border-input bg-background px-3 text-sm"
         />
         <button
           onClick={createKey}

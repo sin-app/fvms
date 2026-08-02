@@ -126,7 +126,7 @@ export function CalendarView() {
           {calendarDays.map((day, i) => (
             <div
               key={i}
-              className={`min-h-[100px] p-1.5 border-t border-r ${
+              className={`min-h-[64px] sm:min-h-[100px] p-1 sm:p-1.5 border-t border-r ${
                 !day.isCurrentMonth ? "bg-muted/20" : ""
               } ${
                 format(day.date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")

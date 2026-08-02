@@ -82,11 +82,11 @@ export function ImportPageInner() {
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-lg border bg-muted/20">
             <p className="text-sm text-muted-foreground">
               {preview.totalRows} baris data siap diimport
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={reset}>
                 Batal
               </Button>

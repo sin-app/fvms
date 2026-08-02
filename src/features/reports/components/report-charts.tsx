@@ -11,6 +11,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
 import type { ReportData } from "../types";
 
@@ -25,6 +26,8 @@ const STATUS_COLORS_CHART = {
 interface ReportChartsProps {
   data: ReportData;
 }
+
+const truncateTick = (value: string) => (value.length > 10 ? `${value.slice(0, 9)}…` : value);
 
 export function ReportCharts({ data }: ReportChartsProps) {
   const pieData = [
@@ -46,15 +49,15 @@ export function ReportCharts({ data }: ReportChartsProps) {
               cx="50%"
               cy="50%"
               innerRadius={60}
-              outerRadius={100}
+              outerRadius={90}
               dataKey="value"
-              label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`}
             >
               {pieData.map((entry) => (
                 <Cell key={entry.name} fill={entry.color} />
               ))}
             </Pie>
             <Tooltip />
+            <Legend />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -64,7 +67,7 @@ export function ReportCharts({ data }: ReportChartsProps) {
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data.by_kabupaten}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="kabupaten_name" tick={{ fontSize: 11 }} />
+            <XAxis dataKey="kabupaten_name" tick={{ fontSize: 11 }} tickFormatter={truncateTick} interval="preserveStartEnd" />
             <YAxis />
             <Tooltip />
             <Bar dataKey="total" fill="#3b82f6" name="Total" radius={[4, 4, 0, 0]} />
@@ -79,7 +82,7 @@ export function ReportCharts({ data }: ReportChartsProps) {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.by_kecamatan}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="kecamatan_name" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="kecamatan_name" tick={{ fontSize: 11 }} tickFormatter={truncateTick} interval="preserveStartEnd" />
               <YAxis />
               <Tooltip />
               <Bar dataKey="total" fill="#3b82f6" name="Total" radius={[4, 4, 0, 0]} />

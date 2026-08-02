@@ -37,8 +37,8 @@ export function NotificationPrefs() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="space-y-0.5 min-w-0 flex-1">
           <Label htmlFor="push">Notifikasi Push</Label>
           <p className="text-sm text-muted-foreground">
             {subscribed ? "Terdaftar untuk notifikasi push" : "Terima notifikasi real-time di perangkat"}

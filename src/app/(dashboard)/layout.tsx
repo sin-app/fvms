@@ -19,7 +19,7 @@ export default function DashboardLayout({
           <AppHeader />
           <RealtimeSubscriber />
           <OfflineIndicator />
-          <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
+          <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-36 md:pb-8">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
           <BottomNav />

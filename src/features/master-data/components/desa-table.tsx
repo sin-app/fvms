@@ -156,11 +156,11 @@ export function DesaTable() {
         <div className="flex-1">
           <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Cari desa..." />
         </div>
-        <select value={filterKab} onChange={(e) => { setFilterKab(e.target.value); setKecamatanFilter(""); }} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">
+        <select value={filterKab} onChange={(e) => { setFilterKab(e.target.value); setKecamatanFilter(""); }} className="h-10 rounded-lg border border-input bg-background px-3 text-sm w-full sm:w-auto">
           <option value="">Semua Kabupaten</option>
           {kabupaten?.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
         </select>
-        <select value={kecamatanFilter} onChange={(e) => { setKecamatanFilter(e.target.value); setPage(1); }} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">
+        <select value={kecamatanFilter} onChange={(e) => { setKecamatanFilter(e.target.value); setPage(1); }} className="h-10 rounded-lg border border-input bg-background px-3 text-sm w-full sm:w-auto">
           <option value="">Semua Kecamatan</option>
           {kecamatanList?.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
         </select>
@@ -208,7 +208,7 @@ export function DesaTable() {
             </table>
           </div>
           {data.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-4">
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Sebelumnya</Button>
               <span className="text-sm text-muted-foreground">{page} / {data.totalPages}</span>
               <Button variant="outline" size="sm" disabled={page >= data.totalPages} onClick={() => setPage(page + 1)}>Selanjutnya</Button>

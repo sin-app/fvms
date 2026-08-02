@@ -13,7 +13,7 @@ export function AppearanceSettings() {
       <RadioGroup
         value={theme}
         onValueChange={(v) => setTheme(v)}
-        className="grid grid-cols-3 gap-3"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-3"
       >
         <div>
           <RadioGroupItem value="light" id="light" className="peer sr-only" />

@@ -153,7 +153,7 @@ export function KecamatanTable() {
         <select
           value={kabupatenFilter}
           onChange={(e) => { setKabupatenFilter(e.target.value); setPage(1); }}
-          className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-input bg-background px-3 text-sm w-full sm:w-auto"
         >
           <option value="">Semua Kabupaten</option>
           {kabupaten?.map((k) => (
@@ -212,7 +212,7 @@ export function KecamatanTable() {
             </table>
           </div>
           {data.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-4">
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Sebelumnya</Button>
               <span className="text-sm text-muted-foreground">{page} / {data.totalPages}</span>
               <Button variant="outline" size="sm" disabled={page >= data.totalPages} onClick={() => setPage(page + 1)}>Selanjutnya</Button>
