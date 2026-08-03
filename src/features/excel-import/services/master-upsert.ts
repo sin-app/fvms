@@ -17,6 +17,16 @@ function shortCode(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 4)}`;
 }
 
+// Nama dari file Excel tidak selalu konsisten ("KARANGANYAR." vs
+// "KARANGANYAR", spasi ganda, dll). Normalisasi mencegah terciptanya
+// record master data ganda yang kemudian memicu duplikat jadwal.
+function normalizeName(name: string): string {
+  return name
+    .trim()
+    .replace(/[.,;:]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
 export function createMasterUpserter(): MasterUpsertResult {
   const admin = createAdminClient();
   const created = { kabupaten: 0, kecamatan: 0, desa: 0 };
@@ -30,6 +40,7 @@ export function createMasterUpserter(): MasterUpsertResult {
     const { data } = await admin
       .from(table)
       .select("id, name")
+      .eq("is_active", true)
       .in("name", names);
     for (const row of data ?? []) map.set(row.name.toLowerCase(), row.id);
     return map;
@@ -57,9 +68,9 @@ export function createMasterUpserter(): MasterUpsertResult {
     const kec = new Map<string, string>();
     const des = new Map<string, string>();
 
-    const kabNames = Array.from(new Set(rows.map((r) => r.kab.trim()).filter(Boolean)));
-    const kecNames = Array.from(new Set(rows.map((r) => r.kec.trim()).filter(Boolean)));
-    const desaNames = Array.from(new Set(rows.map((r) => r.desa.trim()).filter(Boolean)));
+    const kabNames = Array.from(new Set(rows.map((r) => normalizeName(r.kab)).filter(Boolean)));
+    const kecNames = Array.from(new Set(rows.map((r) => normalizeName(r.kec)).filter(Boolean)));
+    const desaNames = Array.from(new Set(rows.map((r) => normalizeName(r.desa)).filter(Boolean)));
 
     const kabExisting = await loadExisting("kabupaten", kabNames);
     for (const [k, v] of kabExisting) kab.set(k, v);
@@ -82,13 +93,13 @@ export function createMasterUpserter(): MasterUpsertResult {
     const kecPayload: Array<Record<string, unknown>> = [];
     const seenKec = new Set<string>();
     for (const r of rows) {
-      const kecKey = r.kec.trim().toLowerCase();
-      const kabId = kab.get(r.kab.trim().toLowerCase());
+      const kecKey = normalizeName(r.kec).toLowerCase();
+      const kabId = kab.get(normalizeName(r.kab).toLowerCase());
       if (kabId && !kec.get(kecKey) && !seenKec.has(kecKey)) {
         seenKec.add(kecKey);
         kecPayload.push({
           id: crypto.randomUUID(),
-          name: r.kec.trim(),
+          name: normalizeName(r.kec),
           code: shortCode("KEC"),
           is_active: true,
           kabupaten_id: kabId,
@@ -102,13 +113,13 @@ export function createMasterUpserter(): MasterUpsertResult {
     const desaPayload: Array<Record<string, unknown>> = [];
     const seenDesa = new Set<string>();
     for (const r of rows) {
-      const desaKey = r.desa.trim().toLowerCase();
-      const kecId = kec.get(r.kec.trim().toLowerCase());
+      const desaKey = normalizeName(r.desa).toLowerCase();
+      const kecId = kec.get(normalizeName(r.kec).toLowerCase());
       if (kecId && !des.get(desaKey) && !seenDesa.has(desaKey)) {
         seenDesa.add(desaKey);
         desaPayload.push({
           id: crypto.randomUUID(),
-          name: r.desa.trim(),
+          name: normalizeName(r.desa),
           code: shortCode("DES"),
           is_active: true,
           kecamatan_id: kecId,
