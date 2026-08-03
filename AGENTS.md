@@ -41,7 +41,7 @@ All status transitions are unrestricted (any → any). Transitions defined in `S
 
 - **Admin-only** — accessed via "Import Excel" button on schedules page
 - **Append + Upsert** — does NOT delete existing data. New records inserted, matched records updated
-- **Composite key** for matching: `user_id|desa_id|visit_date|block_no|no_plot|member_name`
+- **Composite key** for matching: `desa_id|block_no|no_plot|member_name` (plot identity; visit_date is updated on match except for completed schedules)
 - **Intra-file dedup** — duplicate rows within same Excel file are skipped
 - **Status preservation** — records already marked `completed` in the app keep their status
 - **Auto-derivation** (`deriveScheduleStatus()` in `src/features/panen/services/panen-logic.ts`):

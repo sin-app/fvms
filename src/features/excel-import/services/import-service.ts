@@ -7,15 +7,13 @@ import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../ty
 import { notifyImportCompleted } from "@/features/notifications/services/notification-service";
 
 function makeKey(r: {
-  user_id: string;
   desa_id: string;
-  visit_date: string;
   block_no?: string | null;
   no_plot?: string | null;
   member_name?: string | null;
 }): string {
   const normalize = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
-  return `${r.user_id}|${r.desa_id}|${r.visit_date}|${normalize(r.block_no)}|${normalize(r.no_plot)}|${normalize(r.member_name)}`;
+  return `${r.desa_id}|${normalize(r.block_no)}|${normalize(r.no_plot)}|${normalize(r.member_name)}`;
 }
 
 function isUniqueViolation(message: string): boolean {
@@ -447,6 +445,10 @@ export async function bulkImportSchedules(
         for (const match of matches) {
           const { id, status: currentStatus, real_tanam_ha: exReal, gagal_tanam: exGagal, sisa_di_lahan_ha: exSisa, tgl_panen: exTgl, real_panen: exRealPanen, visit_time: exVisit, notes: exNotes, latitude: exLat } = match;
           const updateData: Record<string, unknown> = {};
+          // Kunci pencocokan tidak lagi menyertakan visit_date, jadi tanggal
+          // revisi dari file terbaru harus diterapkan — kecuali pada jadwal
+          // yang sudah completed (kunjungan sudah terjadi).
+          if (currentStatus !== "completed" && r.visit_date) updateData.visit_date = r.visit_date;
           if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
           if (r.cgr !== undefined) updateData.cgr = r.cgr;
           if (r.cgr_code !== undefined) updateData.cgr_code = r.cgr_code;
