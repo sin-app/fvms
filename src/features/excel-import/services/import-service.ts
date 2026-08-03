@@ -18,6 +18,10 @@ function makeKey(r: {
   return `${r.user_id}|${r.desa_id}|${r.visit_date}|${normalize(r.block_no)}|${normalize(r.no_plot)}|${normalize(r.member_name)}`;
 }
 
+function isUniqueViolation(message: string): boolean {
+  return message.includes("duplicate key") || message.includes("23505");
+}
+
 function cellToString(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
@@ -494,17 +498,32 @@ export async function bulkImportSchedules(
 
     const BATCH_SIZE = 500;
     let insertedCount = 0;
+    let dbDuplicateCount = 0;
     for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
       const batch = toInsert.slice(i, i + BATCH_SIZE);
       const { error: batchError } = await admin.from("schedules").insert(batch);
-      if (batchError) {
+      if (batchError && isUniqueViolation(batchError.message)) {
+        // DB-level race vs the composite unique index: retry row-by-row so a
+        // single conflicting row doesn't abort the whole batch.
+        for (const row of batch) {
+          const { error: rowError } = await admin.from("schedules").insert(row);
+          if (rowError && isUniqueViolation(rowError.message)) {
+            dbDuplicateCount++;
+          } else if (rowError) {
+            errors.push({ row: 0, message: `Gagal insert jadwal: ${rowError.message}` });
+          } else {
+            insertedCount++;
+          }
+        }
+      } else if (batchError) {
         errors.push({ row: 0, message: `Gagal insert batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batchError.message}` });
         break;
+      } else {
+        insertedCount += batch.length;
       }
-      insertedCount += batch.length;
     }
     result.success = insertedCount;
-    result.duplicates = schedulesToInsert.length - unique.length;
+    result.duplicates = schedulesToInsert.length - unique.length + dbDuplicateCount;
 
     let replaced = 0;
     if (toUpdate.length > 0) {
