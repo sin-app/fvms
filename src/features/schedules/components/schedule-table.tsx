@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,6 +27,20 @@ interface ScheduleTableProps {
 
 export function ScheduleTable({ filters }: ScheduleTableProps) {
   const [page, setPage] = useState(1);
+  const prevFilterKey = useRef("");
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    const key = JSON.stringify(filters);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevFilterKey.current = key;
+      return;
+    }
+    if (prevFilterKey.current !== key) {
+      prevFilterKey.current = key;
+      setPage(1);
+    }
+  }, [filters]);
   const { data, isLoading, isFetching, isError, refetch } = useSchedules({ ...filters, page });
   const deleteSchedule = useDeleteSchedule();
   const bulkAction = useBulkAction();

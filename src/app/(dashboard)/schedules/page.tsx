@@ -34,13 +34,13 @@ export default function SchedulesPage() {
   const [label, setLabel] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
 
-  const debouncedMemberName = useDebounce(memberName, 300);
-  const debouncedBlockNo = useDebounce(blockNo, 300);
-  const debouncedNoPlot = useDebounce(noPlot, 300);
-  const debouncedNis = useDebounce(nis, 300);
-  const debouncedDocumentNo = useDebounce(documentNo, 300);
-  const debouncedCgr = useDebounce(cgr, 300);
-  const debouncedVarietas = useDebounce(varietas, 300);
+  const debouncedMemberName = useDebounce(memberName, 450);
+  const debouncedBlockNo = useDebounce(blockNo, 450);
+  const debouncedNoPlot = useDebounce(noPlot, 450);
+  const debouncedNis = useDebounce(nis, 450);
+  const debouncedDocumentNo = useDebounce(documentNo, 450);
+  const debouncedCgr = useDebounce(cgr, 450);
+  const debouncedVarietas = useDebounce(varietas, 450);
 
   async function handleDownloadPdf() {
     const { fetchScheduleRows } = await import("@/features/schedules/api/schedule-client");

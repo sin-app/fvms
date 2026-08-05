@@ -10,6 +10,7 @@ export function useSchedules(filters: ScheduleFilters) {
   return useQuery({
     queryKey: ["schedules", filters],
     queryFn: () => fetchScheduleList(filters),
+    placeholderData: (prev) => prev,
     staleTime: 15_000,
   });
 }
