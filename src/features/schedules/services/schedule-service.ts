@@ -85,6 +85,10 @@ function buildScheduleQuery(
     query = query.ilike("nis", `%${escapeLike(filters.nis.trim())}%`);
   }
 
+  if (filters.document_no && filters.document_no.trim()) {
+    query = query.ilike("document_no", `%${escapeLike(filters.document_no.trim())}%`);
+  }
+
   if (status && status !== "all") {
     if (status === "late") {
       query = query

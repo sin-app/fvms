@@ -59,6 +59,9 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   if (filters.nis) {
     query = query.ilike("nis", `%${escapeLike(filters.nis)}%`);
   }
+  if (filters.document_no) {
+    query = query.ilike("document_no", `%${escapeLike(filters.document_no)}%`);
+  }
   if (filters.cgr) {
     query = query.ilike("cgr", `%${escapeLike(filters.cgr)}%`);
   }
@@ -305,6 +308,9 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
   }
   if (filters.nis) {
     query = query.ilike("nis", `%${escapeLike(filters.nis)}%`);
+  }
+  if (filters.document_no) {
+    query = query.ilike("document_no", `%${escapeLike(filters.document_no)}%`);
   }
   if (filters.cgr) {
     query = query.ilike("cgr", `%${escapeLike(filters.cgr)}%`);

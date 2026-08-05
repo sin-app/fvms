@@ -14,6 +14,8 @@ interface ScheduleFiltersProps {
   onNoPlotChange: (value: string) => void;
   nis: string;
   onNisChange: (value: string) => void;
+  documentNo: string;
+  onDocumentNoChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
   userId: string;
@@ -88,6 +90,8 @@ export function ScheduleFilters({
   onNoPlotChange,
   nis,
   onNisChange,
+  documentNo,
+  onDocumentNoChange,
   status,
   onStatusChange,
   userId,
@@ -162,6 +166,12 @@ export function ScheduleFilters({
           onChange={(e) => onNisChange(e.target.value)}
           placeholder="NIS"
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+        />
+        <input
+          value={documentNo}
+          onChange={(e) => onDocumentNoChange(e.target.value)}
+          placeholder="Doc No (mis. KJM/JMP-18)"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-56"
         />
         <input
           value={cgr}

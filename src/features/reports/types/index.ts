@@ -10,6 +10,7 @@ export interface ReportFilters {
   block_no?: string;
   no_plot?: string;
   nis?: string;
+  document_no?: string;
   cgr?: string;
   varietas?: string;
   panen_status?: string;

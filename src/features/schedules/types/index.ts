@@ -8,6 +8,7 @@ export interface ScheduleFilters {
   block_no?: string;
   no_plot?: string;
   nis?: string;
+  document_no?: string;
   kabupaten_id?: string;
   kecamatan_id?: string;
   date_from?: string;

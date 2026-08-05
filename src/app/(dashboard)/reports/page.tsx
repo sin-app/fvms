@@ -26,6 +26,7 @@ export default function ReportsPage() {
   const [blockNo, setBlockNo] = useState("");
   const [noPlot, setNoPlot] = useState("");
   const [nis, setNis] = useState("");
+  const [documentNo, setDocumentNo] = useState("");
   const [status, setStatus] = useState("all");
   const [userId, setUserId] = useState("");
   const [cgr, setCgr] = useState("");
@@ -42,6 +43,7 @@ export default function ReportsPage() {
   const debouncedBlockNo = useDebounce(blockNo, 300);
   const debouncedNoPlot = useDebounce(noPlot, 300);
   const debouncedNis = useDebounce(nis, 300);
+  const debouncedDocumentNo = useDebounce(documentNo, 300);
   const debouncedCgr = useDebounce(cgr, 300);
   const debouncedVarietas = useDebounce(varietas, 300);
 
@@ -56,11 +58,12 @@ export default function ReportsPage() {
     block_no: debouncedBlockNo || undefined,
     no_plot: debouncedNoPlot || undefined,
     nis: debouncedNis || undefined,
+    document_no: debouncedDocumentNo || undefined,
     cgr: debouncedCgr || undefined,
     varietas: debouncedVarietas || undefined,
     status: status !== "all" ? status : undefined,
     panen_status: panenStatus !== "all" ? panenStatus : undefined,
-  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label, debouncedMemberName, debouncedBlockNo, debouncedNoPlot, debouncedNis, debouncedCgr, debouncedVarietas, status, panenStatus]);
+  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label, debouncedMemberName, debouncedBlockNo, debouncedNoPlot, debouncedNis, debouncedDocumentNo, debouncedCgr, debouncedVarietas, status, panenStatus]);
 
   const { data: bundle, isLoading, isFetching, isError, refetch } = useReportBundle(filters);
   const data = bundle?.data;
@@ -79,6 +82,7 @@ export default function ReportsPage() {
     setBlockNo("");
     setNoPlot("");
     setNis("");
+    setDocumentNo("");
     setCgr("");
     setVarietas("");
     setStatus("all");
@@ -111,6 +115,8 @@ export default function ReportsPage() {
         onNoPlotChange={setNoPlot}
         nis={nis}
         onNisChange={setNis}
+        documentNo={documentNo}
+        onDocumentNoChange={setDocumentNo}
         status={status}
         onStatusChange={setStatus}
         userId={userId}

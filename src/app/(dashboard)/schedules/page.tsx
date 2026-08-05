@@ -20,6 +20,7 @@ export default function SchedulesPage() {
   const [blockNo, setBlockNo] = useState("");
   const [noPlot, setNoPlot] = useState("");
   const [nis, setNis] = useState("");
+  const [documentNo, setDocumentNo] = useState("");
   const [status, setStatus] = useState("all");
   const [cgr, setCgr] = useState("");
   const [userId, setUserId] = useState("");
@@ -37,6 +38,7 @@ export default function SchedulesPage() {
   const debouncedBlockNo = useDebounce(blockNo, 300);
   const debouncedNoPlot = useDebounce(noPlot, 300);
   const debouncedNis = useDebounce(nis, 300);
+  const debouncedDocumentNo = useDebounce(documentNo, 300);
   const debouncedCgr = useDebounce(cgr, 300);
   const debouncedVarietas = useDebounce(varietas, 300);
 
@@ -95,6 +97,7 @@ export default function SchedulesPage() {
     block_no: debouncedBlockNo || undefined,
     no_plot: debouncedNoPlot || undefined,
     nis: debouncedNis || undefined,
+    document_no: debouncedDocumentNo || undefined,
     status: status !== "all" ? status : undefined,
     user_id: isProduksi ? undefined : (userId || undefined),
     cgr: debouncedCgr || undefined,
@@ -141,6 +144,8 @@ export default function SchedulesPage() {
         onNoPlotChange={setNoPlot}
         nis={nis}
         onNisChange={setNis}
+        documentNo={documentNo}
+        onDocumentNoChange={setDocumentNo}
         status={status}
         onStatusChange={setStatus}
         userId={userId}
