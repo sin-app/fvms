@@ -21,7 +21,35 @@ vi.mock("@/features/schedules/services/schedule-service", () => ({
 import { createScheduleAction, updateScheduleAction } from "@/features/schedules/actions/schedule-actions";
 import { createSchedule, updateSchedule } from "@/features/schedules/services/schedule-service";
 import { getAuthContext } from "@/lib/auth/authorization";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { ActionResponse } from "@/types/common";
+
+// updateScheduleAction kini membaca nilai DB yang ada sebelum derivasi status.
+function mockExistingFetch(overrides: Record<string, unknown> = {}) {
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: {
+      visit_time: null,
+      notes: null,
+      latitude: null,
+      tgl_panen: null,
+      real_panen: null,
+      status: null,
+      real_tanam_ha: null,
+      gagal_tanam: null,
+      sisa_di_lahan_ha: null,
+      ...overrides,
+    },
+    error: null,
+  });
+  // chain: select() -> eq() -> is() -> maybeSingle()
+  const isChain = { maybeSingle };
+  const eqChain = { is: vi.fn().mockReturnValue(isChain) };
+  const select = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue(eqChain) });
+  (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
+    from: vi.fn().mockReturnValue({ select }),
+  });
+  return { maybeSingle };
+}
 
 const baseFormData = () => {
   const fd = new FormData();
@@ -49,6 +77,7 @@ describe("schedule-actions auto-derivation", () => {
     } as never);
     vi.mocked(createSchedule).mockResolvedValue("new-id");
     vi.mocked(updateSchedule).mockResolvedValue(undefined);
+    mockExistingFetch();
   });
 
   describe("createScheduleAction", () => {
@@ -64,7 +93,7 @@ describe("schedule-actions auto-derivation", () => {
       );
     });
 
-    it("sets status to completed when tgl_panen is set and sisa <= 0", async () => {
+    it("sets status to gagal_total (Bongkar Total) when real - gagal <= 0, even with tgl_panen", async () => {
       const fd = baseFormData();
       fd.set("real_tanam_ha", "2");
       fd.set("gagal_tanam", "2");
@@ -73,7 +102,7 @@ describe("schedule-actions auto-derivation", () => {
       await createScheduleAction(emptyResponse, fd);
 
       expect(createSchedule).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "completed" }),
+        expect.objectContaining({ status: "gagal_total", panen_keterangan: "Bongkar Total" }),
       );
     });
 
@@ -81,6 +110,7 @@ describe("schedule-actions auto-derivation", () => {
       const fd = baseFormData();
       fd.set("real_tanam_ha", "5");
       fd.set("gagal_tanam", "1");
+      fd.set("sisa_di_lahan_ha", "4");
 
       await createScheduleAction(emptyResponse, fd);
 
@@ -88,13 +118,13 @@ describe("schedule-actions auto-derivation", () => {
       expect(callArgs.status).toBe("gagal_partial");
     });
 
-    it("does not override status when real_tanam_ha/gagal_tanam are missing", async () => {
+    it("falls back to pending when real_tanam_ha/gagal_tanam are missing", async () => {
       const fd = baseFormData();
 
       await createScheduleAction(emptyResponse, fd);
 
       const callArgs = vi.mocked(createSchedule).mock.calls[0][0];
-      expect(callArgs.status).toBeUndefined();
+      expect(callArgs.status).toBe("pending");
     });
   });
 
@@ -113,29 +143,39 @@ describe("schedule-actions auto-derivation", () => {
       );
     });
 
-    it("sets status to completed via update when tgl_panen is set and sisa <= 0", async () => {
+    it("sets status to gagal_total via update when real_tanam_ha - gagal_tanam <= 0", async () => {
       const fd = baseFormData();
       fd.set("id", "sched-1");
-      fd.set("real_tanam_ha", "2");
-      fd.set("gagal_tanam", "2");
-      fd.set("tgl_panen", "2026-08-20");
+      fd.set("real_tanam_ha", "3");
+      fd.set("gagal_tanam", "3");
 
       await updateScheduleAction(emptyResponse, fd);
 
       expect(updateSchedule).toHaveBeenCalledWith(
         "sched-1",
-        expect.objectContaining({ status: "completed" }),
+        expect.objectContaining({ status: "gagal_total", panen_keterangan: "Bongkar Total" }),
       );
     });
 
-    it("does not override status when real_tanam_ha/gagal_tanam are missing", async () => {
+    it("does not lower an explicit terminal status to pending when fields empty", async () => {
+      const fd = baseFormData();
+      fd.set("id", "sched-1");
+      mockExistingFetch({ status: "gagal_total", real_tanam_ha: 3, gagal_tanam: 3 });
+
+      await updateScheduleAction(emptyResponse, fd);
+
+      const [, data] = vi.mocked(updateSchedule).mock.calls[0];
+      expect(data.status).toBe("gagal_total");
+    });
+
+    it("falls back to pending when real_tanam_ha/gagal_tanam are missing", async () => {
       const fd = baseFormData();
       fd.set("id", "sched-1");
 
       await updateScheduleAction(emptyResponse, fd);
 
       const [, data] = vi.mocked(updateSchedule).mock.calls[0];
-      expect(data.status).toBeUndefined();
+      expect(data.status).toBe("pending");
     });
   });
 });

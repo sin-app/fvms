@@ -162,41 +162,55 @@ describe("notification-service", () => {
     expect(insert.mock.calls[0][0].type).toBe("warning");
   });
 
-  it("generateDueSoonNotifications creates one per due schedule", async () => {
+  function mockDueQueries(dueRows: unknown[], existingLinks: unknown[]) {
     const insert = vi.fn().mockResolvedValue({ error: null });
-    const select = vi.fn().mockReturnValue({
-      gte: vi.fn().mockReturnValue({
-        lte: vi.fn().mockReturnValue({
-          neq: vi.fn().mockReturnValue({
-            is: vi.fn().mockResolvedValue({
-              data: [
-                { user_id: "u1", visit_date: "2026-08-01", document_no: "DOC1", member_name: null },
-                { user_id: "u2", visit_date: "2026-08-02", document_no: null, member_name: "Budi" },
-              ],
+    const select = vi.fn().mockImplementation((cols: string) => {
+      if (cols === "link") {
+        return {
+          eq: () => ({ gte: () => ({ data: existingLinks }) }),
+        };
+      }
+      return {
+        gte: () => ({
+          lte: () => ({
+            neq: () => ({
+              is: () => ({ data: dueRows }),
             }),
           }),
         }),
-      }),
+      };
     });
     mockAdmin({ insert, select });
+    return insert;
+  }
+
+  it("generateDueSoonNotifications creates one per due schedule", async () => {
+    const insert = mockDueQueries(
+      [
+        { id: "s1", user_id: "u1", visit_date: "2026-08-01", document_no: "DOC1", member_name: null },
+        { id: "s2", user_id: "u2", visit_date: "2026-08-02", document_no: null, member_name: "Budi" },
+      ],
+      [],
+    );
 
     const count = await generateDueSoonNotifications();
     expect(count).toBe(2);
     expect(insert).toHaveBeenCalledTimes(2);
   });
 
+  it("generateDueSoonNotifications skips schedules already notified in last 24h", async () => {
+    const insert = mockDueQueries(
+      [{ id: "s1", user_id: "u1", visit_date: "2026-08-01", document_no: "DOC1", member_name: null }],
+      [{ link: "/schedules?focus=s1" }],
+    );
+
+    const count = await generateDueSoonNotifications();
+    expect(count).toBe(0);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
   it("generateDueSoonNotifications returns 0 when none due", async () => {
-    const insert = vi.fn().mockResolvedValue({ error: null });
-    const select = vi.fn().mockReturnValue({
-      gte: vi.fn().mockReturnValue({
-        lte: vi.fn().mockReturnValue({
-          neq: vi.fn().mockReturnValue({
-            is: vi.fn().mockResolvedValue({ data: [] }),
-          }),
-        }),
-      }),
-    });
-    mockAdmin({ insert, select });
+    const insert = mockDueQueries([], []);
 
     expect(await generateDueSoonNotifications()).toBe(0);
     expect(insert).not.toHaveBeenCalled();

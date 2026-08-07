@@ -1,4 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// Modul authorization menarik chain supabase + server-only yang import-nya
+// lambat saat suite penuh berjalan bersamaan; beri waktu lebih.
+vi.setConfig({ testTimeout: 30000 });
 
 describe("authorization — isPrivileged", () => {
   async function getModule() {
