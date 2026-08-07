@@ -31,8 +31,9 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     } = await supabase.auth.getUser();
     if (user) {
       userId = user.id;
-      const meta = user.user_metadata ?? {};
-      metaRole = parseRole(meta.role ?? user.app_metadata?.role);
+      // app_metadata dikontrol server (admin) dan tidak bisa diedit user sendiri.
+      // user_metadata BISA diedit user — jangan pernah dijadikan sumber role.
+      metaRole = parseRole(user.app_metadata?.role);
     }
   } catch {
     // getUser can intermittently fail; fall back to session below.
@@ -45,8 +46,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       } = await supabase.auth.getSession();
       if (session?.user) {
         userId = session.user.id;
-        const meta = session.user.user_metadata ?? {};
-        metaRole = parseRole(meta.role ?? session.user.app_metadata?.role);
+        metaRole = parseRole(session.user.app_metadata?.role);
       }
     } catch {
       // ignore

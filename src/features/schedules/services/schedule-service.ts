@@ -57,11 +57,11 @@ function buildScheduleQuery(
     query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
   }
 
-  if (userId !== "all" && !user_id) {
+  // Non-privileged callers are always scoped to their own schedules
+  // and must not be able to filter by another user's id.
+  if (userId !== "all") {
     query = query.eq("user_id", userId);
-  }
-
-  if (user_id) {
+  } else if (user_id) {
     query = query.eq("user_id", user_id);
   }
 

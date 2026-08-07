@@ -27,6 +27,12 @@ interface ScheduleTableProps {
 
 export function ScheduleTable({ filters }: ScheduleTableProps) {
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState<Schedule | null>(null);
+  const [editing, setEditing] = useState<Schedule | null>(null);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [showBulkCancel, setShowBulkCancel] = useState(false);
+  const [optimisticDates, setOptimisticDates] = useState<Record<string, string>>({});
   const prevFilterKey = useRef("");
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -39,6 +45,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
     if (prevFilterKey.current !== key) {
       prevFilterKey.current = key;
       setPage(1);
+      setSelectedIds(new Set());
     }
   }, [filters]);
   const { data, isLoading, isFetching, isError, refetch } = useSchedules({ ...filters, page });
@@ -46,11 +53,6 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const bulkAction = useBulkAction();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [deleting, setDeleting] = useState<Schedule | null>(null);
-  const [editing, setEditing] = useState<Schedule | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showBulkDelete, setShowBulkDelete] = useState(false);
-  const [optimisticDates, setOptimisticDates] = useState<Record<string, string>>({});
 
   const isAdmin = user?.role === "admin";
   const canDelete = user?.role === "admin";
@@ -67,9 +69,15 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
     const base = optimisticDates[schedule.id] ?? schedule.visit_date;
     const next = new Date(base + "T00:00:00");
     next.setDate(next.getDate() + days);
-    const nextStr = next.toISOString().split("T")[0];
+    const nextStr = dateString(next);
     setOptimisticDates((prev) => ({ ...prev, [schedule.id]: nextStr }));
     shiftSchedule.mutate({ id: schedule.id, days }, {
+      onSuccess: () => {
+        setOptimisticDates((prev) => {
+          const { [schedule.id]: _removed, ...rest } = prev;
+          return rest;
+        });
+      },
       onError: () =>
         setOptimisticDates((prev) => {
           const { [schedule.id]: _removed, ...rest } = prev;
@@ -160,9 +168,9 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleBulk("cancel")}
+                onClick={() => setShowBulkCancel(true)}
                 disabled={bulkAction.isPending}
-                className="h-8 text-xs"
+                className="h-8 text-xs text-destructive"
               >
                 <XCircle className="h-3.5 w-3.5 mr-1" />
                 Batal
@@ -454,6 +462,17 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
         confirmLabel="Hapus Semua"
         variant="destructive"
         onConfirm={() => handleBulk("delete")}
+        loading={bulkAction.isPending}
+      />
+
+      <ConfirmDialog
+        open={showBulkCancel}
+        onOpenChange={setShowBulkCancel}
+        title="Batalkan Jadwal Terpilih?"
+        message={`${selectedIds.size} jadwal akan ditandai Gagal Total dan tidak dapat dibatalkan kembali. Lanjutkan?`}
+        confirmLabel="Ya, Batalkan"
+        variant="destructive"
+        onConfirm={() => handleBulk("cancel")}
         loading={bulkAction.isPending}
       />
 

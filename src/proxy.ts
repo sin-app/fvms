@@ -5,6 +5,7 @@ import { withRequestId } from "@/lib/logger";
 
 const PUBLIC_ROUTES = ["/login", "/reset-password"];
 const AUTH_ROUTES = ["/login"];
+const SESSIONLESS_API = ["/api/cron", "/api/v1", "/ready"];
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -22,8 +23,15 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = PUBLIC_ROUTES.some((route) =>
     pathname.startsWith(route),
   );
+  const isSessionlessApi = SESSIONLESS_API.some((route) => pathname.startsWith(route));
 
   const cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[] = [];
+
+  if (isSessionlessApi) {
+    const response = NextResponse.next({ request });
+    response.headers.set("x-request-id", requestId);
+    return response;
+  }
 
   const supabase = createServerClient(
     requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
@@ -43,10 +51,10 @@ export async function middleware(request: NextRequest) {
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session && !isPublicRoute) {
+  if (!user && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     const redirectResponse = NextResponse.redirect(loginUrl);
@@ -54,7 +62,7 @@ export async function middleware(request: NextRequest) {
     return redirectResponse;
   }
 
-  if (session && AUTH_ROUTES.some((route) => pathname.startsWith(route))) {
+  if (user && AUTH_ROUTES.some((route) => pathname.startsWith(route))) {
     const dashboardResponse = NextResponse.redirect(new URL("/dashboard", request.url));
     applyCookiesToResponse(request, dashboardResponse, cookiesToSet);
     return dashboardResponse;

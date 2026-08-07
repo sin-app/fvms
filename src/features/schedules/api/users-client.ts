@@ -18,10 +18,14 @@ export async function fetchAllFieldOfficers(
     .in("role", ["produksi"])
     .eq("is_active", true);
 
-  if (kabupatenId) {
+  if (ctx.role === "qc") {
+    // QC hanya boleh melihat petugas di kabupaten tugasnya. Assignment kosong
+    // berarti tidak boleh melihat siapa pun (fail-closed).
+    const scope = kabupatenId ? [kabupatenId] : ctx.assignedKabupatenIds;
+    if (scope.length === 0) return [];
+    query = query.overlaps("assigned_kabupaten_ids", scope);
+  } else if (kabupatenId) {
     query = query.overlaps("assigned_kabupaten_ids", [kabupatenId]);
-  } else if (ctx.role === "qc" && ctx.assignedKabupatenIds.length > 0) {
-    query = query.overlaps("assigned_kabupaten_ids", ctx.assignedKabupatenIds);
   }
 
   const { data } = await query.order("name");

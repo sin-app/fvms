@@ -43,10 +43,9 @@ export function deriveScheduleStatus(input: {
     if (real_tanam_ha != null && real_tanam_ha - gagal_tanam === 0) {
       return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
     }
-    return { status: "completed" };
-  }
-
-  if (
+    // sisa=0 tetapi real-gagal != 0 (atau real_tanam tidak ada): data tidak konsisten,
+    // jangan otomatis completed karena bisa menutupi kegagalan → jatuh ke fallback di bawah.
+  } else if (
     sisa_di_lahan_ha != null && sisa_di_lahan_ha > 0 &&
     gagal_tanam != null && gagal_tanam > 0 &&
     real_tanam_ha != null &&

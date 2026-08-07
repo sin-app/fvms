@@ -37,6 +37,14 @@ export async function createScheduleAction(
     return { success: false, error: "Tidak dapat membuat jadwal untuk user lain" };
   }
 
+  // QC hanya boleh membuat jadwal di dalam kabupaten tugasnya.
+  if (ctx.role === "qc") {
+    const scope = qcKabupatenScope(ctx) ?? [];
+    if (scope.length === 0 || !parsed.data.kabupaten_id || !scope.includes(parsed.data.kabupaten_id)) {
+      return { success: false, error: "Kabupaten di luar wilayah tugas QC" };
+    }
+  }
+
   try {
     await createSchedule(parsed.data);
     revalidateSchedulePaths();
@@ -63,12 +71,22 @@ export async function updateScheduleAction(
   // Fetch existing DB values so derivation uses actual data when form fields are empty
   const { data: existing } = await createAdminClient()
     .from("schedules")
-    .select("visit_time, notes, latitude, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha")
+    .select("visit_time, notes, latitude, tgl_panen, real_panen, status, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, visit_photos(id)")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
 
-  const hasActivity = !!(existing?.visit_time || existing?.notes || existing?.latitude);
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const existingPhotos = (existing as unknown as { visit_photos?: { id: string }[] | null })?.visit_photos ?? [];
+  const hasActivity = !!(
+    existing?.visit_time ||
+    existing?.notes ||
+    existing?.latitude ||
+    existing?.tgl_panen ||
+    existing?.real_panen ||
+    parsed.data.notes ||
+    existingPhotos.length > 0
+  );
   const derived = deriveScheduleStatus({
     real_tanam_ha: parsed.data.real_tanam_ha ?? existing?.real_tanam_ha ?? undefined,
     gagal_tanam: parsed.data.gagal_tanam ?? existing?.gagal_tanam ?? undefined,
@@ -76,8 +94,13 @@ export async function updateScheduleAction(
     hasActivity,
   });
   if (derived) {
-    parsed.data.status = derived.status;
-    if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
+    // Jangan menurunkan status terminal (hasil tindakan eksplisit) ke pending/in_progress.
+    const existingIsExplicit = existing?.status === "completed" || existing?.status === "gagal_total" || existing?.status === "gagal_partial";
+    const derivedIsFallback = derived.status === "pending" || derived.status === "in_progress";
+    if (!(existingIsExplicit && derivedIsFallback)) {
+      parsed.data.status = derived.status;
+      if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
+    }
   }
 
   // Non-admin users must pass the access check.
@@ -87,6 +110,12 @@ export async function updateScheduleAction(
     }
     if (!isPrivileged(ctx.role) && parsed.data.user_id !== ctx.userId) {
       return { success: false, error: "Tidak dapat mengubah jadwal untuk user lain" };
+    }
+    if (ctx.role === "qc" && parsed.data.kabupaten_id) {
+      const scope = qcKabupatenScope(ctx) ?? [];
+      if (scope.length === 0 || !scope.includes(parsed.data.kabupaten_id)) {
+        return { success: false, error: "Kabupaten di luar wilayah tugas QC" };
+      }
     }
   }
 
@@ -167,10 +196,6 @@ export async function deleteScheduleAction(
       .eq("id", id)
       .maybeSingle();
     if (data?.user_id !== ctx.userId) return { success: false, error: "Tidak memiliki akses" };
-  } else if (ctx.role === "qc") {
-    if (!(await canAccessSchedule(id, ctx))) {
-      return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
-    }
   } else {
     return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
   }
@@ -214,6 +239,7 @@ export async function updateLabelAction(
       .from("schedules")
       .update({ label: label || null })
       .eq("id", id);
+    revalidateSchedulePaths(id);
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal mengupdate label";
@@ -242,9 +268,11 @@ export async function bulkActionSchedules(
 
   if (!ids.length) return { success: false, error: "Tidak ada data dipilih" };
 
-  // Only admin may delete schedules. Produksi may only delete their own,
-  // Only admin may delete schedules. Others may only delete their own.
-  if (action === "delete" && ctx.role !== "admin" && ctx.role !== "produksi" && ctx.role !== "qc") {
+  // Only admin may delete schedules. Produksi may only delete their own.
+  if (action === "delete" && ctx.role === "qc") {
+    return { success: false, error: "QC tidak diizinkan menghapus jadwal" };
+  }
+  if (action === "delete" && ctx.role !== "admin" && ctx.role !== "produksi") {
     return { success: false, error: "Hanya admin atau pemilik jadwal yang dapat menghapus" };
   }
 
@@ -318,11 +346,33 @@ export async function bulkActionSchedules(
         await admin.from("schedules").update({ visit_date: dateString(prev) }).eq("id", s.id);
       }
     } else if (["pending", "in_progress", "gagal_partial", "completed"].includes(action)) {
+      const target = action as VisitStatus;
+      const { data: currentRows, error: statusErr } = await admin
+        .from("schedules")
+        .select("id, status")
+        .in("id", ids)
+        .is("deleted_at", null);
+      if (statusErr) throw statusErr;
+
+      const invalid = (currentRows ?? []).filter((row) => {
+        const from = SCHEDULE_STATUSES.includes(row.status as VisitStatus)
+          ? (row.status as VisitStatus)
+          : "pending";
+        if (from === target) return false;
+        return !(STATUS_TRANSITIONS[from] ?? []).includes(target);
+      });
+      if (invalid.length > 0) {
+        return {
+          success: false,
+          error: `Transisi status tidak diizinkan untuk ${invalid.length} jadwal (mis. ${invalid[0].id.slice(0, 8)}...)`,
+        };
+      }
+
       const query = admin
         .from("schedules")
-        .update({ status: action })
+        .update({ status: target })
         .in("id", ids)
-        .neq("status", "gagal_total");
+        .is("deleted_at", null);
       if (!isPrivileged(ctx.role)) query.eq("user_id", ctx.userId);
       const { error } = await query;
       if (error) throw error;
