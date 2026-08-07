@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/authorization";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { hashApiKey } from "@/lib/api-auth";
 import crypto from "crypto";
 
 function generateApiKey(): string {
   return "fvm_" + crypto.randomBytes(32).toString("hex");
+}
+
+function maskKey(key: string): string {
+  return `${key.slice(0, 10)}…${key.slice(-4)}`;
 }
 
 export async function GET() {
@@ -16,11 +21,19 @@ export async function GET() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("api_keys")
-    .select("id, name, key, created_at")
+    .select("id, name, key_hash, created_at")
     .eq("user_id", ctx.userId)
     .order("created_at", { ascending: false });
 
-  return NextResponse.json({ keys: data ?? [] });
+  // Jangan pernah menampilkan key penuh — hanya versi ter-mask.
+  return NextResponse.json({
+    keys: (data ?? []).map((k) => ({
+      id: k.id,
+      name: k.name,
+      key_masked: maskKey(k.key_hash),
+      created_at: k.created_at,
+    })),
+  });
 }
 
 export async function POST(req: Request) {
@@ -29,9 +42,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { name } = await req.json();
-  if (!name?.trim()) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  let name: string;
+  try {
+    const body = await req.json();
+    name = body?.name;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (typeof name !== "string" || !name.trim() || name.trim().length > 100) {
+    return NextResponse.json({ error: "Name is required (max 100 chars)" }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -39,15 +58,16 @@ export async function POST(req: Request) {
 
   const { data, error } = await admin
     .from("api_keys")
-    .insert({ user_id: ctx.userId, name: name.trim(), key })
-    .select("id, name, key, created_at")
+    .insert({ user_id: ctx.userId, name: name.trim(), key_hash: hashApiKey(key) })
+    .select("id, name, created_at")
     .single();
 
   if (error) {
     return NextResponse.json({ error: "Gagal membuat API key" }, { status: 500 });
   }
 
-  return NextResponse.json({ key: data });
+  // Key penuh hanya dikembalikan SEKALI saat dibuat.
+  return NextResponse.json({ key: { ...data, key_value: key } });
 }
 
 export async function DELETE(req: Request) {

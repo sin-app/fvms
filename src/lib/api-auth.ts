@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import crypto from "crypto";
 
 interface ApiAuthResult {
   authenticated: boolean;
@@ -6,6 +7,10 @@ interface ApiAuthResult {
   permissions?: string[];
   error?: string;
   status?: number;
+}
+
+export function hashApiKey(key: string): string {
+  return crypto.createHash("sha256").update(key).digest("hex");
 }
 
 export async function authenticateApiKey(request: Request): Promise<ApiAuthResult> {
@@ -23,7 +28,7 @@ export async function authenticateApiKey(request: Request): Promise<ApiAuthResul
   const { data, error } = await admin
     .from("api_keys")
     .select("user_id, permissions")
-    .eq("key", apiKey)
+    .eq("key_hash", hashApiKey(apiKey))
     .eq("is_active", true)
     .single();
 
@@ -32,7 +37,7 @@ export async function authenticateApiKey(request: Request): Promise<ApiAuthResul
   }
 
   // Update last_used_at
-  await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key", apiKey);
+  await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", hashApiKey(apiKey));
 
   return {
     authenticated: true,
