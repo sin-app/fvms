@@ -7,9 +7,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
-  const auth = request.headers.get("authorization");
+  if (!secret) {
+    logger.error("Cron disabled: CRON_SECRET tidak diset");
+    return NextResponse.json({ error: "Cron not configured" }, { status: 503 });
+  }
 
-  if (secret && auth !== `Bearer ${secret}`) {
+  const auth = request.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -47,6 +47,7 @@ export async function notifyImportCompleted(
 }
 
 interface DueSoonSchedule {
+  id: string;
   user_id: string;
   visit_date: string;
   document_no: string | null;
@@ -66,7 +67,7 @@ export async function generateDueSoonNotifications(): Promise<number> {
 
   const { data: due } = await admin
     .from("schedules")
-    .select("user_id, visit_date, document_no, member_name")
+    .select("id, user_id, visit_date, document_no, member_name")
     .gte("visit_date", startDate)
     .lte("visit_date", endDate)
     .neq("status", "completed")
@@ -74,16 +75,37 @@ export async function generateDueSoonNotifications(): Promise<number> {
 
   if (!due || due.length === 0) return 0;
 
+  // Dedup: kirim 1 notifikasi per jadwal per hari. Cegah notifikasi
+  // berulang pada window +1..+3 hari yang tumpang tindih antar cron run.
+  const { data: existing } = await admin
+    .from("notifications")
+    .select("link")
+    .eq("type", "info")
+    .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+  const seenLinks = new Set(existing?.map((n) => n.link).filter(Boolean) ?? []);
+  const dueSchedules = due as (DueSoonSchedule & { id: string })[];
+
+  const pending = dueSchedules
+    .map((s) => ({
+      userId: s.user_id,
+      link: `/schedules?focus=${s.id}`,
+      label: s.document_no ?? s.member_name ?? "jadwal kunjungan",
+      visitDate: s.visit_date,
+    }))
+    .filter((n) => !seenLinks.has(n.link));
+
+  if (pending.length === 0) return 0;
+
   const created = await Promise.all(
-    (due as DueSoonSchedule[]).map(async (s) => {
-      const label = s.document_no ?? s.member_name ?? "jadwal kunjungan";
-      const msg = `Kunjungan ${label} jatuh pada ${s.visit_date}. Segera lakukan survei lapangan.`;
+    pending.map(async (n) => {
+      const msg = `Kunjungan ${n.label} jatuh pada ${n.visitDate}. Segera lakukan survei lapangan.`;
       await createNotification({
-        userId: s.user_id,
+        userId: n.userId,
         title: "Jadwal akan datang",
         message: msg,
         type: "info",
-        link: "/schedules",
+        link: n.link,
       });
       return 1;
     }),
