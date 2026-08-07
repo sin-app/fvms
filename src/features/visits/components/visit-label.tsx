@@ -31,8 +31,10 @@ export function VisitLabel({ scheduleId, currentLabel, editable }: VisitLabelPro
       if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["visit", scheduleId] });
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Label berhasil diupdate");
     },
     onError: (err: Error) => toast.error(err.message),

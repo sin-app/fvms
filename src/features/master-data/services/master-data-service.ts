@@ -173,6 +173,15 @@ export async function updateKabupaten(id: string, data: { name: string; code: st
 
 export async function deleteKabupaten(id: string) {
   const admin = createAdminClient();
+  const { data: usage } = await admin
+    .from("schedules")
+    .select("id")
+    .eq("kabupaten_id", id)
+    .is("deleted_at", null)
+    .limit(1);
+  if (usage && usage.length > 0) {
+    throw new Error("Kabupaten masih dipakai oleh jadwal aktif. Tidak dapat dihapus.");
+  }
   const { error } = await admin
     .from("kabupaten")
     .update({ deleted_at: new Date().toISOString() })
@@ -208,6 +217,15 @@ export async function updateKecamatan(id: string, data: { kabupaten_id: string; 
 
 export async function deleteKecamatan(id: string) {
   const admin = createAdminClient();
+  const { data: usage } = await admin
+    .from("schedules")
+    .select("id")
+    .eq("kecamatan_id", id)
+    .is("deleted_at", null)
+    .limit(1);
+  if (usage && usage.length > 0) {
+    throw new Error("Kecamatan masih dipakai oleh jadwal aktif. Tidak dapat dihapus.");
+  }
   const { error } = await admin
     .from("kecamatan")
     .update({ deleted_at: new Date().toISOString() })
@@ -243,6 +261,15 @@ export async function updateDesa(id: string, data: { kecamatan_id: string; name:
 
 export async function deleteDesa(id: string) {
   const admin = createAdminClient();
+  const { data: usage } = await admin
+    .from("schedules")
+    .select("id")
+    .eq("desa_id", id)
+    .is("deleted_at", null)
+    .limit(1);
+  if (usage && usage.length > 0) {
+    throw new Error("Desa masih dipakai oleh jadwal aktif. Tidak dapat dihapus.");
+  }
   const { error } = await admin
     .from("desa")
     .update({ deleted_at: new Date().toISOString() })

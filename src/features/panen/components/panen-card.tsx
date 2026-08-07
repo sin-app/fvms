@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sprout, Calendar } from "lucide-react";
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { savePanenAction } from "../actions/panen-actions";
 import { cn } from "@/lib/utils";
@@ -16,9 +18,25 @@ interface PanenCardProps {
 }
 
 export function PanenCard({ scheduleId, tglPanen, panenKeterangan, editable }: PanenCardProps) {
-  const [state, formAction] = useFormState(savePanenAction, { success: false });
+  const [state, formAction, isPending] = useActionState(savePanenAction, { success: false });
   const [editing, setEditing] = useState(false);
+  const queryClient = useQueryClient();
   const isHarvested = !!tglPanen;
+
+  useEffect(() => {
+    if (!state) return;
+    if (state.success) {
+      queryClient.invalidateQueries({ queryKey: ["visit", scheduleId] });
+      queryClient.invalidateQueries({ queryKey: ["visit-timeline", scheduleId] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      toast.success("Data panen berhasil disimpan");
+    } else if (state.error) {
+      toast.error(state.error);
+    }
+  }, [state, queryClient, scheduleId]);
 
   if (!editing) {
     return (
@@ -82,7 +100,7 @@ export function PanenCard({ scheduleId, tglPanen, panenKeterangan, editable }: P
           <p className="text-xs text-red-500">{state.error}</p>
         )}
         <div className="flex gap-2">
-          <Button type="submit" size="sm">Simpan</Button>
+          <Button type="submit" size="sm" disabled={isPending}>{isPending ? "Menyimpan..." : "Simpan"}</Button>
           <Button type="button" variant="outline" size="sm" onClick={() => setEditing(false)}>
             Batal
           </Button>

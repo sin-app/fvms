@@ -35,10 +35,13 @@ export function UserForm({ action, defaultValues, onSuccess, open, onOpenChange 
   );
 
   // Reset selection when the dialog opens for a different user.
-  useEffect(() => {
+  const [prevDialogKey, setPrevDialogKey] = useState(`${open}:${defaultValues?.id ?? "__new__"}`);
+  const dialogKey = `${open}:${defaultValues?.id ?? "__new__"}`;
+  if (dialogKey !== prevDialogKey) {
+    setPrevDialogKey(dialogKey);
     setRole(defaultValues?.role ?? "produksi");
     setSelectedKab(defaultValues?.assigned_kabupaten_ids ?? []);
-  }, [defaultValues, open]);
+  }
 
   function toggleKab(id: string) {
     setSelectedKab((prev) =>

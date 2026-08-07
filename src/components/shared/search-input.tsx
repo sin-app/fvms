@@ -16,8 +16,14 @@ export function SearchInput({
   placeholder = "Cari...",
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(value);
+  const [prevPropValue, setPrevPropValue] = useState(value);
   const debouncedValue = useDebounce(localValue, 300);
   const initialRender = useRef(true);
+
+  if (value !== prevPropValue) {
+    setPrevPropValue(value);
+    setLocalValue(value);
+  }
 
   useEffect(() => {
     if (initialRender.current) {
@@ -26,12 +32,6 @@ export function SearchInput({
     }
     onChange(debouncedValue);
   }, [debouncedValue, onChange]);
-
-  useEffect(() => {
-    if (value === "" && localValue !== "") {
-      setLocalValue("");
-    }
-  }, [value, localValue]);
 
   return (
     <div className="relative">

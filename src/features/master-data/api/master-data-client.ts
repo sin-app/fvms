@@ -1,6 +1,5 @@
 "use server";
 
-import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getAuthContext } from "@/lib/auth/authorization";
 import {
   getKabupatenList,
@@ -27,7 +26,8 @@ export async function fetchAllKabupaten() {
   const ctx = await getAuthContext();
   const result = await getAllKabupaten();
 
-  if (ctx?.role === "qc" && ctx.assignedKabupatenIds.length > 0) {
+  if (ctx?.role === "qc") {
+    // QC hanya melihat kabupaten tugasnya. Assignment kosong = tidak ada akses.
     const allowed = new Set(ctx.assignedKabupatenIds);
     return result.filter((k) => allowed.has(k.id));
   }

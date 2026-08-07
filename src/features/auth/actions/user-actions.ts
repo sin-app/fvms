@@ -64,7 +64,7 @@ export async function createUserAction(
     role: formData.get("role") as "admin" | "qc" | "produksi",
     phone: (formData.get("phone") as string) || undefined,
     is_active: formData.get("is_active") === "true",
-    assigned_kabupaten_ids: (formData.get("assigned_kabupaten_ids") as string)
+    assigned_kabupaten_ids: ((formData.get("assigned_kabupaten_ids") as string) ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
@@ -106,7 +106,7 @@ export async function updateUserAction(
     role: formData.get("role") as "admin" | "qc" | "produksi",
     phone: (formData.get("phone") as string) || undefined,
     is_active: formData.get("is_active") === "true",
-    assigned_kabupaten_ids: (formData.get("assigned_kabupaten_ids") as string)
+    assigned_kabupaten_ids: ((formData.get("assigned_kabupaten_ids") as string) ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),

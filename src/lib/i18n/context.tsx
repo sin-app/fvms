@@ -36,22 +36,26 @@ const I18nContext = createContext<I18nContextValue>({
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("id");
+  const [storedLocale, setStoredLocale] = useState<Locale | null>(null);
   const [messages, setMessages] = useState<Messages>({});
   const [ready, setReady] = useState(false);
 
+  if (storedLocale === null && typeof window !== "undefined") {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    setStoredLocale(stored === "en" ? "en" : "id");
+  }
+
+  const locale = storedLocale ?? "id";
+
   useEffect(() => {
-    const stored = (typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null) as Locale | null;
-    const initial: Locale = stored === "en" ? "en" : "id";
-    setLocaleState(initial);
-    loadMessages(initial).then((msgs) => {
+    loadMessages(locale).then((msgs) => {
       setMessages(msgs);
       setReady(true);
     });
-  }, []);
+  }, [locale]);
 
   const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
+    setStoredLocale(l);
     localStorage.setItem(STORAGE_KEY, l);
     document.cookie = `locale=${l};path=/;max-age=31536000`;
     loadMessages(l).then(setMessages);
