@@ -52,23 +52,23 @@ export function todayString(): string {
 }
 
 export function firstOfMonthString(): string {
-  return startOfMonth(new Date()).toISOString().split("T")[0];
+  return dateString(startOfMonth(new Date()));
 }
 
 export function lastOfMonthString(): string {
-  return endOfMonth(new Date()).toISOString().split("T")[0];
+  return dateString(endOfMonth(new Date()));
 }
 
 export function weekStartString(): string {
-  return startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split("T")[0];
+  return dateString(startOfWeek(new Date(), { weekStartsOn: 1 }));
 }
 
 export function weekEndString(): string {
-  return endOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split("T")[0];
+  return dateString(endOfWeek(new Date(), { weekStartsOn: 1 }));
 }
 
 export function tomorrowString(): string {
-  return addDays(new Date(), 1).toISOString().split("T")[0];
+  return dateString(addDays(new Date(), 1));
 }
 
 export function dateString(d: Date): string {

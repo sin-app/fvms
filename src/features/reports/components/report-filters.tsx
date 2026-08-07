@@ -127,11 +127,19 @@ export function ReportFiltersView({
 
   function handleDateRange(value: string) {
     onDateRangeChange(value);
-    if (value !== "custom") {
-      const range = getDateRange(value);
-      onDateFromChange(range.from);
-      onDateToChange(range.to);
+    if (value === "custom") return;
+    if (value === "") {
+      // "Semua Tanggal" — gunakan rentang lebar terbatas (mis. 5 tahun ke
+      // belakang sampai hari ini) supaya query tetap ter-index dan tidak error.
+      const now = new Date();
+      const from = new Date(now.getFullYear() - 5, 0, 1);
+      onDateFromChange(dateString(from));
+      onDateToChange(dateString(now));
+      return;
     }
+    const range = getDateRange(value);
+    onDateFromChange(range.from);
+    onDateToChange(range.to);
   }
 
   function handleKabupaten(value: string) {

@@ -8,7 +8,7 @@ export function useDashboard(filters?: DashboardFilters) {
   return useQuery({
     queryKey: ["dashboard", filters ?? {}],
     queryFn: () => fetchDashboardData(filters),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 }

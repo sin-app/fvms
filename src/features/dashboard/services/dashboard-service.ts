@@ -53,7 +53,7 @@ export async function getDashboardData(
   };
 
   const baseQuery = () =>
-    admin.from("schedules").select("*", { count: "exact", head: true });
+    admin.from("schedules").select("id", { count: "exact", head: true });
 
   const todayQuery = applyFilters(baseQuery()).eq("visit_date", today);
   const tomorrowQuery = applyFilters(baseQuery()).eq("visit_date", tomorrow);
@@ -124,7 +124,7 @@ export async function getDashboardData(
         .from("schedules")
         .select("*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)")
         .eq("visit_date", today),
-    ).order("created_at"),
+    ).order("created_at", { ascending: false }).limit(8),
     applyFilters(
       admin
         .from("schedules")

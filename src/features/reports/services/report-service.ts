@@ -90,6 +90,10 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
       sisa_di_lahan_ha: row.sisa_di_lahan_ha,
       hasActivity,
     });
+    // Jangan timpa status terminal eksplisit (hasil tindakan) dengan fallback
+    // pending/in_progress — konsisten dengan guard pada updateScheduleAction.
+    const isExplicit = s.status === "completed" || s.status === "gagal_total" || s.status === "gagal_partial";
+    const derivedIsFallback = derived?.status === "pending" || derived?.status === "in_progress";
     const ps = getPanenStatus({
       tgl_panen: row.tgl_panen,
       real_panen: row.real_panen,
@@ -99,7 +103,7 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     });
     return {
       ...s,
-      actualStatus: derived ? derived.status : s.status,
+      actualStatus: isExplicit && derivedIsFallback ? s.status : (derived ? derived.status : s.status),
       actualPanenStatus: ps,
     };
   });
@@ -127,8 +131,10 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
   const gagal_total = schedules.filter((s) => s.actualStatus === "gagal_total").length;
 
   const today = todayString();
+  // Konsisten dengan daftar jadwal & dashboard: yang dianggap "terlambat"
+  // hanyalah status yang belum tuntas (pending/in_progress/gagal_partial).
   const late_count = schedules.filter(
-    (s) => s.visit_date < today && !["completed", "gagal_total"].includes(s.actualStatus),
+    (s) => s.visit_date < today && !["completed", "gagal_total", "gagal_partial"].includes(s.actualStatus),
   ).length;
 
   // By officer

@@ -18,14 +18,14 @@ export function DashboardFilters({
 }: DashboardFiltersProps) {
   const { user } = useAuth();
   const isPrivileged = user?.role === "admin" || user?.role === "qc";
+  const { data: allKabupaten } = useAllKabupaten();
+  const { data: kecamatan } = useAllKecamatan(kabupatenId);
   if (!isPrivileged) return null;
 
-  const { data: allKabupaten } = useAllKabupaten();
   const scopeKabupatenIds = user?.role === "qc" ? (user.assigned_kabupaten_ids ?? []) : undefined;
   const kabupaten = scopeKabupatenIds
     ? (allKabupaten ?? []).filter((k) => scopeKabupatenIds.includes(k.id))
     : allKabupaten;
-  const { data: kecamatan } = useAllKecamatan(kabupatenId);
 
   return (
     <div className="flex flex-wrap items-end gap-3">

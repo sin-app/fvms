@@ -10,7 +10,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { StatCard } from "@/components/shared/stat-card";
 import { CalendarCheck, Clock, AlertTriangle, CheckCircle, Sprout, Loader2 } from "lucide-react";
 import { useAuth } from "@/features/auth/components/auth-context";
-import { todayString } from "@/lib/utils/date";
+import { todayString, firstOfMonthString } from "@/lib/utils/date";
 import type { ReportFilters } from "@/features/reports";
 
 export default function ReportsPage() {
@@ -20,7 +20,7 @@ export default function ReportsPage() {
     user?.role === "qc" ? (user.assigned_kabupaten_ids ?? []) : undefined;
 
   const today = todayString();
-  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+  const firstOfMonth = firstOfMonthString();
 
   const [memberName, setMemberName] = useState("");
   const [blockNo, setBlockNo] = useState("");
@@ -68,27 +68,6 @@ export default function ReportsPage() {
   const { data: bundle, isLoading, isFetching, isError, refetch } = useReportBundle(filters);
   const data = bundle?.data;
   const rows = bundle?.rows;
-
-  function handleReset() {
-    const today2 = todayString();
-    const firstOfMonth2 = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
-    setDateFrom(firstOfMonth2);
-    setDateTo(today2);
-    setUserId("");
-    setKabupatenId("");
-    setKecamatanId("");
-    setLabel("all");
-    setMemberName("");
-    setBlockNo("");
-    setNoPlot("");
-    setNis("");
-    setDocumentNo("");
-    setCgr("");
-    setVarietas("");
-    setStatus("all");
-    setPanenStatus("all");
-    setDateRange("month");
-  }
 
   const handleDownload = async () => {
     const { default: fileSaver } = await import("file-saver");
