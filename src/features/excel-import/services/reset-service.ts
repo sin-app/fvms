@@ -15,6 +15,24 @@ export interface ResetResult {
 export async function resetAllData(): Promise<ResetResult> {
   const admin = createAdminClient();
 
+  // 0) Ambil semua path foto sebelum schedule dihapus, lalu bersihkan storage
+  //    (private bucket) supaya tidak ada objek yatim setelah reset.
+  const { data: photoRows } = await admin
+    .from("visit_photos")
+    .select("url");
+  const paths = (photoRows ?? []).map((p) => p.url).filter(Boolean) as string[];
+  if (paths.length > 0) {
+    const chunkSize = 100;
+    for (let i = 0; i < paths.length; i += chunkSize) {
+      const chunk = paths.slice(i, i + chunkSize);
+      try {
+        await admin.storage.from("visit-photos").remove(chunk);
+      } catch (err) {
+        logger.error("[reset-service] Gagal hapus foto storage", { error: String(err) });
+      }
+    }
+  }
+
   // 1) Hard-delete all schedules. Cascades to visit_photos and visit_notes.
   const { count: schedCount } = await admin
     .from("schedules")

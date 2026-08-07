@@ -25,7 +25,8 @@ export function createUserUpserter(): UserUpsertResult {
     const { data: existing } = await admin
       .from("users")
       .select("id, name")
-      .in("name", unique);
+      .in("role", ["produksi", "qc", "admin"])
+      .limit(2000);
 
     let created = 0;
     const toInsert: Array<{ id: string; email: string; name: string; role: string; is_active: boolean }> = [];
@@ -90,7 +91,8 @@ export function createUserUpserter(): UserUpsertResult {
       const { data: after } = await admin
         .from("users")
         .select("id, name")
-        .in("name", unique);
+        .in("role", ["produksi", "qc", "admin"])
+        .limit(2000);
       for (const row of after ?? []) map.set(row.name.toLowerCase(), row.id);
     }
 

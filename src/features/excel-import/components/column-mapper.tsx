@@ -10,6 +10,7 @@ const TARGET_FIELDS = [
   { key: "visit_date", label: "Tanggal Kunjungan *" },
   { key: "visit_time", label: "Jam Kunjungan" },
   { key: "tgl_tanam", label: "Tgl Tanam" },
+  { key: "tgl_panen", label: "Tgl Panen" },
   { key: "cgr", label: "CGR" },
   { key: "cgr_code", label: "CGR Code" },
   { key: "block_no", label: "Block No" },

@@ -400,14 +400,17 @@ export async function bulkImportSchedules(
         latitude?: number | null;
       }>
     >();
-    const allUserIds = [...new Set(unique.map((r) => r.user_id))];
-    if (allUserIds.length > 0) {
+    const allDesaIds = [...new Set(unique.map((r) => r.desa_id))];
+    if (allDesaIds.length > 0) {
+      // Composite key = desa_id|block_no|no_plot|member_name (tanpa user_id),
+      // jadi prefetch harus scoped oleh desa_id, bukan user_id — jika tidak,
+      // plot milik user lain tidak terdeteksi → unique violation.
       const { data: existingRows } = await admin
         .from("schedules")
         .select(
           "id, user_id, desa_id, visit_date, block_no, no_plot, member_name, status, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, tgl_panen, real_panen, visit_time, notes, latitude",
         )
-        .in("user_id", allUserIds)
+        .in("desa_id", allDesaIds)
         .is("deleted_at", null);
       for (const row of existingRows ?? []) {
         const k = makeKey(row);
@@ -430,7 +433,7 @@ export async function bulkImportSchedules(
 
     const toInsert: typeof schedulesToInsert = [];
     const toUpdate: Array<{ id: string; data: Record<string, unknown> }> = [];
-    let seenKeys = new Set<string>();
+    const seenKeys = new Set<string>();
 
     for (let i = 0; i < unique.length; i++) {
       const r = unique[i];
@@ -452,6 +455,10 @@ export async function bulkImportSchedules(
           if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
           if (r.cgr !== undefined) updateData.cgr = r.cgr;
           if (r.cgr_code !== undefined) updateData.cgr_code = r.cgr_code;
+          const newRencana =
+            r.rencana_panen ??
+            calcRencanaPanen(r.tgl_tanam ?? undefined, r.cgr ?? undefined);
+          if (newRencana !== null) updateData.rencana_panen = newRencana;
           if (r.block_no !== undefined) updateData.block_no = r.block_no;
           if (r.no_plot !== undefined) updateData.no_plot = r.no_plot;
           if (r.member_name !== undefined) updateData.member_name = r.member_name;
@@ -475,7 +482,11 @@ export async function bulkImportSchedules(
           if (currentStatus === "completed") {
             // preserve completed status
           } else {
-            const hasActivity = !!(exVisit || exNotes || exLat);
+            const hasActivity = !!(
+              exVisit || exNotes || exLat ||
+              r.visit_time || r.notes || r.latitude ||
+              exTgl || exRealPanen || r.tgl_panen || r.real_panen
+            );
             const merged = {
               real_tanam_ha: (r.real_tanam_ha !== undefined ? r.real_tanam_ha : exReal) ?? undefined,
               gagal_tanam: (r.gagal_tanam !== undefined ? r.gagal_tanam : exGagal) ?? undefined,
