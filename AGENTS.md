@@ -8,7 +8,8 @@
 ## Filter Behavior (Excel-style)
 - Schedules & Reports pages: kolom `block_no`, `no_plot`, `nis`, `document_no`, `cgr` difilter dengan **select nilai unik** (ala Excel) — bukan free-text.
 - Urutan filter bar (Schedules & Reports): **kode varietas → cgr → block → plot → nama member** → nis → doc no → panen → label → status → petugas → kabupaten → kecamatan → desa (date presets di baris bawah).
-- **Block = multi-select** (semantik OR, `SQL .in`): komponen `MultiFilterSelect` (`src/components/shared/multi-filter-select.tsx`; Popover + Checkbox), value `string[]`, kosong = semua. Tipe `block_no?: string[]` di `ScheduleFilters`, `ReportFilters`, `DistinctFiltersInput`; builder query memakai `.in("block_no", arr)` di `getScheduleList`, `getReportData`, `getReportRows`, dan `applyDistinctRelations`.
+- **Block = multi-select** (semantik OR, `SQL .in`): komponen `MultiFilterSelect` (`src/components/shared/multi-filter-select.tsx`; Popover + Checkbox + pencarian di dalam popover, kotak search di-reset tiap dibuka), value `string[]`, kosong = semua. Tipe `block_no?: string[]` di `ScheduleFilters`, `ReportFilters`, `DistinctFiltersInput`; builder query memakai `.in("block_no", arr)` di `getScheduleList`, `getReportData`, `getReportRows`, dan `applyDistinctRelations`.
+- `useDistinctFilterValues` memakai `placeholderData: keepPreviousData` — daftar opsi lama tetap tampil saat relasi berubah (refetch background), jadi interaksi checkbox tetap mulus.
 - `member_name` dan `varietas` tetap input teks (partial match `ilike`/`like`).
 - Nilai unik diambil via `getDistinctScheduleValues()` (`src/features/schedules/services/schedule-service.ts`), async paralel per kolom, unik + sort numerik-aware, scoped per role:
   - Produksi: hanya nilai dari schedule miliknya (`user_id`).
