@@ -4,6 +4,7 @@ import { useAllKabupaten, useAllKecamatan, useDesaFilterOptions } from "@/featur
 import { useAllUsers } from "../hooks/use-users";
 import { useDistinctFilterValues } from "../hooks/use-distinct-values";
 import { DistinctFilterSelect } from "@/components/shared/distinct-filter-select";
+import type { DistinctFiltersInput } from "../types";
 import { STATUS_LABELS } from "@/lib/constants/status";
 import { dateString } from "@/lib/utils/date";
 
@@ -43,6 +44,8 @@ interface ScheduleFiltersProps {
   label: string;
   onLabelChange: (value: string) => void;
   hidePetugasFilter?: boolean;
+  /** Filter aktif yang membatasi opsi dropdown lain (relasi cascading). */
+  relations?: DistinctFiltersInput;
 }
 
 const DATE_PRESETS = [
@@ -121,11 +124,12 @@ export function ScheduleFilters({
   label = "all",
   onLabelChange,
   hidePetugasFilter = false,
+  relations,
 }: ScheduleFiltersProps) {
   const { data: kabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
   const { data: users } = useAllUsers(kabupatenId);
-  const { data: distinctValues } = useDistinctFilterValues();
+  const { data: distinctValues } = useDistinctFilterValues(relations);
   const { data: desa } = useDesaFilterOptions(kabupatenId || undefined);
 
   function handleDateRange(value: string) {

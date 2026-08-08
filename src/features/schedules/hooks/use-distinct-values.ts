@@ -2,11 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchDistinctFilterValues } from "../api/schedule-client";
+import type { DistinctFiltersInput } from "../types";
 
-export function useDistinctFilterValues() {
+export function useDistinctFilterValues(relations?: DistinctFiltersInput) {
   return useQuery({
-    queryKey: ["schedules", "distinct-values"],
-    queryFn: fetchDistinctFilterValues,
+    queryKey: ["schedules", "distinct-values", relations ? JSON.stringify(relations) : "none"],
+    queryFn: () => fetchDistinctFilterValues(relations),
     staleTime: 5 * 60 * 1000,
   });
 }

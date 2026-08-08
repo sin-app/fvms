@@ -4,6 +4,7 @@ import { useAllKabupaten, useAllKecamatan, useDesaFilterOptions } from "@/featur
 import { useAllUsers } from "@/features/schedules/hooks/use-users";
 import { useDistinctFilterValues } from "@/features/schedules/hooks/use-distinct-values";
 import { DistinctFilterSelect } from "@/components/shared/distinct-filter-select";
+import type { DistinctFiltersInput } from "@/features/schedules/types";
 import { STATUS_LABELS } from "@/lib/constants/status";
 import { dateString } from "@/lib/utils/date";
 
@@ -44,6 +45,8 @@ interface ReportFiltersProps {
   onLabelChange: (value: string) => void;
   hidePetugasFilter?: boolean;
   scopeKabupatenIds?: string[];
+  /** Filter aktif yang membatasi opsi dropdown lain (relasi cascading). */
+  relations?: DistinctFiltersInput;
 }
 
 const DATE_PRESETS = [
@@ -123,11 +126,12 @@ export function ReportFiltersView({
   onLabelChange,
   hidePetugasFilter = false,
   scopeKabupatenIds,
+  relations,
 }: ReportFiltersProps) {
   const { data: allKabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
   const { data: users } = useAllUsers(kabupatenId);
-  const { data: distinctValues } = useDistinctFilterValues();
+  const { data: distinctValues } = useDistinctFilterValues(relations);
   const { data: desa } = useDesaFilterOptions(kabupatenId || undefined);
   const kabupaten = scopeKabupatenIds
     ? (allKabupaten ?? []).filter((k) => scopeKabupatenIds.includes(k.id))

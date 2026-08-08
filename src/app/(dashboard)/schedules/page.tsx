@@ -107,6 +107,19 @@ export default function SchedulesPage() {
     label: label !== "all" ? label : undefined,
   };
 
+  const relations = {
+    member_name: debouncedMemberName || undefined,
+    varietas: debouncedVarietas || undefined,
+    kabupaten_id: kabupatenId || undefined,
+    kecamatan_id: kecamatanId || undefined,
+    desa_id: desaId || undefined,
+    block_no: blockNo || undefined,
+    no_plot: noPlot || undefined,
+    nis: nis || undefined,
+    document_no: documentNo || undefined,
+    cgr: cgr || undefined,
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -168,6 +181,7 @@ export default function SchedulesPage() {
         label={label}
         onLabelChange={setLabel}
         hidePetugasFilter={isProduksi}
+        relations={relations}
       />
 
       <ScheduleTable filters={filters} />

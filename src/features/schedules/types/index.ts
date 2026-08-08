@@ -31,6 +31,20 @@ export interface ScheduleListResult {
   totalPages: number;
 }
 
+/** Filter aktif yang saling membatasi opsi dropdown (relasi cascading). */
+export interface DistinctFiltersInput {
+  member_name?: string;
+  varietas?: string;
+  kabupaten_id?: string;
+  kecamatan_id?: string;
+  desa_id?: string;
+  block_no?: string;
+  no_plot?: string;
+  nis?: string;
+  document_no?: string;
+  cgr?: string;
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;

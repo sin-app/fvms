@@ -4,7 +4,7 @@ import { todayString } from "@/lib/utils/date";
 import { getPanenStatus } from "@/features/panen/services/panen-logic";
 import type { AuthContext } from "@/lib/auth/authorization";
 import type { Schedule } from "@/types";
-import type { ScheduleFilters, ScheduleListResult } from "../types";
+import type { ScheduleFilters, ScheduleListResult, DistinctFiltersInput } from "../types";
 
 // Escape LIKE wildcards so user input can't alter the match pattern.
 function escapeLike(value: string): string {
@@ -366,12 +366,18 @@ function numericCompare(a: string, b: string): number {
  * Nilai unik per kolom untuk dropdown filter ala Excel.
  * Scoped oleh role: produksi hanya melihat nilainya sendiri, QC hanya
  * dalam kabupaten tugas. Di-cache 5 menit di sisi client.
+ *
+ * `activeFilters` = filter lain yang sedang aktif; opsi tiap kolom
+ * dibatasi oleh constraint tersebut (kecuali kolom itu sendiri, supaya
+ * dropdown-nya tetap berisi semua nilai untuk bisa berganti pilihan).
  */
 export async function getDistinctScheduleValues(
   ctx?: AuthContext,
+  activeFilters?: DistinctFiltersInput,
 ): Promise<Record<DistinctFilterField, string[]>> {
   const admin = createAdminClient();
   const scope = ctx ? qcKabupatenScope(ctx) : null;
+  const filters = activeFilters ?? {};
 
   const results = await Promise.all(
     DISTINCT_FILTER_FIELDS.map(async (field) => {
@@ -382,6 +388,8 @@ export async function getDistinctScheduleValues(
       } else if (ctx && ctx.role !== "admin") {
         query = query.eq("user_id", ctx.userId);
       }
+
+      query = applyDistinctRelations(query, field, filters);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -399,4 +407,52 @@ export async function getDistinctScheduleValues(
     document_no: results[3],
     cgr: results[4],
   };
+}
+
+type RelationsQuery = {
+  ilike: (col: string, pattern: string) => unknown;
+  like: (col: string, pattern: string) => unknown;
+  eq: (col: string, value: string) => unknown;
+};
+
+/** Terapkan constraint dari filter lain (relasi cascading) — kolom sendiri dikecualikan. */
+function applyDistinctRelations<Q>(
+  query: Q,
+  selfField: DistinctFilterField,
+  filters: DistinctFiltersInput,
+): Q {
+  let q = query as unknown as RelationsQuery;
+  const eqVal = (v?: string) => (v && v.trim() ? v.trim() : undefined);
+
+  if (selfField !== "block_no" && eqVal(filters.block_no)) {
+    q = q.eq("block_no", filters.block_no!.trim()) as unknown as RelationsQuery;
+  }
+  if (selfField !== "no_plot" && eqVal(filters.no_plot)) {
+    q = q.eq("no_plot", filters.no_plot!.trim()) as unknown as RelationsQuery;
+  }
+  if (selfField !== "nis" && eqVal(filters.nis)) {
+    q = q.eq("nis", filters.nis!.trim()) as unknown as RelationsQuery;
+  }
+  if (selfField !== "document_no" && eqVal(filters.document_no)) {
+    q = q.eq("document_no", filters.document_no!.trim()) as unknown as RelationsQuery;
+  }
+  if (selfField !== "cgr" && eqVal(filters.cgr)) {
+    q = q.eq("cgr", filters.cgr!.trim()) as unknown as RelationsQuery;
+  }
+  if (eqVal(filters.kabupaten_id)) {
+    q = q.eq("kabupaten_id", filters.kabupaten_id!.trim()) as unknown as RelationsQuery;
+  }
+  if (eqVal(filters.kecamatan_id)) {
+    q = q.eq("kecamatan_id", filters.kecamatan_id!.trim()) as unknown as RelationsQuery;
+  }
+  if (eqVal(filters.desa_id)) {
+    q = q.eq("desa_id", filters.desa_id!.trim()) as unknown as RelationsQuery;
+  }
+  if (filters.member_name && filters.member_name.trim()) {
+    q = q.ilike("member_name", `%${escapeLike(filters.member_name.trim())}%`) as unknown as RelationsQuery;
+  }
+  if (filters.varietas && filters.varietas.trim()) {
+    q = q.like("document_no", `%/${escapeLike(filters.varietas.trim())}/%`) as unknown as RelationsQuery;
+  }
+  return q as unknown as Q;
 }

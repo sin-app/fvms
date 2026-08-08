@@ -62,6 +62,19 @@ export default function ReportsPage() {
     panen_status: panenStatus !== "all" ? panenStatus : undefined,
   }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, desaId, label, debouncedMemberName, blockNo, noPlot, nis, documentNo, cgr, debouncedVarietas, status, panenStatus]);
 
+  const relations = {
+    member_name: debouncedMemberName || undefined,
+    varietas: debouncedVarietas || undefined,
+    kabupaten_id: kabupatenId || undefined,
+    kecamatan_id: kecamatanId || undefined,
+    desa_id: desaId || undefined,
+    block_no: blockNo || undefined,
+    no_plot: noPlot || undefined,
+    nis: nis || undefined,
+    document_no: documentNo || undefined,
+    cgr: cgr || undefined,
+  };
+
   const { data: bundle, isLoading, isFetching, isError, refetch } = useReportBundle(filters);
   const data = bundle?.data;
   const rows = bundle?.rows;
@@ -119,6 +132,7 @@ export default function ReportsPage() {
         onLabelChange={setLabel}
         hidePetugasFilter={!isPrivileged}
         scopeKabupatenIds={scopeKabupatenIds}
+        relations={relations}
       />
 
       {isLoading && <LoadingState variant="card" count={4} />}

@@ -11,7 +11,9 @@
 - Nilai unik diambil via `getDistinctScheduleValues()` (`src/features/schedules/services/schedule-service.ts`), async paralel per kolom, unik + sort numerik-aware, scoped per role:
   - Produksi: hanya nilai dari schedule miliknya (`user_id`).
   - QC: hanya nilai dalam kabupaten tugas (`kabupaten_id`).
-- Client fetch: `fetchDistinctFilterValues()` (`src/features/schedules/api/schedule-client.ts`); hook: `useDistinctFilterValues()` (`src/features/schedules/hooks/use-distinct-values.ts`) — cache 5 menit, key `["schedules","distinct-values"]`.
+- Client fetch: `fetchDistinctFilterValues(filters?)` (`src/features/schedules/api/schedule-client.ts`); hook: `useDistinctFilterValues(relations?)` (`src/features/schedules/hooks/use-distinct-values.ts`) — cache 5 menit, key `["schedules","distinct-values", JSON(relations)]`.
+- **Relasi cascading**: opsi tiap dropdown dibatasi oleh filter lain yang aktif (re-query per perubahan/kombinasi). Diterapkan di `applyDistinctRelations()` (`schedule-service.ts`): `eq` untuk region + 5 kolom data, `ilike` untuk `member_name`, `like` untuk `varietas` (segmen doc); **kolom itu sendiri dikecualikan** supaya dropdown tetap berisi semua nilai. Cakupan relasi: kolom data (block/plot/nis/doc/cgr) + region (kab/kec/desa) + member/varietas — status/label/panen/tanggal TIDAK ikut.
+- Pages mengirim `relations` (object `useMemo`, tipe `DistinctFiltersInput` di `src/features/schedules/types/index.ts`) via prop `relations` ke `ScheduleFilters` / `ReportFiltersView`.
 - Komponen bersama: `DistinctFilterSelect` (`src/components/shared/distinct-filter-select.tsx`).
 - Filter **Desa**: `useDesaFilterOptions(kabupatenId?)` (`src/features/master-data/hooks/use-desa.ts`) → `fetchDesaFilterOptions()` → `getAllDesaForFilter()` (desa aktif, juga dibatasi scope QC). Muncul hanya jika kabupaten dipilih.
 

@@ -97,5 +97,68 @@ describe("schedule-service", () => {
       expect(result.cgr).toEqual(["Petani A", "Petani B"]);
       expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
     });
+
+    it("applies relations: other active filters constrain options, self field excluded", async () => {
+      const rows = [{ block_no: "10", no_plot: "2", nis: "001", document_no: "DOC-B", cgr: "Petani B" }];
+      const calls: [string, unknown][] = [];
+      const chain: Record<string, unknown> = {
+        eq: (c: string, v: unknown) => {
+          calls.push([c, v]);
+          return chain;
+        },
+        not: () => chain,
+        ilike: (c: string, p: unknown) => {
+          calls.push([c, p]);
+          return chain;
+        },
+        like: (c: string, p: unknown) => {
+          calls.push([c, p]);
+          return chain;
+        },
+        then: (cb: (v: unknown) => unknown) => cb({ data: rows, error: null }),
+      };
+
+      (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
+        from: vi.fn().mockReturnValue({ select: () => ({ not: () => chain }) }),
+      });
+
+      await getDistinctScheduleValues(
+        { userId: "admin-1", role: "admin", email: "a@x.com", name: "A" } as never,
+        {
+          block_no: "10",
+          no_plot: "2",
+          nis: "001",
+          document_no: "DOC-B",
+          cgr: "Petani B",
+          desa_id: "desa-9",
+          member_name: "Budi",
+          varietas: "JP-06",
+        },
+      );
+
+      const count = (col: string) => calls.filter(([c]) => c === col).length;
+      // Tiap kolom dibatasi oleh 4 filter data lain (self-excluded)
+      expect(count("block_no")).toBe(4);
+      expect(count("no_plot")).toBe(4);
+      expect(count("nis")).toBe(4);
+      expect(count("cgr")).toBe(4);
+      // Region diterapkan di semua 5 query
+      expect(count("desa_id")).toBe(5);
+      expect(count("kabupaten_id")).toBe(0);
+      expect(count("user_id")).toBe(0);
+      expect(calls.filter(([c]) => c === "member_name").length).toBe(5);
+      expect(calls.filter(([c]) => c === "document_no").length).toBeGreaterThan(0);
+      // member_name via ilike + varietas via like document_no, escaped
+      expect(
+        calls.some(
+          ([c, v]) => c === "member_name" && typeof v === "string" && v.includes("%Budi%"),
+        ),
+      ).toBe(true);
+      expect(
+        calls.some(
+          ([c, v]) => c === "document_no" && typeof v === "string" && v.includes("JP-06"),
+        ),
+      ).toBe(true);
+    });
   });
 });
