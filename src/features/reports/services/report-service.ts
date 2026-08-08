@@ -47,26 +47,28 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
       query = query.eq("label", filters.label);
     }
   }
-  if (filters.member_name) {
+if (filters.member_name) {
     query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
   }
   if (filters.block_no) {
-    query = query.ilike("block_no", `%${escapeLike(filters.block_no)}%`);
+    query = query.eq("block_no", filters.block_no);
   }
   if (filters.no_plot) {
-    query = query.ilike("no_plot", `%${escapeLike(filters.no_plot)}%`);
+    query = query.eq("no_plot", filters.no_plot);
   }
   if (filters.nis) {
-    query = query.ilike("nis", `%${escapeLike(filters.nis)}%`);
+    query = query.eq("nis", filters.nis);
   }
   if (filters.document_no) {
-    query = query.ilike("document_no", `%${escapeLike(filters.document_no)}%`);
+    query = query.eq("document_no", filters.document_no);
   }
   if (filters.cgr) {
-    query = query.ilike("cgr", `%${escapeLike(filters.cgr)}%`);
+    query = query.eq("cgr", filters.cgr);
+  }
+  if (filters.desa_id) {
+    query = query.eq("desa_id", filters.desa_id);
   }
   if (filters.varietas) {
-    // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment (same as schedules).
     query = query.like("document_no", `%/${escapeLike(filters.varietas)}/%`);
   }
 
@@ -307,19 +309,22 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
   }
   if (filters.block_no) {
-    query = query.ilike("block_no", `%${escapeLike(filters.block_no)}%`);
+    query = query.eq("block_no", filters.block_no);
   }
   if (filters.no_plot) {
-    query = query.ilike("no_plot", `%${escapeLike(filters.no_plot)}%`);
+    query = query.eq("no_plot", filters.no_plot);
   }
   if (filters.nis) {
-    query = query.ilike("nis", `%${escapeLike(filters.nis)}%`);
+    query = query.eq("nis", filters.nis);
   }
   if (filters.document_no) {
-    query = query.ilike("document_no", `%${escapeLike(filters.document_no)}%`);
+    query = query.eq("document_no", filters.document_no);
   }
   if (filters.cgr) {
-    query = query.ilike("cgr", `%${escapeLike(filters.cgr)}%`);
+    query = query.eq("cgr", filters.cgr);
+  }
+  if (filters.desa_id) {
+    query = query.eq("desa_id", filters.desa_id);
   }
   if (filters.varietas) {
     // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment (same as schedules).

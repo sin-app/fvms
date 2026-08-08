@@ -26,6 +26,7 @@ export default function SchedulesPage() {
   const [userId, setUserId] = useState("");
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
+  const [desaId, setDesaId] = useState("");
   const [dateRange, setDateRange] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -35,11 +36,6 @@ export default function SchedulesPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const debouncedMemberName = useDebounce(memberName, 450);
-  const debouncedBlockNo = useDebounce(blockNo, 450);
-  const debouncedNoPlot = useDebounce(noPlot, 450);
-  const debouncedNis = useDebounce(nis, 450);
-  const debouncedDocumentNo = useDebounce(documentNo, 450);
-  const debouncedCgr = useDebounce(cgr, 450);
   const debouncedVarietas = useDebounce(varietas, 450);
 
   async function handleDownloadPdf() {
@@ -94,15 +90,16 @@ export default function SchedulesPage() {
 
   const filters = {
     member_name: debouncedMemberName || undefined,
-    block_no: debouncedBlockNo || undefined,
-    no_plot: debouncedNoPlot || undefined,
-    nis: debouncedNis || undefined,
-    document_no: debouncedDocumentNo || undefined,
+    block_no: blockNo || undefined,
+    no_plot: noPlot || undefined,
+    nis: nis || undefined,
+    document_no: documentNo || undefined,
     status: status !== "all" ? status : undefined,
     user_id: isProduksi ? undefined : (userId || undefined),
-    cgr: debouncedCgr || undefined,
+    cgr: cgr || undefined,
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
+    desa_id: desaId || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
     varietas: debouncedVarietas || undefined,
@@ -156,6 +153,8 @@ export default function SchedulesPage() {
         onKabupatenChange={setKabupatenId}
         kecamatanId={kecamatanId}
         onKecamatanChange={setKecamatanId}
+        desaId={desaId}
+        onDesaChange={setDesaId}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
         dateFrom={dateFrom}

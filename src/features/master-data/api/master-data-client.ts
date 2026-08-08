@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthContext } from "@/lib/auth/authorization";
+import { getAuthContext, qcKabupatenScope } from "@/lib/auth/authorization";
 import {
   getKabupatenList,
   getKecamatanList,
@@ -8,6 +8,7 @@ import {
   getAllKabupaten,
   getAllKecamatan,
   getAllDesa,
+  getAllDesaForFilter,
 } from "../services/master-data-service";
 
 export async function fetchKabupatenList(search?: string, page?: number) {
@@ -41,4 +42,20 @@ export async function fetchAllKecamatan(kabupatenId: string) {
 
 export async function fetchAllDesa(kecamatanId: string) {
   return getAllDesa(kecamatanId);
+}
+
+export async function fetchDesaFilterOptions(kabupatenId?: string) {
+  const ctx = await getAuthContext();
+  const qcScope = ctx ? qcKabupatenScope(ctx) : null;
+
+  let kabupatenIds: string[] | undefined;
+  if (kabupatenId) {
+    // Opsi menyempit ke kabupaten terpilih, tapi QC tidak boleh melihat desa
+    // di luar wilayah tugasnya.
+    kabupatenIds = qcScope !== null ? qcScope.filter((id) => id === kabupatenId) : [kabupatenId];
+  } else {
+    kabupatenIds = qcScope ?? undefined;
+  }
+
+  return getAllDesaForFilter(kabupatenIds && kabupatenIds.length > 0 ? kabupatenIds : undefined);
 }

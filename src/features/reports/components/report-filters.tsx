@@ -1,7 +1,9 @@
 "use client";
 
-import { useAllKabupaten, useAllKecamatan } from "@/features/master-data";
+import { useAllKabupaten, useAllKecamatan, useDesaFilterOptions } from "@/features/master-data";
 import { useAllUsers } from "@/features/schedules/hooks/use-users";
+import { useDistinctFilterValues } from "@/features/schedules/hooks/use-distinct-values";
+import { DistinctFilterSelect } from "@/components/shared/distinct-filter-select";
 import { STATUS_LABELS } from "@/lib/constants/status";
 import { dateString } from "@/lib/utils/date";
 
@@ -26,6 +28,8 @@ interface ReportFiltersProps {
   onKabupatenChange: (value: string) => void;
   kecamatanId: string;
   onKecamatanChange: (value: string) => void;
+  desaId: string;
+  onDesaChange: (value: string) => void;
   dateRange: string;
   onDateRangeChange: (value: string) => void;
   dateFrom: string;
@@ -103,6 +107,8 @@ export function ReportFiltersView({
   onKabupatenChange,
   kecamatanId,
   onKecamatanChange,
+  desaId,
+  onDesaChange,
   dateRange,
   onDateRangeChange,
   dateFrom,
@@ -121,6 +127,8 @@ export function ReportFiltersView({
   const { data: allKabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
   const { data: users } = useAllUsers(kabupatenId);
+  const { data: distinctValues } = useDistinctFilterValues();
+  const { data: desa } = useDesaFilterOptions(kabupatenId || undefined);
   const kabupaten = scopeKabupatenIds
     ? (allKabupaten ?? []).filter((k) => scopeKabupatenIds.includes(k.id))
     : allKabupaten;
@@ -145,6 +153,7 @@ export function ReportFiltersView({
   function handleKabupaten(value: string) {
     onKabupatenChange(value);
     onKecamatanChange("");
+    onDesaChange("");
   }
 
   return (
@@ -162,35 +171,35 @@ export function ReportFiltersView({
           placeholder="Kode Varietas (mis. JP-06)"
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
         />
-        <input
+        <DistinctFilterSelect
           value={blockNo}
-          onChange={(e) => onBlockNoChange(e.target.value)}
-          placeholder="Block"
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+          onChange={onBlockNoChange}
+          label="Block"
+          options={distinctValues?.block_no}
         />
-        <input
+        <DistinctFilterSelect
           value={noPlot}
-          onChange={(e) => onNoPlotChange(e.target.value)}
-          placeholder="Plot"
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-36"
+          onChange={onNoPlotChange}
+          label="Plot"
+          options={distinctValues?.no_plot}
         />
-        <input
+        <DistinctFilterSelect
           value={nis}
-          onChange={(e) => onNisChange(e.target.value)}
-          placeholder="NIS"
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-40"
+          onChange={onNisChange}
+          label="NIS"
+          options={distinctValues?.nis}
         />
-        <input
+        <DistinctFilterSelect
           value={documentNo}
-          onChange={(e) => onDocumentNoChange(e.target.value)}
-          placeholder="Doc No (mis. KJM/JMP-18)"
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-56"
+          onChange={onDocumentNoChange}
+          label="Doc No"
+          options={distinctValues?.document_no}
         />
-        <input
+        <DistinctFilterSelect
           value={cgr}
-          onChange={(e) => onCgrChange(e.target.value)}
-          placeholder="Cari CGR (mis. Lukito)"
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-48"
+          onChange={onCgrChange}
+          label="CGR"
+          options={distinctValues?.cgr}
         />
         {onPanenStatusChange && (
           <select
@@ -255,6 +264,18 @@ export function ReportFiltersView({
             <option value="">Semua Kecamatan</option>
             {kecamatan?.map((k) => (
               <option key={k.id} value={k.id}>{k.name}</option>
+            ))}
+          </select>
+        )}
+        {kabupatenId && (
+          <select
+            value={desaId}
+            onChange={(e) => onDesaChange(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-44"
+          >
+            <option value="">Semua Desa</option>
+            {desa?.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
         )}

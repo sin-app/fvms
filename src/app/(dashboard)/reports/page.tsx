@@ -32,6 +32,7 @@ export default function ReportsPage() {
   const [cgr, setCgr] = useState("");
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
+  const [desaId, setDesaId] = useState("");
   const [dateRange, setDateRange] = useState("month");
   const [dateFrom, setDateFrom] = useState(firstOfMonth);
   const [dateTo, setDateTo] = useState(today);
@@ -40,11 +41,6 @@ export default function ReportsPage() {
   const [label, setLabel] = useState("all");
 
   const debouncedMemberName = useDebounce(memberName, 300);
-  const debouncedBlockNo = useDebounce(blockNo, 300);
-  const debouncedNoPlot = useDebounce(noPlot, 300);
-  const debouncedNis = useDebounce(nis, 300);
-  const debouncedDocumentNo = useDebounce(documentNo, 300);
-  const debouncedCgr = useDebounce(cgr, 300);
   const debouncedVarietas = useDebounce(varietas, 300);
 
   const filters: ReportFilters = useMemo(() => ({
@@ -53,17 +49,18 @@ export default function ReportsPage() {
     user_id: userId || undefined,
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
+    desa_id: desaId || undefined,
     label: label !== "all" ? label : undefined,
     member_name: debouncedMemberName || undefined,
-    block_no: debouncedBlockNo || undefined,
-    no_plot: debouncedNoPlot || undefined,
-    nis: debouncedNis || undefined,
-    document_no: debouncedDocumentNo || undefined,
-    cgr: debouncedCgr || undefined,
+    block_no: blockNo || undefined,
+    no_plot: noPlot || undefined,
+    nis: nis || undefined,
+    document_no: documentNo || undefined,
+    cgr: cgr || undefined,
     varietas: debouncedVarietas || undefined,
     status: status !== "all" ? status : undefined,
     panen_status: panenStatus !== "all" ? panenStatus : undefined,
-  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, label, debouncedMemberName, debouncedBlockNo, debouncedNoPlot, debouncedNis, debouncedDocumentNo, debouncedCgr, debouncedVarietas, status, panenStatus]);
+  }), [dateFrom, dateTo, userId, kabupatenId, kecamatanId, desaId, label, debouncedMemberName, blockNo, noPlot, nis, documentNo, cgr, debouncedVarietas, status, panenStatus]);
 
   const { data: bundle, isLoading, isFetching, isError, refetch } = useReportBundle(filters);
   const data = bundle?.data;
@@ -106,6 +103,8 @@ export default function ReportsPage() {
         onKabupatenChange={setKabupatenId}
         kecamatanId={kecamatanId}
         onKecamatanChange={setKecamatanId}
+        desaId={desaId}
+        onDesaChange={setDesaId}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
         dateFrom={dateFrom}

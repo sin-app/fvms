@@ -4,6 +4,7 @@ export interface ReportFilters {
   user_id?: string;
   kabupaten_id?: string;
   kecamatan_id?: string;
+  desa_id?: string;
   status?: string;
   label?: string;
   member_name?: string;

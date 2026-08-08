@@ -5,6 +5,16 @@
 - Gunakan `$VERCEL_TOKEN` + `https://api.vercel.com/v6/deployments?limit=3&target=production` untuk verifikasi.
 - Laporkan status (SHA, state, timestamp) ke user. Jika ERROR, segera investigasi.
 
+## Filter Behavior (Excel-style)
+- Schedules & Reports pages: kolom `block_no`, `no_plot`, `nis`, `document_no`, `cgr` difilter dengan **select nilai unik** (ala Excel) — bukan free-text.
+- `member_name` dan `varietas` tetap input teks (partial match `ilike`/`like`).
+- Nilai unik diambil via `getDistinctScheduleValues()` (`src/features/schedules/services/schedule-service.ts`), async paralel per kolom, unik + sort numerik-aware, scoped per role:
+  - Produksi: hanya nilai dari schedule miliknya (`user_id`).
+  - QC: hanya nilai dalam kabupaten tugas (`kabupaten_id`).
+- Client fetch: `fetchDistinctFilterValues()` (`src/features/schedules/api/schedule-client.ts`); hook: `useDistinctFilterValues()` (`src/features/schedules/hooks/use-distinct-values.ts`) — cache 5 menit, key `["schedules","distinct-values"]`.
+- Komponen bersama: `DistinctFilterSelect` (`src/components/shared/distinct-filter-select.tsx`).
+- Filter **Desa**: `useDesaFilterOptions(kabupatenId?)` (`src/features/master-data/hooks/use-desa.ts`) → `fetchDesaFilterOptions()` → `getAllDesaForFilter()` (desa aktif, juga dibatasi scope QC). Muncul hanya jika kabupaten dipilih.
+
 ## Project Overview
 
 Modern web application for Field Officers (Produksi) to manage field visit schedules. Replaces manual Excel-based workflow with a professional, mobile-first web application.

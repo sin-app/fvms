@@ -11,6 +11,7 @@ export interface ScheduleFilters {
   document_no?: string;
   kabupaten_id?: string;
   kecamatan_id?: string;
+  desa_id?: string;
   date_from?: string;
   date_to?: string;
   page?: number;

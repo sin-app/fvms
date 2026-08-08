@@ -1,7 +1,7 @@
 "use server";
 
 import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";
-import { getScheduleList, getScheduleRowsForExport, getScheduleById, getCalendarEvents, getDistinctCgr } from "../services/schedule-service";
+import { getScheduleList, getScheduleRowsForExport, getScheduleById, getCalendarEvents, getDistinctScheduleValues } from "../services/schedule-service";
 import type { ScheduleFilters } from "../types";
 
 export async function fetchScheduleList(filters: ScheduleFilters) {
@@ -38,7 +38,8 @@ export async function fetchCalendarEvents(start: string, end: string) {
   return getCalendarEvents(userId, start, end, ctx);
 }
 
-export async function fetchDistinctCgr(): Promise<string[]> {
+export async function fetchDistinctFilterValues() {
   const ctx = await getAuthContext();
-  return getDistinctCgr(ctx ?? undefined);
+  if (!ctx) throw new Error("Not authenticated");
+  return getDistinctScheduleValues(ctx);
 }

@@ -146,6 +146,33 @@ export async function getAllDesa(kecamatanId: string) {
   return data || [];
 }
 
+/**
+ * Semua desa untuk dropdown filter (ala Excel).
+ * kabupatenIds membatasi opsi ke kabupaten tertentu (atau scope QC);
+ * tanpa argumen = seluruh desa aktif.
+ */
+export async function getAllDesaForFilter(kabupatenIds?: string[]): Promise<{ id: string; name: string }[]> {
+  const admin = createAdminClient();
+  const base = () =>
+    admin.from("desa").select("id, name").is("deleted_at", null).eq("is_active", true);
+
+  if (kabupatenIds && kabupatenIds.length > 0) {
+    const { data: kecs } = await admin
+      .from("kecamatan")
+      .select("id")
+      .is("deleted_at", null)
+      .in("kabupaten_id", kabupatenIds);
+    const kecIds = (kecs ?? []).map((k) => k.id);
+    if (kecIds.length === 0) return [];
+
+    const { data } = await base().in("kecamatan_id", kecIds).order("name");
+    return data || [];
+  }
+
+  const { data } = await base().order("name");
+  return data || [];
+}
+
 export async function createKabupaten(data: { name: string; code: string }) {
   const admin = createAdminClient();
   const { data: result, error } = await admin

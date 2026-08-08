@@ -66,7 +66,7 @@ function buildScheduleQuery(
   }
 
   if (cgr) {
-    query = query.ilike("cgr", `%${escapeLike(cgr)}%`);
+    query = query.eq("cgr", cgr);
   }
 
   if (filters.member_name && filters.member_name.trim()) {
@@ -74,19 +74,19 @@ function buildScheduleQuery(
   }
 
   if (filters.block_no && filters.block_no.trim()) {
-    query = query.ilike("block_no", `%${escapeLike(filters.block_no.trim())}%`);
+    query = query.eq("block_no", filters.block_no.trim());
   }
 
   if (filters.no_plot && filters.no_plot.trim()) {
-    query = query.ilike("no_plot", `%${escapeLike(filters.no_plot.trim())}%`);
+    query = query.eq("no_plot", filters.no_plot.trim());
   }
 
   if (filters.nis && filters.nis.trim()) {
-    query = query.ilike("nis", `%${escapeLike(filters.nis.trim())}%`);
+    query = query.eq("nis", filters.nis.trim());
   }
 
   if (filters.document_no && filters.document_no.trim()) {
-    query = query.ilike("document_no", `%${escapeLike(filters.document_no.trim())}%`);
+    query = query.eq("document_no", filters.document_no.trim());
   }
 
   if (status && status !== "all") {
@@ -101,6 +101,7 @@ function buildScheduleQuery(
 
   if (kabupaten_id) query = query.eq("kabupaten_id", kabupaten_id);
   if (kecamatan_id) query = query.eq("kecamatan_id", kecamatan_id);
+  if (filters.desa_id) query = query.eq("desa_id", filters.desa_id);
 
   if (filters.varietas && filters.varietas.trim()) {
     // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment.
@@ -347,27 +348,55 @@ export async function getScheduleOwnerIds(
   return (data ?? []) as { id: string; user_id: string }[];
 }
 
-export async function getDistinctCgr(ctx?: AuthContext): Promise<string[]> {
+export const DISTINCT_FILTER_FIELDS = ["block_no", "no_plot", "nis", "document_no", "cgr"] as const;
+
+export type DistinctFilterField = (typeof DISTINCT_FILTER_FIELDS)[number];
+
+// Sort numerik-aware: "2" < "10" (bukan "10" < "2" seperti localeCompare).
+function numericCompare(a: string, b: string): number {
+  const pa = parseFloat(a);
+  const pb = parseFloat(b);
+  if (!Number.isNaN(pa) && !Number.isNaN(pb)) {
+    if (pa !== pb) return pa - pb;
+  }
+  return a.localeCompare(b, undefined, { numeric: true });
+}
+
+/**
+ * Nilai unik per kolom untuk dropdown filter ala Excel.
+ * Scoped oleh role: produksi hanya melihat nilainya sendiri, QC hanya
+ * dalam kabupaten tugas. Di-cache 5 menit di sisi client.
+ */
+export async function getDistinctScheduleValues(
+  ctx?: AuthContext,
+): Promise<Record<DistinctFilterField, string[]>> {
   const admin = createAdminClient();
   const scope = ctx ? qcKabupatenScope(ctx) : null;
 
-  let query = admin
-    .from("schedules")
-    .select("cgr")
-    .not("cgr", "is", null);
+  const results = await Promise.all(
+    DISTINCT_FILTER_FIELDS.map(async (field) => {
+      let query = admin.from("schedules").select(field).not(field, "is", null);
 
-  if (scope !== null) {
-    query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
-  } else if (ctx && ctx.role !== "admin") {
-    query = query.eq("user_id", ctx.userId);
-  }
+      if (scope !== null) {
+        query = query.in("kabupaten_id", scope.length > 0 ? scope : ["__none__"]);
+      } else if (ctx && ctx.role !== "admin") {
+        query = query.eq("user_id", ctx.userId);
+      }
 
-  const { data, error } = await query;
+      const { data, error } = await query;
+      if (error) throw error;
 
-  if (error) throw error;
+      const rows = (data ?? []) as Record<string, string | null>[];
+      const values = rows.map((r) => r[field]).filter((v): v is string => !!v);
+      return Array.from(new Set(values)).sort(numericCompare);
+    }),
+  );
 
-  const values = (data ?? [])
-    .map((r) => (r as { cgr: string | null }).cgr)
-    .filter((v): v is string => !!v);
-  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  return {
+    block_no: results[0],
+    no_plot: results[1],
+    nis: results[2],
+    document_no: results[3],
+    cgr: results[4],
+  };
 }
