@@ -17,7 +17,7 @@ export default function SchedulesPage() {
   const { user } = useAuth();
   const isProduksi = user?.role === "produksi";
   const [memberName, setMemberName] = useState("");
-  const [blockNo, setBlockNo] = useState("");
+  const [blockNo, setBlockNo] = useState<string[]>([]);
   const [noPlot, setNoPlot] = useState("");
   const [nis, setNis] = useState("");
   const [documentNo, setDocumentNo] = useState("");
@@ -90,7 +90,7 @@ export default function SchedulesPage() {
 
   const filters = {
     member_name: debouncedMemberName || undefined,
-    block_no: blockNo || undefined,
+    block_no: blockNo.length > 0 ? blockNo : undefined,
     no_plot: noPlot || undefined,
     nis: nis || undefined,
     document_no: documentNo || undefined,
@@ -113,7 +113,7 @@ export default function SchedulesPage() {
     kabupaten_id: kabupatenId || undefined,
     kecamatan_id: kecamatanId || undefined,
     desa_id: desaId || undefined,
-    block_no: blockNo || undefined,
+    block_no: blockNo.length > 0 ? blockNo : undefined,
     no_plot: noPlot || undefined,
     nis: nis || undefined,
     document_no: documentNo || undefined,

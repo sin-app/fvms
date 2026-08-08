@@ -8,7 +8,7 @@ export interface ReportFilters {
   status?: string;
   label?: string;
   member_name?: string;
-  block_no?: string;
+  block_no?: string[];
   no_plot?: string;
   nis?: string;
   document_no?: string;

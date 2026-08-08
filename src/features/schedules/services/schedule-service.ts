@@ -73,8 +73,8 @@ function buildScheduleQuery(
     query = query.ilike("member_name", `%${escapeLike(filters.member_name.trim())}%`);
   }
 
-  if (filters.block_no && filters.block_no.trim()) {
-    query = query.eq("block_no", filters.block_no.trim());
+  if (filters.block_no && filters.block_no.length > 0) {
+    query = query.in("block_no", filters.block_no.map((b) => b.trim()));
   }
 
   if (filters.no_plot && filters.no_plot.trim()) {
@@ -413,6 +413,7 @@ type RelationsQuery = {
   ilike: (col: string, pattern: string) => unknown;
   like: (col: string, pattern: string) => unknown;
   eq: (col: string, value: string) => unknown;
+  in: (col: string, values: string[]) => unknown;
 };
 
 /** Terapkan constraint dari filter lain (relasi cascading) — kolom sendiri dikecualikan. */
@@ -424,8 +425,8 @@ function applyDistinctRelations<Q>(
   let q = query as unknown as RelationsQuery;
   const eqVal = (v?: string) => (v && v.trim() ? v.trim() : undefined);
 
-  if (selfField !== "block_no" && eqVal(filters.block_no)) {
-    q = q.eq("block_no", filters.block_no!.trim()) as unknown as RelationsQuery;
+  if (selfField !== "block_no" && filters.block_no && filters.block_no.length > 0) {
+    q = q.in("block_no", filters.block_no.map((b) => b.trim())) as unknown as RelationsQuery;
   }
   if (selfField !== "no_plot" && eqVal(filters.no_plot)) {
     q = q.eq("no_plot", filters.no_plot!.trim()) as unknown as RelationsQuery;

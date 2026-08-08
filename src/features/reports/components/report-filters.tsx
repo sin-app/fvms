@@ -4,6 +4,7 @@ import { useAllKabupaten, useAllKecamatan, useDesaFilterOptions } from "@/featur
 import { useAllUsers } from "@/features/schedules/hooks/use-users";
 import { useDistinctFilterValues } from "@/features/schedules/hooks/use-distinct-values";
 import { DistinctFilterSelect } from "@/components/shared/distinct-filter-select";
+import { MultiFilterSelect } from "@/components/shared/multi-filter-select";
 import type { DistinctFiltersInput } from "@/features/schedules/types";
 import { STATUS_LABELS } from "@/lib/constants/status";
 import { dateString } from "@/lib/utils/date";
@@ -11,8 +12,8 @@ import { dateString } from "@/lib/utils/date";
 interface ReportFiltersProps {
   memberName: string;
   onMemberNameChange: (value: string) => void;
-  blockNo: string;
-  onBlockNoChange: (value: string) => void;
+  blockNo: string[];
+  onBlockNoChange: (value: string[]) => void;
   noPlot: string;
   onNoPlotChange: (value: string) => void;
   nis: string;
@@ -164,18 +165,18 @@ export function ReportFiltersView({
     <div className="flex flex-col gap-3">
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <input
-          value={memberName}
-          onChange={(e) => onMemberNameChange(e.target.value)}
-          placeholder="Nama Member"
-          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
-        />
-        <input
           value={varietas}
           onChange={(e) => onVarietasChange(e.target.value)}
           placeholder="Kode Varietas (mis. JP-06)"
           className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
         />
         <DistinctFilterSelect
+          value={cgr}
+          onChange={onCgrChange}
+          label="CGR"
+          options={distinctValues?.cgr}
+        />
+        <MultiFilterSelect
           value={blockNo}
           onChange={onBlockNoChange}
           label="Block"
@@ -186,6 +187,12 @@ export function ReportFiltersView({
           onChange={onNoPlotChange}
           label="Plot"
           options={distinctValues?.no_plot}
+        />
+        <input
+          value={memberName}
+          onChange={(e) => onMemberNameChange(e.target.value)}
+          placeholder="Nama Member"
+          className="h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm w-full sm:w-52"
         />
         <DistinctFilterSelect
           value={nis}
@@ -198,12 +205,6 @@ export function ReportFiltersView({
           onChange={onDocumentNoChange}
           label="Doc No"
           options={distinctValues?.document_no}
-        />
-        <DistinctFilterSelect
-          value={cgr}
-          onChange={onCgrChange}
-          label="CGR"
-          options={distinctValues?.cgr}
         />
         {onPanenStatusChange && (
           <select

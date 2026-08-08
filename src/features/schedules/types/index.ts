@@ -5,7 +5,7 @@ export interface ScheduleFilters {
   user_id?: string;
   cgr?: string;
   member_name?: string;
-  block_no?: string;
+  block_no?: string[];
   no_plot?: string;
   nis?: string;
   document_no?: string;
@@ -38,7 +38,7 @@ export interface DistinctFiltersInput {
   kabupaten_id?: string;
   kecamatan_id?: string;
   desa_id?: string;
-  block_no?: string;
+  block_no?: string[];
   no_plot?: string;
   nis?: string;
   document_no?: string;

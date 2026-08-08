@@ -7,12 +7,14 @@
 
 ## Filter Behavior (Excel-style)
 - Schedules & Reports pages: kolom `block_no`, `no_plot`, `nis`, `document_no`, `cgr` difilter dengan **select nilai unik** (ala Excel) — bukan free-text.
+- Urutan filter bar (Schedules & Reports): **kode varietas → cgr → block → plot → nama member** → nis → doc no → panen → label → status → petugas → kabupaten → kecamatan → desa (date presets di baris bawah).
+- **Block = multi-select** (semantik OR, `SQL .in`): komponen `MultiFilterSelect` (`src/components/shared/multi-filter-select.tsx`; Popover + Checkbox), value `string[]`, kosong = semua. Tipe `block_no?: string[]` di `ScheduleFilters`, `ReportFilters`, `DistinctFiltersInput`; builder query memakai `.in("block_no", arr)` di `getScheduleList`, `getReportData`, `getReportRows`, dan `applyDistinctRelations`.
 - `member_name` dan `varietas` tetap input teks (partial match `ilike`/`like`).
 - Nilai unik diambil via `getDistinctScheduleValues()` (`src/features/schedules/services/schedule-service.ts`), async paralel per kolom, unik + sort numerik-aware, scoped per role:
   - Produksi: hanya nilai dari schedule miliknya (`user_id`).
   - QC: hanya nilai dalam kabupaten tugas (`kabupaten_id`).
 - Client fetch: `fetchDistinctFilterValues(filters?)` (`src/features/schedules/api/schedule-client.ts`); hook: `useDistinctFilterValues(relations?)` (`src/features/schedules/hooks/use-distinct-values.ts`) — cache 5 menit, key `["schedules","distinct-values", JSON(relations)]`.
-- **Relasi cascading**: opsi tiap dropdown dibatasi oleh filter lain yang aktif (re-query per perubahan/kombinasi). Diterapkan di `applyDistinctRelations()` (`schedule-service.ts`): `eq` untuk region + 5 kolom data, `ilike` untuk `member_name`, `like` untuk `varietas` (segmen doc); **kolom itu sendiri dikecualikan** supaya dropdown tetap berisi semua nilai. Cakupan relasi: kolom data (block/plot/nis/doc/cgr) + region (kab/kec/desa) + member/varietas — status/label/panen/tanggal TIDAK ikut.
+- **Relasi cascading**: opsi tiap dropdown dibatasi oleh filter lain yang aktif (re-query per perubahan/kombinasi). Diterapkan di `applyDistinctRelations()` (`schedule-service.ts`): `eq` untuk region + 4 kolom data, `in` untuk block (multi-select), `ilike` untuk `member_name`, `like` untuk `varietas` (segmen doc); **kolom itu sendiri dikecualikan** supaya dropdown tetap berisi semua nilai. Cakupan relasi: kolom data (block/plot/nis/doc/cgr) + region (kab/kec/desa) + member/varietas — status/label/panen/tanggal TIDAK ikut.
 - Pages mengirim `relations` (object `useMemo`, tipe `DistinctFiltersInput` di `src/features/schedules/types/index.ts`) via prop `relations` ke `ScheduleFilters` / `ReportFiltersView`.
 - Komponen bersama: `DistinctFilterSelect` (`src/components/shared/distinct-filter-select.tsx`).
 - Filter **Desa**: `useDesaFilterOptions(kabupatenId?)` (`src/features/master-data/hooks/use-desa.ts`) → `fetchDesaFilterOptions()` → `getAllDesaForFilter()` (desa aktif, juga dibatasi scope QC). Muncul hanya jika kabupaten dipilih.

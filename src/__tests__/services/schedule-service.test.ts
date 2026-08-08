@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import {
   createSchedule,
   deleteSchedule,
+  getScheduleList,
   getDistinctScheduleValues,
 } from "@/features/schedules/services/schedule-service";
 
@@ -52,6 +53,41 @@ describe("schedule-service", () => {
       expect(mockUpdate).toHaveBeenCalled();
       const updateArg = mockUpdate.mock.calls[0][0];
       expect(updateArg).toHaveProperty("deleted_at");
+    });
+  });
+
+  describe("getScheduleList", () => {
+    it("filters block_no with in() for multi-select values", async () => {
+      const mockIn = vi.fn().mockImplementation(() => chain);
+      const mockThen = vi.fn().mockImplementation((cb: (v: unknown) => unknown) =>
+        cb({ data: [], error: null, count: 0 }),
+      );
+      const chain: Record<string, unknown> = {
+        eq: () => chain,
+        ilike: () => chain,
+        like: () => chain,
+        not: () => chain,
+        lt: () => chain,
+        is: () => chain,
+        order: () => chain,
+        range: () => chain,
+        in: mockIn,
+        then: mockThen,
+      };
+
+            (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
+        from: vi.fn().mockImplementation(() => ({
+          select: () => chain,
+        })),
+      });
+
+      await getScheduleList(
+        "all",
+        { block_no: ["10", "2"] },
+        { userId: "a1", role: "admin", email: "a@x.com", name: "A" } as never,
+      );
+
+      expect(mockIn).toHaveBeenCalledWith("block_no", ["10", "2"]);
     });
   });
 
@@ -106,6 +142,10 @@ describe("schedule-service", () => {
           calls.push([c, v]);
           return chain;
         },
+        in: (c: string, v: unknown) => {
+          calls.push([c, v]);
+          return chain;
+        },
         not: () => chain,
         ilike: (c: string, p: unknown) => {
           calls.push([c, p]);
@@ -125,7 +165,7 @@ describe("schedule-service", () => {
       await getDistinctScheduleValues(
         { userId: "admin-1", role: "admin", email: "a@x.com", name: "A" } as never,
         {
-          block_no: "10",
+          block_no: ["10", "2"],
           no_plot: "2",
           nis: "001",
           document_no: "DOC-B",
@@ -137,8 +177,10 @@ describe("schedule-service", () => {
       );
 
       const count = (col: string) => calls.filter(([c]) => c === col).length;
-      // Tiap kolom dibatasi oleh 4 filter data lain (self-excluded)
+      // Block multi-select -> in, diterapkan di 4 query lain (self-excluded)
       expect(count("block_no")).toBe(4);
+      expect(calls.filter(([c, v]) => c === "block_no").some(([, v]) => Array.isArray(v) && (v as string[]).length === 2)).toBe(true);
+      // Kolom data lain tetap eq, dibatasi 4 filter lain (self-excluded)
       expect(count("no_plot")).toBe(4);
       expect(count("nis")).toBe(4);
       expect(count("cgr")).toBe(4);
