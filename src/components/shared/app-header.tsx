@@ -32,7 +32,7 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="gradient-brand flex items-center justify-center size-8 shrink-0 rounded-lg shadow-brand-glow">
+        <div className="bg-brand-gradient flex items-center justify-center size-8 shrink-0 rounded-lg shadow-brand-glow">
           <Sprout className="size-4.5 text-white" />
         </div>
         <h1 className="font-bold text-lg tracking-tight">FVMS</h1>

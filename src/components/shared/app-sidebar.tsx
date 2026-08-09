@@ -41,7 +41,7 @@ export function AppSidebar() {
     <aside className="hidden md:flex flex-col w-60 border-r bg-card shrink-0">
       <div className="p-5 border-b">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="gradient-brand flex items-center justify-center size-7 rounded-lg shadow-brand-glow">
+          <div className="bg-brand-gradient flex items-center justify-center size-7 rounded-lg shadow-brand-glow">
             <Sprout className="size-4 text-white" />
           </div>
           <span className="font-bold text-lg tracking-tight">FVMS</span>

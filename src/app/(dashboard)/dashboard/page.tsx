@@ -23,7 +23,7 @@ function DashboardHero() {
   const firstName = user?.name?.trim().split(/\s+/)[0] ?? "Petugas";
 
   return (
-    <div className="gradient-brand animate-fade-in-up rounded-2xl px-5 py-5 text-white shadow-brand-glow sm:px-6">
+    <div className="bg-brand-gradient animate-fade-in-up rounded-2xl px-5 py-5 text-white shadow-brand-glow sm:px-6">
       <p className="text-xs font-medium uppercase tracking-wide text-white/70">
         {dateLabel}
       </p>
