@@ -2,70 +2,59 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User } from "lucide-react";
-import { LayoutDashboard, CalendarCheck, CalendarDays, BarChart3, Database, FileSpreadsheet, Users } from "lucide-react";
+import { LayoutDashboard, CalendarCheck2, CalendarDays, BarChart3, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/features/auth/components/auth-context";
 
-const BASE_BOTTOM_NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/schedules", label: "Jadwal", icon: CalendarCheck },
+const NAV_ITEMS = [
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/schedules", label: "Jadwal", icon: CalendarCheck2 },
   { href: "/schedules/calendar", label: "Kalender", icon: CalendarDays },
   { href: "/reports", label: "Laporan", icon: BarChart3 },
-  { href: "/profile", label: "Profile", icon: User },
-];
-
-const ADMIN_BOTTOM_NAV_ITEMS = [
-  { href: "/master-data/kabupaten", label: "Master Data", icon: Database },
-  { href: "/import", label: "Import", icon: FileSpreadsheet },
-  { href: "/users", label: "Users", icon: Users },
+  { href: "/profile", label: "Profil", icon: User },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
-
-  const items =
-    user?.role === "admin"
-      ? [
-          BASE_BOTTOM_NAV_ITEMS[0],
-          ADMIN_BOTTOM_NAV_ITEMS[0],
-          BASE_BOTTOM_NAV_ITEMS[1],
-          BASE_BOTTOM_NAV_ITEMS[2],
-          ADMIN_BOTTOM_NAV_ITEMS[1],
-          BASE_BOTTOM_NAV_ITEMS[3],
-          ADMIN_BOTTOM_NAV_ITEMS[2],
-          BASE_BOTTOM_NAV_ITEMS[4],
-        ]
-      : BASE_BOTTOM_NAV_ITEMS;
-
-  const cols = items.length === 8 ? "grid-cols-4" : "grid-cols-5";
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
     if (href === "/schedules") return pathname === "/schedules";
-    if (href === "/master-data/kabupaten") return pathname.startsWith("/master-data/");
     return pathname === href || pathname.startsWith(href + "/");
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden pb-[env(safe-area-inset-bottom,0px)]">
-      <div className={cn("grid min-h-[64px]", cols)}>
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors min-h-[52px]",
-              isActive(item.href)
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <item.icon className="h-[22px] w-[22px]" strokeWidth={isActive(item.href) ? 2.5 : 2} />
-            <span className="whitespace-nowrap">{item.label}</span>
-          </Link>
-        ))}
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden pointer-events-none">
+      <div className="px-3 pb-[max(env(safe-area-inset-bottom,0px),0.75rem)]">
+        <div className="pointer-events-auto rounded-2xl border bg-background/90 backdrop-blur-xl shadow-lg shadow-black/5">
+          <div className="grid grid-cols-5">
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all py-2.5 min-h-[56px]",
+                    active ? "text-brand" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute inset-x-2 top-1 bottom-1 -z-10 rounded-xl transition-all",
+                      active && "bg-brand-soft shadow-brand-glow",
+                    )}
+                  />
+                  <item.icon
+                    className="h-[22px] w-[22px] transition-transform"
+                    strokeWidth={active ? 2.4 : 2}
+                  />
+                  <span className="whitespace-nowrap font-semibold">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </nav>
   );

@@ -41,7 +41,9 @@ export function AppSidebar() {
     <aside className="hidden md:flex flex-col w-60 border-r bg-card shrink-0">
       <div className="p-5 border-b">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <Sprout className="size-6 text-primary" />
+          <div className="gradient-brand flex items-center justify-center size-7 rounded-lg shadow-brand-glow">
+            <Sprout className="size-4 text-white" />
+          </div>
           <span className="font-bold text-lg tracking-tight">FVMS</span>
         </Link>
       </div>
@@ -54,7 +56,7 @@ export function AppSidebar() {
               <div key={item.label}>
                 <button
                   onClick={() => toggleMenu(item.label)}
-                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  className="flex items-center justify-between w-full px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
                   <span className="flex items-center gap-3">
                     <item.icon className="h-4 w-4" />
@@ -74,9 +76,9 @@ export function AppSidebar() {
                         key={child.href}
                         href={child.href}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                          "flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors",
                           isActive(child.href)
-                            ? "bg-primary/10 text-primary font-medium"
+                            ? "bg-brand-soft text-brand font-medium"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground",
                         )}
                       >
@@ -94,9 +96,9 @@ export function AppSidebar() {
               key={item.href}
               href={item.href!}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors",
                 isActive(item.href!)
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-brand-soft text-brand"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >

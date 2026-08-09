@@ -32,10 +32,12 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <Sprout className="size-6 shrink-0 text-primary" />
+        <div className="gradient-brand flex items-center justify-center size-8 shrink-0 rounded-lg shadow-brand-glow">
+          <Sprout className="size-4.5 text-white" />
+        </div>
         <h1 className="font-bold text-lg tracking-tight">FVMS</h1>
-        <span className="hidden sm:block w-px h-5 bg-border" />
-        <span className="hidden sm:block text-sm font-medium truncate">
+        <span className="hidden w-px h-5 bg-border sm:block" />
+        <span className="hidden text-sm font-medium truncate sm:block">
           {title}
         </span>
       </div>
@@ -46,6 +48,11 @@ export function AppHeader() {
         <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground ml-2">
           <span className="font-medium">{user?.name}</span>
         </div>
+        {user && (
+          <div className="flex sm:hidden items-center justify-center size-9 rounded-full bg-brand-soft text-xs font-bold text-brand ml-1 ring-1 ring-brand/20">
+            {(user.name?.[0] ?? "?").toUpperCase()}
+          </div>
+        )}
       </div>
     </header>
   );
