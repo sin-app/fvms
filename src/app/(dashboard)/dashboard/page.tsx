@@ -10,24 +10,44 @@ import { QuickActions } from "@/features/dashboard/components/quick-actions";
 import { DashboardFilters } from "@/features/dashboard/components/dashboard-filters";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { Loader2 } from "lucide-react";
+import { useAuth } from "@/features/auth/components/auth-context";
+
+function DashboardHero() {
+  const { user } = useAuth();
+  const dateLabel = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+  const firstName = user?.name?.trim().split(/\s+/)[0] ?? "Petugas";
+
+  return (
+    <div className="gradient-brand animate-fade-in-up rounded-2xl px-5 py-5 text-white shadow-brand-glow sm:px-6">
+      <p className="text-xs font-medium uppercase tracking-wide text-white/70">
+        {dateLabel}
+      </p>
+      <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
+        Halo, {firstName}
+      </h1>
+      <p className="mt-0.5 text-sm text-white/80">
+        Ringkasan jadwal kunjungan Anda
+      </p>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
-  const { data, isLoading, isFetching, isError, refetch } = useDashboard(
+  const { data, isLoading, isError, refetch } = useDashboard(
     kabupatenId || kecamatanId ? { kabupaten_id: kabupatenId || undefined, kecamatan_id: kecamatanId || undefined } : undefined,
   );
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Ringkasan jadwal kunjungan Anda
-          </p>
-        </div>
+        <DashboardHero />
         <LoadingState variant="card" count={4} />
         <div className="grid gap-6 lg:grid-cols-2">
           <LoadingState variant="list" count={3} />
@@ -43,20 +63,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Ringkasan jadwal kunjungan Anda
-          </p>
-        </div>
-        {isFetching && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Memuat ulang...
-          </div>
-        )}
-      </div>
+      <DashboardHero />
 
       <DashboardFilters
         kabupatenId={kabupatenId}

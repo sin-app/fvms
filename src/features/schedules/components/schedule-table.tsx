@@ -25,6 +25,32 @@ interface ScheduleTableProps {
   filters: ScheduleFilters;
 }
 
+function PanenChip({ schedule }: { schedule: Schedule }) {
+  if (schedule.tgl_panen || schedule.real_panen) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950 rounded-full px-2 py-0.5">
+        <Sprout className="h-3 w-3" />
+        {schedule.tgl_panen ?? schedule.real_panen}
+      </span>
+    );
+  }
+  if (schedule.rencana_panen && schedule.rencana_panen <= todayString()) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded-full px-2 py-0.5">
+        Jatuh Tempo {schedule.rencana_panen}
+      </span>
+    );
+  }
+  if (schedule.rencana_panen) {
+    return (
+      <span className="text-xs text-muted-foreground">
+        Renc: {schedule.rencana_panen}
+      </span>
+    );
+  }
+  return <span className="text-xs text-muted-foreground">—</span>;
+}
+
 export function ScheduleTable({ filters }: ScheduleTableProps) {
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -65,6 +91,14 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
     return schedule.user_id === user?.id;
   }
 
+  function clearOptimistic(id: string) {
+    setOptimisticDates((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }
+
   function handleShiftInstant(schedule: Schedule, days: number) {
     const base = optimisticDates[schedule.id] ?? schedule.visit_date;
     const next = new Date(base + "T00:00:00");
@@ -72,17 +106,8 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
     const nextStr = dateString(next);
     setOptimisticDates((prev) => ({ ...prev, [schedule.id]: nextStr }));
     shiftSchedule.mutate({ id: schedule.id, days }, {
-      onSuccess: () => {
-        setOptimisticDates((prev) => {
-          const { [schedule.id]: _removed, ...rest } = prev;
-          return rest;
-        });
-      },
-      onError: () =>
-        setOptimisticDates((prev) => {
-          const { [schedule.id]: _removed, ...rest } = prev;
-          return rest;
-        }),
+      onSuccess: () => clearOptimistic(schedule.id),
+      onError: () => clearOptimistic(schedule.id),
     });
   }
 
@@ -216,7 +241,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden">
+      <div className="hidden md:block rounded-xl border overflow-hidden">
         <div className="overflow-x-auto min-w-0">
           <table className="w-full">
               <thead>
@@ -334,22 +359,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                         <LabelBadge label={schedule.label} />
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                        {schedule.tgl_panen || schedule.real_panen ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950 rounded-full px-2 py-0.5">
-                            <Sprout className="h-3 w-3" />
-                            {schedule.tgl_panen ?? schedule.real_panen}
-                          </span>
-                        ) : schedule.rencana_panen && schedule.rencana_panen <= todayString() ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded-full px-2 py-0.5">
-                            Jatuh Tempo {schedule.rencana_panen}
-                          </span>
-                        ) : schedule.rencana_panen ? (
-                          <span className="text-xs text-muted-foreground">
-                            Renc: {schedule.rencana_panen}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        <PanenChip schedule={schedule} />
                       </td>
                       <td className="p-3">
                         <StatusBadge status={schedule.status} size="sm" />
@@ -417,6 +427,136 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="md:hidden mt-4 space-y-2.5">
+        {data.data.map((schedule, idx) => {
+          const displayDate = optimisticDates[schedule.id] ?? schedule.visit_date;
+          const prev = data.data[idx - 1];
+          const showGroup = !prev || (optimisticDates[prev.id] ?? prev.visit_date) !== displayDate;
+          return (
+            <Fragment key={`mobile-${schedule.id}`}>
+              {showGroup && (
+                <div className="flex items-center gap-2 pt-2 text-sm font-semibold">
+                  {formatDateDay(displayDate)}
+                  {isTodayDate(displayDate) && (
+                    <span className="text-xs font-medium text-brand bg-brand-soft rounded-full px-2 py-0.5">
+                      Hari ini
+                    </span>
+                  )}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    ({data.data.filter((s) => (optimisticDates[s.id] ?? s.visit_date) === displayDate).length} jadwal)
+                  </span>
+                </div>
+              )}
+              <div
+                className="animate-fade-in-up rounded-2xl border bg-card p-3.5 transition-colors hover:bg-muted/40"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Checkbox
+                    checked={selectedIds.has(schedule.id)}
+                    onCheckedChange={() => toggleSelect(schedule.id)}
+                    className="shrink-0"
+                    aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
+                  />
+                  <StatusBadge status={schedule.status} size="sm" />
+                  <LabelBadge label={schedule.label} />
+                  <div className="ml-auto flex items-center gap-0.5">
+                    <Link
+                      href={`/visits/${schedule.id}`}
+                      className="inline-flex items-center justify-center h-10 w-10 rounded-xl hover:bg-muted transition-colors"
+                      aria-label="Lihat detail"
+                      title="Lihat detail"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                    {canEdit(schedule) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => setEditing(schedule)}
+                        aria-label="Edit"
+                        title="Edit"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-2.5 flex items-baseline justify-between gap-2">
+                  <p className="truncate text-sm font-semibold">
+                    {schedule.member_name ?? "—"}
+                  </p>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {schedule.document_no ?? "—"}
+                  </span>
+                </div>
+
+                <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span className="truncate">
+                    Block {schedule.block_no ?? "—"}
+                    {schedule.no_plot ? ` · Plot ${schedule.no_plot}` : ""}
+                  </span>
+                  <span className="truncate">
+                    CGR: {schedule.cgr ?? "—"}
+                    {schedule.cgr_code ? ` (${schedule.cgr_code})` : ""}
+                    {schedule.nis ? ` · NIS ${schedule.nis}` : ""}
+                  </span>
+                  <span className="truncate">
+                    {(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}
+                  </span>
+                  <span className="truncate">
+                    {(schedule as unknown as { desa?: { name: string } }).desa?.name ?? "—"}
+                  </span>
+                </div>
+
+                <div className="mt-2.5 flex items-center justify-between gap-2 border-t pt-2.5">
+                  <PanenChip schedule={schedule} />
+                  <div className="flex items-center gap-0.5">
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => setDeleting(schedule)}
+                        aria-label="Hapus"
+                        title="Hapus"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                    {canShift(schedule) && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10"
+                          onClick={() => handleShiftInstant(schedule, 1)}
+                          aria-label="Geser +1 hari"
+                          title="Geser +1 hari"
+                        >
+                          <CalendarPlus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10"
+                          onClick={() => handleShiftInstant(schedule, -1)}
+                          aria-label="Kembalikan -1 hari"
+                          title="Kembalikan -1 hari"
+                        >
+                          <CalendarMinus className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Fragment>
+          );
+        })}
       </div>
 
       {data.totalPages > 1 && (
