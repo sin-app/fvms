@@ -1,5 +1,16 @@
 # FVMS - Field Visit Management System
 
+## UI/UX Direction (Mobile-first Futuristic)
+- **Arah visual B**: latar netral terang/gelap mengikuti preferensi sistem (`dark:` variant, bukan force-dark) + **aksen hijau emerald** sebagai warna brand; warna status tetap dipertahankan.
+- **Token brand** (di `src/app/globals.css`): `--brand`, `--brand-strong`, `--brand-soft`, `--brand-foreground` (map ke `bg-brand`, `text-brand`, `bg-brand-soft`, dll). Utility: `bg-brand-gradient` (latar gradien emerald), `text-gradient-brand`, `shadow-brand-glow` (glow lembut), `.shimmer` (skeleton loading), animasi `animate-fade-in-up` / `animate-scale-in` (`--animate-*` keyframes di `@theme inline`).
+- **Reduced motion**: global `@media (prefers-reduced-motion: reduce)` mematikan animasi/transisi/scroll — jangan bypass.
+- **Navigasi mobile**: `BottomNav` = bottom navigation **floating pill** fixed, 5 tab tetap (Home, Jadwal, Kalender, Laporan, Profil), tidak menampilkan item admin — link admin (Master Data, Import, Users) tersedia di halaman `/profile`. Safe-area: `pb-[max(env(safe-area-inset-bottom,0px),0.75rem)]`. Layout utama memberi ruang `pb-36 md:pb-8` untuk nav ini.
+- **Tablet/desktop**: `AppSidebar` (`hidden md:flex`); item aktif = `bg-brand-soft text-brand`. Header (`AppHeader`) sticky + blur; judul halaman hanya tampil di `sm+`, avatar inisial user tampil di mobile.
+- **Daftar jadwal (Schedules)**: tabel `hidden md:block` (horizontal scroll), mobile menggunakan **card view** (`md:hidden`, `schedule-table.tsx`) — grup per tanggal, checkbox/status/label, info ringkas, aksi (lihat/edit/hapus/geser ±1). Kedua view dirender bersamaan (CSS-switch, bukan JS `useMediaQuery`) agar aman SSR/hydration; logika & handler dibagikan.
+- **Dashboard**: hero sapaan (`DashboardHero` di `dashboard/page.tsx`, `bg-brand-gradient`, tanggal id-ID) + `StatsCards` = horizontal snap-scroll di mobile (`snap-x snap-mandatory`, `no-scrollbar`, item `w-44 sm:w-56`, `md:contents` di grid) → grid 3/4 kolom di `md+`.
+- **Touch target**: tombol ikon minimal `h-10 w-10` (48px), tombol teks `min-h-11` di area kritis; focusable punya `focus-visible` ring jelas.
+- **Loading**: gunakan `LoadingState` (skeleton `.shimmer`, `role="status"` + sr-only); jangan pakai `animate-pulse` baru. Error: `ErrorState` (`role="alert"`). Empty: `EmptyState`.
+
 ## Deployment Workflow
 - Setelah setiap commit + push ke `main`, **WAJIB** cek status deploy Vercel via API.
 - Gunakan `$VERCEL_TOKEN` + `https://api.vercel.com/v6/deployments?limit=3&target=production` untuk verifikasi.
