@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Popover,
@@ -55,9 +55,12 @@ export function MultiFilterSelect({
     if (next) setQuery("");
   }
 
-  function toggle(opt: string) {
-    onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
-  }
+  const toggle = useCallback(
+    (opt: string) => {
+      onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+    },
+    [value, onChange],
+  );
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>

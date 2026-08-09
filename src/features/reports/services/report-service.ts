@@ -50,8 +50,8 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
 if (filters.member_name) {
     query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
   }
-  if (filters.block_no) {
-    query = query.in("block_no", filters.block_no);
+  if (filters.block_no && filters.block_no.length > 0) {
+    query = query.in("block_no", filters.block_no.map((b) => b.trim()));
   }
   if (filters.no_plot) {
     query = query.eq("no_plot", filters.no_plot);
@@ -308,8 +308,8 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
   if (filters.member_name) {
     query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
   }
-  if (filters.block_no) {
-    query = query.in("block_no", filters.block_no);
+  if (filters.block_no && filters.block_no.length > 0) {
+    query = query.in("block_no", filters.block_no.map((b) => b.trim()));
   }
   if (filters.no_plot) {
     query = query.eq("no_plot", filters.no_plot);
