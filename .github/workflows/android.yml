@@ -60,6 +60,8 @@ jobs:
           cd android/build
           JDK_PATH="${JAVA_HOME_17_X64:-$JAVA_HOME}"
           export PATH="$JDK_PATH/bin:$PATH"
+          mkdir -p "$HOME/.config/@bubblewrap/cli"
+          printf '{"javaPath":"%s","androidSdkPath":"%s"}\n' "$JDK_PATH" "$ANDROID_HOME" > "$HOME/.config/@bubblewrap/cli/config.json"
           printf 'N\n%s\n' "$JDK_PATH" | npx -y @bubblewrap/cli build --manifest . --skipPwaValidation --jdkPath "$JDK_PATH"
 
       - name: Save keystore artifact (if generated)
