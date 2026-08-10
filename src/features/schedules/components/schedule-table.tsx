@@ -2,12 +2,12 @@
 
 import { useState, Fragment, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout } from "lucide-react";
+import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout, CloudOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSchedules, useDeleteSchedule, useShiftScheduleDate } from "../hooks/use-schedules";
+import { loadOfflineScheduleRows } from "../services/offline-read";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ErrorState } from "@/components/shared/error-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { LabelBadge } from "@/components/shared/label-badge";
@@ -74,19 +74,48 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
       setSelectedIds(new Set());
     }
   }, [filters]);
-  const { data, isLoading, isFetching, isError, refetch } = useSchedules({ ...filters, page });
+  const { data, isLoading, isFetching, isError } = useSchedules({ ...filters, page });
   const deleteSchedule = useDeleteSchedule();
   const bulkAction = useBulkAction();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  const [offlineRows, setOfflineRows] = useState<Schedule[] | null>(null);
+  const offline = isError && offlineRows !== null;
+  const rows = offlineRows ?? data?.data ?? [];
+  const totalPages = offline ? 1 : data?.totalPages ?? 1;
+  const filterKey = JSON.stringify(filters);
+
+  const [prevIsError, setPrevIsError] = useState(isError);
+  if (prevIsError !== isError) {
+    setPrevIsError(isError);
+    if (isError) {
+      setPage(1);
+      setSelectedIds(new Set());
+    } else {
+      setOfflineRows(null);
+      setPage(1);
+    }
+  }
+
+  useEffect(() => {
+    if (!isError) return;
+    let cancelled = false;
+    loadOfflineScheduleRows(filters)
+      .then((r) => { if (!cancelled) setOfflineRows(r); })
+      .catch(() => { if (!cancelled) setOfflineRows([]); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isError, filterKey]);
+
   const isAdmin = user?.role === "admin";
-  const canDelete = user?.role === "admin";
-  const canBulkShift = user?.role === "admin" || user?.role === "qc";
-  const canEdit = (schedule: Schedule) => user?.role === "admin" || schedule.user_id === user?.id;
+  const canDelete = user?.role === "admin" && !offline;
+  const canBulkShift = !offline && (user?.role === "admin" || user?.role === "qc");
+  const canEdit = (schedule: Schedule) => !offline && (user?.role === "admin" || schedule.user_id === user?.id);
   const shiftSchedule = useShiftScheduleDate();
 
   function canShift(schedule: Schedule) {
+    if (offline) return false;
     if (user?.role === "admin") return true;
     return schedule.user_id === user?.id;
   }
@@ -121,11 +150,11 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   }
 
   function toggleSelectAll() {
-    if (!data?.data.length) return;
-    if (selectedIds.size === data.data.length) {
+    if (!rows.length) return;
+    if (selectedIds.size === rows.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(data.data.map((s) => s.id)));
+      setSelectedIds(new Set(rows.map((s) => s.id)));
     }
   }
 
@@ -142,9 +171,9 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   }
 
   if (isLoading) return <LoadingState variant="table" />;
-  if (isError && !data) return <ErrorState onRetry={refetch} />;
+  if (isError && !offlineRows) return <LoadingState variant="table" />;
 
-  if (!data?.data.length) {
+  if (!rows.length) {
     return (
       <EmptyState
         title="Tidak ada jadwal"
@@ -154,17 +183,23 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
     );
   }
 
-  const allSelected = data.data.length > 0 && selectedIds.size === data.data.length;
+  const allSelected = rows.length > 0 && selectedIds.size === rows.length;
 
   return (
     <div>
+      {offline && (
+        <div className="flex items-center gap-2 mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <CloudOff className="h-4 w-4 shrink-0" />
+          <span>Luring — menampilkan data tersimpan terakhir. Edit, hapus, dan geser jadwal dinonaktifkan sampai koneksi pulih.</span>
+        </div>
+      )}
       {isFetching && (
         <div className="flex items-center justify-center gap-2 mb-3 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Memuat ulang...
         </div>
       )}
-      {selectedIds.size > 0 && (
+      {selectedIds.size > 0 && !offline && (
         <div className="flex flex-wrap items-center gap-1.5 mb-3 p-3 rounded-lg border bg-muted/30">
           <span className="text-sm text-muted-foreground mr-auto w-full sm:w-auto mb-1 sm:mb-0">
             {selectedIds.size} dipilih
@@ -250,6 +285,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={toggleSelectAll}
+                      disabled={offline}
                       aria-label="Pilih semua"
                     />
                   </th>
@@ -275,9 +311,9 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 </tr>
               </thead>
             <tbody>
-              {data.data.map((schedule, idx) => {
+              {rows.map((schedule, idx) => {
                 const displayDate = optimisticDates[schedule.id] ?? schedule.visit_date;
-                const prev = data.data[idx - 1];
+                const prev = rows[idx - 1];
                 const showGroup = !prev || (optimisticDates[prev.id] ?? prev.visit_date) !== displayDate;
                 return (
                   <Fragment key={schedule.id}>
@@ -292,7 +328,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                               </span>
                             )}
                             <span className="text-xs font-normal text-muted-foreground">
-                              ({data.data.filter((s) => (optimisticDates[s.id] ?? s.visit_date) === displayDate).length} jadwal)
+({rows.filter((s) => (optimisticDates[s.id] ?? s.visit_date) === displayDate).length} jadwal)
                             </span>
                           </div>
                         </td>
@@ -430,9 +466,9 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
       </div>
 
       <div className="md:hidden mt-4 space-y-2.5">
-        {data.data.map((schedule, idx) => {
+        {rows.map((schedule, idx) => {
           const displayDate = optimisticDates[schedule.id] ?? schedule.visit_date;
-          const prev = data.data[idx - 1];
+          const prev = rows[idx - 1];
           const showGroup = !prev || (optimisticDates[prev.id] ?? prev.visit_date) !== displayDate;
           return (
             <Fragment key={`mobile-${schedule.id}`}>
@@ -445,7 +481,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                     </span>
                   )}
                   <span className="text-xs font-normal text-muted-foreground">
-                    ({data.data.filter((s) => (optimisticDates[s.id] ?? s.visit_date) === displayDate).length} jadwal)
+                    ({rows.filter((s) => (optimisticDates[s.id] ?? s.visit_date) === displayDate).length} jadwal)
                   </span>
                 </div>
               )}
@@ -559,7 +595,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
         })}
       </div>
 
-      {data.totalPages > 1 && (
+      {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-4">
           <Button
             variant="outline"
@@ -570,12 +606,12 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
             Sebelumnya
           </Button>
           <span className="text-sm text-muted-foreground">
-            {page} / {data.totalPages}
+            {page} / {totalPages}
           </span>
           <Button
             variant="outline"
             size="sm"
-            disabled={page >= data.totalPages}
+            disabled={page >= totalPages}
             onClick={() => setPage(page + 1)}
           >
             Selanjutnya

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calendar, User, MapPin } from "lucide-react";
 import { useVisitDetail } from "../hooks/use-visit";
@@ -13,9 +14,11 @@ import { VisitNotesForm } from "./visit-notes-form";
 import { VisitPhotos } from "./visit-photos";
 import { VisitGps } from "./visit-gps";
 import { VisitTimeline } from "./visit-timeline";
+import { OfflineVisitView } from "./offline-visit-view";
 import { PanenCard } from "@/features/panen";
 import { formatDate, formatDateTime } from "@/lib/utils/date";
 import { useAuth } from "@/features/auth/components/auth-context";
+import { getOfflineVisitDetail, type OfflineVisitDetail } from "../services/visit-client";
 
 interface VisitDetailProps {
   id: string;
@@ -25,12 +28,31 @@ export function VisitDetail({ id }: VisitDetailProps) {
   const { data: schedule, isLoading, isError, refetch } = useVisitDetail(id);
   const { user } = useAuth();
   const role = user?.role;
-  const isOwner = schedule?.user_id === user?.id;
-  const canEdit = !!schedule && (role === "admin" || role === "qc" || isOwner);
-  const canLabel = role === "admin" || role === "qc";
 
-  if (isLoading) return <LoadingState variant="card" />;
-  if (isError) return <ErrorState onRetry={refetch} />;
+  const [offlineDetail, setOfflineDetail] = useState<OfflineVisitDetail | null>(null);
+  const [offlineLoading, setOfflineLoading] = useState(false);
+
+  const [prevIsError, setPrevIsError] = useState(isError);
+  if (prevIsError !== isError) {
+    setPrevIsError(isError);
+    if (isError) setOfflineLoading(true);
+    else setOfflineDetail(null);
+  }
+
+  useEffect(() => {
+    if (!isError) return;
+    let cancelled = false;
+    getOfflineVisitDetail(id)
+      .then((d) => { if (!cancelled) { setOfflineDetail(d); setOfflineLoading(false); } })
+      .catch(() => { if (!cancelled) { setOfflineDetail(null); setOfflineLoading(false); } });
+    return () => { cancelled = true; };
+  }, [isError, id]);
+
+  if (isLoading || (isError && offlineLoading)) return <LoadingState variant="card" />;
+  if (isError) {
+    if (offlineDetail?.schedule) return <OfflineVisitView detail={offlineDetail} />;
+    return <ErrorState onRetry={refetch} />;
+  }
   if (!schedule) {
     return (
       <div className="text-center py-12">
@@ -45,6 +67,10 @@ export function VisitDetail({ id }: VisitDetailProps) {
   const notes = Array.isArray(schedule.visit_notes)
     ? schedule.visit_notes[0]
     : schedule.visit_notes;
+
+  const isOwner = schedule.user_id === user?.id;
+  const canEdit = role === "admin" || role === "qc" || isOwner;
+  const canLabel = role === "admin" || role === "qc";
 
   return (
     <div className="space-y-6">
