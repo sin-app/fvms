@@ -1,0 +1,85 @@
+name: Android TWA Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "android-*"
+
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Ensure Android platform
+        run: |
+          sdkmanager "platforms;android-34" "platforms;android-36" "build-tools;34.0.0" || true
+          echo "JAVA_HOME=$JAVA_HOME"
+
+      - name: Prepare keystore
+        id: keystore
+        run: |
+          mkdir -p android/build
+          if [ -n "${{ secrets.TWA_KEYSTORE_B64 }}" ]; then
+            echo "${{ secrets.TWA_KEYSTORE_B64 }}" | base64 -d > android/build/upload.keystore
+            echo "keystore: from secret"
+          else
+            PASSWORD="fvms-upload-2026"
+            keytool -genkeypair -v -keystore android/build/upload.keystore \
+              -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$PASSWORD" -keypass "$PASSWORD" \
+              -dname "CN=FVMS, OU=TWA, O=Sin App, L=Jakarta, C=ID"
+            echo "keystore: generated (backup dari artifact!)"
+          fi
+
+      - name: Copy TWA manifest + icons + build
+        env:
+          TWA_ORIGIN: ${{ secrets.TWA_ORIGIN }}
+          TWA_KEYSTORE_B64: ${{ secrets.TWA_KEYSTORE_B64 }}
+          TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
+          TWA_KEY_ALIAS: ${{ secrets.TWA_KEY_ALIAS }}
+        run: |
+          node android/scripts/prepare-manifest.mjs
+          cd android/build
+          printf 'N\nN\n' | npx -y @bubblewrap/cli build --manifest . --skipPwaValidation
+
+      - name: Save keystore artifact (if generated)
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload-keystore
+          path: android/build/upload.keystore
+          if-no-files-found: ignore
+
+      - name: Print signing fingerprint
+        id: fingerprint
+        run: |
+          FP=$(keytool -list -v -keystore android/build/upload.keystore \
+            -alias upload -storepass "fvms-upload-2026" 2>/dev/null | \
+            grep -A1 "SHA256:" | tail -1 | tr -d '[:space:]')
+          echo "## Signing SHA-256" >> "$GITHUB_STEP_SUMMARY"
+          echo "$FP" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Set env \`TWA_SHA256_FINGERPRINT\` di Vercel dengan nilai di atas (tanpa spasi)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: fvms-release-aab
+          path: android/build/app/release/*.aab
+          if-no-files-found: error

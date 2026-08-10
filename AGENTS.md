@@ -16,6 +16,15 @@
 - Gunakan `$VERCEL_TOKEN` + `https://api.vercel.com/v6/deployments?limit=3&target=production` untuk verifikasi.
 - Laporkan status (SHA, state, timestamp) ke user. Jika ERROR, segera investigasi.
 
+## Android TWA & PWA
+- Distribusi Android via **Trusted Web Activity (TWA)** — shell Bubblewrap (`android/twa-manifest.json`), tanpa rewrite web app. Panduan lengkap: `docs/ANDROID-PLAY-STORE.md`.
+- Domain produksi stabil: `fvms-eight.vercel.app` (aliases Vercel); custom domain disarankan sebelum rilis production.
+- PWA: Serwist (`src/app/sw.ts` via `@serwist/next`), push web listener di SW; icon PNG (192/512 + maskable + apple-touch) di-generate dari `public/icon-maskable.svg` via `npm run icons` (`scripts/generate-icons.mjs`, deps: `sharp` devDep). **Jangan edit PNG manual — regenerasi dari SVG.**
+- Ikon & manifest Warna brand: `theme_color` = `#10b981` (terang) / `#065f46` (gelap); `background_color` putih.
+- **Digital Asset Links**: route `src/app/.well-known/assetlinks.json/route.ts` — nilai `TWA_ANDROID_PACKAGE` (default `id.sinapp.fvms`) + `TWA_SHA256_FINGERPRINT` dari env Vercel; tanpanya ter-serve placeholder `PENDING_...` (validasi Play gagal — jangan lupa set).
+- Build Android otomatis: `.github/workflows/android.yml` (tag `android-*` atau manual dispatch) → AAB + keystore artifact; keystore dipakai dari secret `TWA_KEYSTORE_B64` bila ada, selain itu di-generate per run (backup artifact!).
+- Offline-first (isi kunjungan & sinkronisasi) BELUM ada — saat ini butuh koneksi.
+
 ## Filter Behavior (Excel-style)
 - Schedules & Reports pages: kolom `block_no`, `no_plot`, `nis`, `document_no`, `cgr` difilter dengan **select nilai unik** (ala Excel) — bukan free-text.
 - Urutan filter bar (Schedules & Reports): **kode varietas → cgr → block → plot → nama member** → nis → doc no → panen → label → status → petugas → kabupaten → kecamatan → desa (date presets di baris bawah).

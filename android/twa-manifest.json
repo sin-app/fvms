@@ -1,0 +1,31 @@
+{
+  "packageId": "id.sinapp.fvms",
+  "host": "fvms-eight.vercel.app",
+  "name": "FVMS",
+  "launcherName": "FVMS",
+  "display": "standalone",
+  "themeColor": "#10b981",
+  "navigationColor": "#ffffff",
+  "backgroundColor": "#ffffff",
+  "enableNotifications": true,
+  "startUrl": "/dashboard",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "signingConfig": {},
+  "fallbackType": "customtabs",
+  "webManifestUrl": "https://fvms-eight.vercel.app/manifest.json"
+}
