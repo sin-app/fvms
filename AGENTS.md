@@ -28,13 +28,13 @@
 - Laporkan status (SHA, state, timestamp) ke user. Jika ERROR, segera investigasi.
 
 ## Android TWA & PWA
-- Distribusi Android via **Trusted Web Activity (TWA)** — shell Bubblewrap (`android/twa-manifest.json`), tanpa rewrite web app. Panduan lengkap: `docs/ANDROID-PLAY-STORE.md`.
+- Distro Android via **TWA** — proyek Gradle statis di `android/` (`settings.gradle`, `app/build.gradle` signingConfig baca env `TWA_KEYSTORE_*`; manifest pakai `com.google.androidbrowserhelper.trusted.LauncherActivity`; `asset_statements` → `fvms-eight.vercel.app`). Bukan lagi Bubblewrap CLI (prompt interaktif tidak bisa dipakai di CI).
+- Build otomatis: `.github/workflows/android.yml` (tag `android-*` atau manual dispatch) → `./gradlew :app:bundleRelease` → AAB + keystore artifact. **Keystore permanen** sudah disimpan di secrets `TWA_KEYSTORE_B64` / `TWA_KEYSTORE_PASSWORD` / `TWA_KEY_ALIAS` (FP signing stabil, jangan regen!).
+- Signing SHA-256 (saat ini, jangan ubah): `DF:12:AE:AE:D2:0C:60:A6:AC:73:69:6D:4E:BC:9F:9C:1E:60:50:9D:5C:B5:81:DE:04:DB:6B:B0:D5:C0:10:16` — sudah di-set sebagai env `TWA_SHA256_FINGERPRINT` Vercel.
 - Domain produksi stabil: `fvms-eight.vercel.app` (aliases Vercel); custom domain disarankan sebelum rilis production.
 - PWA: Serwist (`src/app/sw.ts` via `@serwist/next`), push web listener di SW; icon PNG (192/512 + maskable + apple-touch) di-generate dari `public/icon-maskable.svg` via `npm run icons` (`scripts/generate-icons.mjs`, deps: `sharp` devDep). **Jangan edit PNG manual — regenerasi dari SVG.**
 - Ikon & manifest Warna brand: `theme_color` = `#10b981` (terang) / `#065f46` (gelap); `background_color` putih.
 - **Digital Asset Links**: route `src/app/.well-known/assetlinks.json/route.ts` — nilai `TWA_ANDROID_PACKAGE` (default `id.sinapp.fvms`) + `TWA_SHA256_FINGERPRINT` dari env Vercel; tanpanya ter-serve placeholder `PENDING_...` (validasi Play gagal — jangan lupa set).
-- Build Android otomatis: `.github/workflows/android.yml` (tag `android-*` atau manual dispatch) → AAB + keystore artifact; keystore dipakai dari secret `TWA_KEYSTORE_B64` bila ada, selain itu di-generate per run (backup artifact!).
-- Offline-first (isi kunjungan & sinkronisasi) BELUM ada — saat ini butuh koneksi.
 
 ## Filter Behavior (Excel-style)
 - Schedules & Reports pages: kolom `block_no`, `no_plot`, `nis`, `document_no`, `cgr` difilter dengan **select nilai unik** (ala Excel) — bukan free-text.
