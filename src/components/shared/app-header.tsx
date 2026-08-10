@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { NotificationBell } from "@/features/notifications";
 import { ThemeToggle } from "./theme-toggle";
+import { SyncIndicator } from "./sync-indicator";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -43,6 +44,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-1">
+        <SyncIndicator />
         <ThemeToggle />
         <NotificationBell />
         <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground ml-2">

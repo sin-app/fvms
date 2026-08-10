@@ -11,6 +11,15 @@
 - **Touch target**: tombol ikon minimal `h-10 w-10` (48px), tombol teks `min-h-11` di area kritis; focusable punya `focus-visible` ring jelas.
 - **Loading**: gunakan `LoadingState` (skeleton `.shimmer`, `role="status"` + sr-only); jangan pakai `animate-pulse` baru. Error: `ErrorState` (`role="alert"`). Empty: `EmptyState`.
 
+## Offline-first (Fase 2 — fondasi)
+- **Store lokal**: Dexie/IndexedDB `src/lib/offline/db.ts` (`fvms-offline`, v1): tabel `schedules` (join denormalisasi `*_name`), `visitNotes` (pk `schedule_id`), `visitPhotos` (+ blob lokal utk foto belum upload), `regions` (kab/kec/desa, key `entity:id`), `outbox` (antrian mutasi idempotent: `table/action/entity_id/payload`), `meta` (watermark `watermark:<table>:<userId>`, `last_sync_at`).
+- **Engine**: `src/lib/offline/engine.ts` — `hydrateOffline()` (pull scoped peran: produksi `eq user_id`, qc `in kabupaten_id` via `syncUserContext()`, admin semua; replace-all per tabel; watermark), `pushOutbox()` (replay urut; visit_notes `upsert onConflict schedule_id`; foto = upload storage `{uid}/visits/{sid}/{uuid}.ext` dulu, baru upsert row `onConflict id`; schedules = `update` field terbatas `{status,label}` — **guard status final online-only**; gagal → `attempts+1`, `last_error`). DI via param `supabase` (testable).
+- **Provider**: `src/lib/offline/sync-context.tsx` (`SyncProvider` di `Providers.tsx`, butuh AuthProvider) — status `{online, syncing, pending, lastSyncAt, lastError}`; auto-hydrate saat login & auto-sync saat koneksi kembali; `notifyOutboxChanged()` wajib dipanggil setelah queue write; hook `useSync()`. Indikator: `SyncIndicator` (`src/components/shared/sync-indicator.tsx`) di `AppHeader`.
+- **Queue (Fase 3 menu, API siap)**: `src/features/visits/services/visit-client.ts` — `queueVisitNotesUpdate`, `queuePhotoUpload`, `queuePhotoDelete`, `getOfflineVisitDetail`, `offlinePhotoObjectUrl`.
+- **RLS storage baru** (migrasi `031_offline_rls_storage.sql`): bucket `visit-photos` privat 15MB (jpg/png/webp); folder object = `{auth.uid}/...` (insert/select/delete policy). upload client hanya untuk folder sendiri. QC offline belum didukung (RLS tidak ada manage-own untuk QC — online via server action).
+- **Aturan**: jangan panggil `getOfflineDb()` di server component (guard `isOfflineDbAvailable`); perubahan schema Dexie naikkan `version()` + migrasi; IDB events outbox di-events ke provider (`fvms:outbox`).
+- Test: `src/__tests__/features/offline-engine.test.ts` (fake-indexeddb + supabase fake DI).
+
 ## Deployment Workflow
 - Setelah setiap commit + push ke `main`, **WAJIB** cek status deploy Vercel via API.
 - Gunakan `$VERCEL_TOKEN` + `https://api.vercel.com/v6/deployments?limit=3&target=production` untuk verifikasi.

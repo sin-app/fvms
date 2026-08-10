@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/features/auth/components/auth-context";
 import { I18nProvider } from "@/lib/i18n/context";
+import { SyncProvider } from "@/lib/offline/sync-context";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -30,7 +31,9 @@ export function Providers({ children }: ProvidersProps) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <I18nProvider>{children}</I18nProvider>
+          <SyncProvider>
+            <I18nProvider>{children}</I18nProvider>
+          </SyncProvider>
         </AuthProvider>
         <Toaster position="top-right" richColors />
       </QueryClientProvider>

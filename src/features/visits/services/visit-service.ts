@@ -137,13 +137,6 @@ export async function uploadVisitPhoto(
     );
   }
 
-  let uploadJson: { Key?: string } = {};
-  try {
-    uploadJson = JSON.parse(uploadBodyText);
-  } catch {
-    // ignore non-json
-  }
-
   // Bucket is private: store the object path (relative to bucket). Signed URLs
   // are generated on read so photos are never publicly accessible by URL.
   const objectPath = filePath;
