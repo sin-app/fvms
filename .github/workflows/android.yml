@@ -71,7 +71,7 @@ jobs:
         run: |
           FP=$(keytool -list -v -keystore android/build/upload.keystore \
             -alias upload -storepass "${TWA_KEYSTORE_PASSWORD:-fvms-upload-2026}" 2>/dev/null | \
-            grep -A1 "SHA256:" | tail -1 | tr -d '[:space:]')
+            grep -oE "[0-9A-F]{2}(:[0-9A-F]{2}){31}" | tail -1)
           echo "FINGERPRINT=$FP"
           echo "## Signing SHA-256" >> "$GITHUB_STEP_SUMMARY"
           echo "$FP" >> "$GITHUB_STEP_SUMMARY"
