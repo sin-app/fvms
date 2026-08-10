@@ -59,7 +59,7 @@ jobs:
           node android/scripts/prepare-manifest.mjs
           cd android/build
           JDK_PATH="${JAVA_HOME_17_X64:-$JAVA_HOME}"
-          npx -y @bubblewrap/cli build --manifest . --skipPwaValidation --jdkPath "$JDK_PATH"
+          printf 'N\n%s\n' "$JDK_PATH" | npx -y @bubblewrap/cli build --manifest . --skipPwaValidation --jdkPath "$JDK_PATH"
 
       - name: Save keystore artifact (if generated)
         uses: actions/upload-artifact@v4
