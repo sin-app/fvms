@@ -20,9 +20,9 @@ android {
             def storePassword = System.getenv('TWA_KEYSTORE_PASSWORD') ?: 'fvms-upload-2026'
             def keyAlias = System.getenv('TWA_KEY_ALIAS') ?: 'upload'
             storeFile file(keystorePath)
-            storePassword storePassword
-            keyAlias keyAlias
-            keyPassword storePassword
+            storePassword(storePassword)
+            keyAlias(keyAlias)
+            keyPassword(storePassword)
         }
     }
 
