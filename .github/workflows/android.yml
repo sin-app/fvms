@@ -58,7 +58,8 @@ jobs:
         run: |
           node android/scripts/prepare-manifest.mjs
           cd android/build
-          printf 'N\nN\n' | npx -y @bubblewrap/cli build --manifest . --skipPwaValidation
+          JDK_PATH="${JAVA_HOME_17_X64:-$JAVA_HOME}"
+          npx -y @bubblewrap/cli build --manifest . --skipPwaValidation --jdkPath "$JDK_PATH"
 
       - name: Save keystore artifact (if generated)
         uses: actions/upload-artifact@v4
@@ -68,11 +69,13 @@ jobs:
           if-no-files-found: ignore
 
       - name: Print signing fingerprint
-        id: fingerprint
+        env:
+          TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
         run: |
           FP=$(keytool -list -v -keystore android/build/upload.keystore \
-            -alias upload -storepass "fvms-upload-2026" 2>/dev/null | \
+            -alias upload -storepass "${TWA_KEYSTORE_PASSWORD:-fvms-upload-2026}" 2>/dev/null | \
             grep -A1 "SHA256:" | tail -1 | tr -d '[:space:]')
+          echo "FINGERPRINT=$FP"
           echo "## Signing SHA-256" >> "$GITHUB_STEP_SUMMARY"
           echo "$FP" >> "$GITHUB_STEP_SUMMARY"
           echo "### Set env \`TWA_SHA256_FINGERPRINT\` di Vercel dengan nilai di atas (tanpa spasi)." >> "$GITHUB_STEP_SUMMARY"
