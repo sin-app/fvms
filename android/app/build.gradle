@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'id.sinapp.fvms'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'id.sinapp.fvms'
+        minSdk 21
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv('TWA_KEYSTORE_PATH') ?: file('../build/upload.keystore').absolutePath
+            def storePassword = System.getenv('TWA_KEYSTORE_PASSWORD') ?: 'fvms-upload-2026'
+            def keyAlias = System.getenv('TWA_KEY_ALIAS') ?: 'upload'
+            storeFile file(keystorePath)
+            storePassword storePassword
+            keyAlias keyAlias
+            keyPassword storePassword
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

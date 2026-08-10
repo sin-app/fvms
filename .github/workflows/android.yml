@@ -49,19 +49,14 @@ jobs:
             echo "keystore: generated (backup dari artifact!)"
           fi
 
-      - name: Copy TWA manifest + icons + build
+      - name: Build TWA release (AAB)
         env:
-          TWA_ORIGIN: ${{ secrets.TWA_ORIGIN }}
-          TWA_KEYSTORE_B64: ${{ secrets.TWA_KEYSTORE_B64 }}
+          TWA_KEYSTORE_PATH: ${{ github.workspace }}/android/build/upload.keystore
           TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
           TWA_KEY_ALIAS: ${{ secrets.TWA_KEY_ALIAS }}
         run: |
-          node android/scripts/prepare-manifest.mjs
-          cd android/build
-          JDK_PATH="${JAVA_HOME_17_X64:-$JAVA_HOME}"
-          export PATH="$JDK_PATH/bin:$PATH"
-          npx -y @bubblewrap/cli --help >/dev/null 2>&1
-          (sleep 5; printf 'N\n%s\n' "$JDK_PATH") | script -qec "timeout 1800 npx -y @bubblewrap/cli build --manifest . --skipPwaValidation --jdkPath \"$JDK_PATH\"" /dev/null
+          cd android
+          ./gradlew --no-daemon --console=plain :app:bundleRelease
 
       - name: Save keystore artifact (if generated)
         uses: actions/upload-artifact@v4
@@ -86,5 +81,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fvms-release-aab
-          path: android/build/app/release/*.aab
+          path: android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
