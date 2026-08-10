@@ -60,7 +60,8 @@ jobs:
           cd android/build
           JDK_PATH="${JAVA_HOME_17_X64:-$JAVA_HOME}"
           export PATH="$JDK_PATH/bin:$PATH"
-          printf 'N\n%s\n' "$JDK_PATH" | script -qec "timeout 1800 npx -y @bubblewrap/cli build --manifest . --skipPwaValidation --jdkPath \"$JDK_PATH\"" /dev/null
+          npx -y @bubblewrap/cli --help >/dev/null 2>&1
+          (sleep 5; printf 'N\n%s\n' "$JDK_PATH") | script -qec "timeout 1800 npx -y @bubblewrap/cli build --manifest . --skipPwaValidation --jdkPath \"$JDK_PATH\"" /dev/null
 
       - name: Save keystore artifact (if generated)
         uses: actions/upload-artifact@v4
