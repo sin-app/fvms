@@ -49,14 +49,14 @@ jobs:
             echo "keystore: generated (backup dari artifact!)"
           fi
 
-      - name: Build TWA release (AAB)
+      - name: Build TWA release (AAB + APK)
         env:
           TWA_KEYSTORE_PATH: ${{ github.workspace }}/android/build/upload.keystore
           TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
           TWA_KEY_ALIAS: ${{ secrets.TWA_KEY_ALIAS }}
         run: |
           cd android
-          ./gradlew --no-daemon --console=plain :app:bundleRelease
+          ./gradlew --no-daemon --console=plain :app:assembleRelease :app:bundleRelease
 
       - name: Save keystore artifact (if generated)
         uses: actions/upload-artifact@v4
@@ -82,4 +82,11 @@ jobs:
         with:
           name: fvms-release-aab
           path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+      - name: Upload APK release
+        uses: actions/upload-artifact@v4
+        with:
+          name: fvms-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
