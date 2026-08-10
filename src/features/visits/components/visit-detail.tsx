@@ -50,7 +50,11 @@ export function VisitDetail({ id }: VisitDetailProps) {
 
   if (isLoading || (isError && offlineLoading)) return <LoadingState variant="card" />;
   if (isError) {
-    if (offlineDetail?.schedule) return <OfflineVisitView detail={offlineDetail} />;
+    if (offlineDetail?.schedule) {
+      const canEditOffline =
+        role === "admin" || role === "qc" || offlineDetail.schedule.user_id === user?.id;
+      return <OfflineVisitView detail={offlineDetail} editable={canEditOffline} />;
+    }
     return <ErrorState onRetry={refetch} />;
   }
   if (!schedule) {

@@ -60,6 +60,17 @@ export interface QueuePhotoPayload {
   blob: Blob;
   mimeType: string;
   caption?: string | null;
+  /** Override userId (dipakai test); default: user auth saat ini. */
+  userId?: string;
+}
+
+async function currentUserId(): Promise<string | null> {
+  try {
+    const user = (await createClient().auth.getUser()).data.user;
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -70,10 +81,10 @@ export async function queuePhotoUpload(
   payload: QueuePhotoPayload,
 ): Promise<OfflineVisitPhoto> {
   const db = getOfflineDb();
-  const user = (await createClient().auth.getUser()).data.user;
+  const uid = payload.userId ?? (await currentUserId());
   const ext = (payload.mimeType.split("/")[1] ?? "jpg").replace(/^jpeg$/, "jpg");
   const photoId = randomUUID();
-  const url = `${user?.id ?? "anonymous"}/visits/${payload.scheduleId}/${photoId}.${ext}`;
+  const url = `${uid ?? "anonymous"}/visits/${payload.scheduleId}/${photoId}.${ext}`;
 
   const photo: OfflineVisitPhoto = {
     id: photoId,
@@ -129,6 +140,90 @@ export async function queuePhotoDelete(photoId: string): Promise<void> {
       attempts: 0,
       last_error: null,
     } satisfies OutboxEntry);
+  });
+  await notifyOutboxChanged(await db.outbox.count());
+}
+
+export interface QueueSchedulePayload {
+  id: string;
+  status?: string;
+  label?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy?: number | null;
+  visit_time?: string | null;
+}
+
+const FINAL_STATUSES = ["completed", "gagal_total"];
+
+/**
+ * Mengupdate status/label/GPS secara lokal + antrean sinkron.
+ * Status final (completed/gagal_total) wajib online — dilempar error lokal.
+ */
+export async function queueScheduleUpdate(payload: QueueSchedulePayload): Promise<void> {
+  if (payload.status && FINAL_STATUSES.includes(payload.status)) {
+    throw new Error("Status final hanya bisa diubah saat online");
+  }
+
+  const db = getOfflineDb();
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const entryPayload: Record<string, unknown> = {};
+  for (const key of ["status", "label", "latitude", "longitude", "accuracy", "visit_time"] as const) {
+    if (payload[key] !== undefined) {
+      patch[key] = payload[key];
+      entryPayload[key] = payload[key];
+    }
+  }
+
+  const entry: OutboxEntry = {
+    id: randomUUID(),
+    table: "schedules",
+    action: "upsert",
+    entity_id: payload.id,
+    payload: entryPayload,
+    created_at: Date.now(),
+    attempts: 0,
+    last_error: null,
+  };
+
+  await db.transaction("rw", db.schedules, db.outbox, async () => {
+    await db.schedules.update(payload.id, patch);
+    await db.outbox.put(entry);
+  });
+  await notifyOutboxChanged(await db.outbox.count());
+}
+
+/** Mengubah keterangan foto secara lokal + antrean sinkron. */
+export async function queuePhotoCaptionUpdate(
+  photoId: string,
+  scheduleId: string,
+  caption: string,
+): Promise<void> {
+  const db = getOfflineDb();
+  const photo = await db.visitPhotos.get(photoId);
+  if (!photo) throw new Error("Foto tidak ditemukan");
+
+  const entry: OutboxEntry = {
+    id: randomUUID(),
+    table: "visit_photos",
+    action: "upsert",
+    entity_id: photoId,
+    payload: {
+      id: photoId,
+      schedule_id: scheduleId,
+      url: photo.url,
+      caption,
+      file_size: photo.file_size,
+      mime_type: photo.mime_type,
+    },
+    created_at: Date.now(),
+    attempts: 0,
+    last_error: null,
+  };
+
+  await db.transaction("rw", db.visitPhotos, db.outbox, async () => {
+    await db.visitPhotos.update(photoId, { caption });
+    await db.outbox.put(entry);
   });
   await notifyOutboxChanged(await db.outbox.count());
 }

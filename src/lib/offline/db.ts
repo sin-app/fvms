@@ -26,6 +26,10 @@ export interface OfflineScheduleRow {
   real_panen: string | null;
   rencana_panen: string | null;
   varietas: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
+  visit_time: string | null;
   updated_at: string;
   kabupaten_name?: string | null;
   kecamatan_name?: string | null;

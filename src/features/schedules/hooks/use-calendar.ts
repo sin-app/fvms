@@ -25,11 +25,8 @@ export function useCalendarEvents(start: string, end: string) {
 function transformToCalendarEvents(schedules: Schedule[]): CalendarEvent[] {
   return schedules.map((s) => {
     const color = STATUS_COLORS[s.status] ?? "#6b7280";
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const kab = (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "";
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const kec = (s as unknown as { kecamatan?: { name: string } }).kecamatan?.name ?? "";
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const des = (s as unknown as { desa?: { name: string } }).desa?.name ?? "";
 
     return {

@@ -35,8 +35,8 @@ export function syncUserContext(user: {
 
 export interface SyncOptions {
   supabase: SupabaseClient;
-  user: SyncUserContext;
-  /** Batas maksimum baris yang ditarik per tabel (keamanan payload). */
+  /** Hanya dibutuhkan hydrateOffline; pushOutbox mengabaikan. */
+  user?: SyncUserContext;
   limit?: number;
 }
 
@@ -50,7 +50,7 @@ export interface HydrateResult {
 }
 
 const SCHEDULE_SELECT =
-  "id, visit_date, user_id, kabupaten_id, kecamatan_id, desa_id, status, label, block_no, no_plot, member_name, document_no, nis, cgr, cgr_code, ph_tanah, tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, tgl_panen, real_panen, rencana_panen, varietas, updated_at, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)";
+  "id, visit_date, user_id, kabupaten_id, kecamatan_id, desa_id, status, label, block_no, no_plot, member_name, document_no, nis, cgr, cgr_code, ph_tanah, tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, tgl_panen, real_panen, rencana_panen, varietas, latitude, longitude, accuracy, visit_time, updated_at, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)";
 
 /**
  * Menarik data terbaru sesuai scope peran pengguna ke IndexedDB lokal.
@@ -60,7 +60,10 @@ const SCHEDULE_SELECT =
  * RLS SELECT yang sudah ada tetap menjadi pengaman tambahan.
  */
 export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> {
-  const { supabase, user, limit = DEFAULT_LIMIT } = opts;
+  const { supabase } = opts;
+  const user = opts.user;
+  if (!user) throw new Error("hydrateOffline: user wajib");
+  const limit = opts.limit ?? DEFAULT_LIMIT;
 
   const schedulesQuery = supabase
     .from("schedules")
@@ -227,9 +230,19 @@ async function applyOutboxEntry(
   }
 
   if (table === "schedules" && action === "upsert") {
+    const p = payload as Record<string, unknown>;
+    if (typeof p.status === "string" && (p.status === "completed" || p.status === "gagal_total")) {
+      throw new Error("schedules: status final hanya lewat koneksi online");
+    }
+    const allowed = ["status", "label", "latitude", "longitude", "accuracy", "visit_time"];
+    const update: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (p[key] !== undefined) update[key] = p[key];
+    }
+    if (!Object.keys(update).length) throw new Error("schedules: payload kosong");
     const { error } = await supabase
       .from("schedules")
-      .update(payload)
+      .update(update)
       .eq("id", entityId);
     if (error) throw new Error(`schedules: ${error.message}`);
     return;
@@ -238,8 +251,9 @@ async function applyOutboxEntry(
   if (table === "visit_photos") {
     if (action === "delete") {
       const photo = await dbVisitPhoto(entityId);
-      if (photo?.url) {
-        const { error: rmError } = await supabase.storage.from("visit-photos").remove([photo.url]);
+      const objectUrl = photo?.url ?? (payload as { url?: string }).url;
+      if (objectUrl) {
+        const { error: rmError } = await supabase.storage.from("visit-photos").remove([objectUrl]);
         if (rmError) throw new Error(`storage remove: ${rmError.message}`);
       }
       const { error } = await supabase.from("visit_photos").delete().eq("id", entityId);

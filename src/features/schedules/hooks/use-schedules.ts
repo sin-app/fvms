@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fetchScheduleList } from "../api/schedule-client";
 import { deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction } from "../actions/schedule-actions";
+import { queueScheduleUpdate } from "@/features/visits/services/visit-client";
+import { useSync } from "@/lib/offline/sync-context";
 import type { ScheduleFilters } from "../types";
 
 export function useSchedules(filters: ScheduleFilters) {
@@ -83,8 +85,20 @@ export function useBulkAction() {
 
 export function useUpdateVisitStatus() {
   const queryClient = useQueryClient();
+  const { online } = useSync();
   return useMutation({
     mutationFn: async (data: { id: string; status: string; latitude?: number; longitude?: number }) => {
+      if (!online) {
+        await queueScheduleUpdate({
+          id: data.id,
+          status: data.status,
+          ...(data.latitude !== undefined ? { latitude: data.latitude } : {}),
+          ...(data.longitude !== undefined ? { longitude: data.longitude } : {}),
+          ...(data.latitude !== undefined ? { visit_time: new Date().toISOString() } : {}),
+        });
+        toast.success("Status tersimpan (luring) — akan disinkronkan");
+        return { success: true };
+      }
       const fd = new FormData();
       fd.set("id", data.id);
       fd.set("status", data.status);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, X, Loader2, Pencil, Trash2, Eye } from "lucide-react";
+import { Camera, Loader2, Pencil, Trash2, Eye } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
