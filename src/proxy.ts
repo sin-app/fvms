@@ -88,7 +88,7 @@ function applyCookiesToResponse(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|health|sw\\.js|manifest\\.json|swe-worker.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/auth|health|sw\\.js|\\.well-known|manifest\\.json|swe-worker.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
 
