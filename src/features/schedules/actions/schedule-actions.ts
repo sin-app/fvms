@@ -27,7 +27,7 @@ export async function createScheduleAction(
   if (!parsed.success) return parsed;
 
   const derived = deriveScheduleStatus({ ...parsed.data, hasActivity: false });
-  if (derived) {
+  if (derived && !(derived.status === "completed" && ctx.role === "produksi")) {
     parsed.data.status = derived.status;
     if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
   }
@@ -97,7 +97,9 @@ export async function updateScheduleAction(
     // Jangan menurunkan status terminal (hasil tindakan eksplisit) ke pending/in_progress.
     const existingIsExplicit = existing?.status === "completed" || existing?.status === "gagal_total" || existing?.status === "gagal_partial";
     const derivedIsFallback = derived.status === "pending" || derived.status === "in_progress";
-    if (!(existingIsExplicit && derivedIsFallback)) {
+    // Produksi tidak boleh memicu status completed (verifikasi hanya QC/admin).
+    const produksiCompleted = derived.status === "completed" && ctx.role === "produksi";
+    if (!(existingIsExplicit && derivedIsFallback) && !produksiCompleted) {
       parsed.data.status = derived.status;
       if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
     }
@@ -347,6 +349,12 @@ export async function bulkActionSchedules(
       }
     } else if (["pending", "in_progress", "gagal_partial", "completed"].includes(action)) {
       const target = action as VisitStatus;
+
+      // Status completed (verifikasi selesai) hanya boleh ditetapkan QC/admin.
+      if (target === "completed" && ctx.role === "produksi") {
+        return { success: false, error: "Hanya QC yang dapat menandai selesai (completed)" };
+      }
+
       const { data: currentRows, error: statusErr } = await admin
         .from("schedules")
         .select("id, status")
@@ -416,6 +424,11 @@ export async function updateVisitStatusAction(
   const validStatuses = SCHEDULE_STATUSES;
   if (!validStatuses.includes(status as VisitStatus)) {
     return { success: false, error: "Status tidak valid" };
+  }
+
+  // Status completed (verifikasi selesai) hanya boleh ditetapkan QC/admin.
+  if (status === "completed" && ctx.role === "produksi") {
+    return { success: false, error: "Hanya QC yang dapat menandai selesai (completed)" };
   }
 
   if (!(await canAccessSchedule(id, ctx))) {

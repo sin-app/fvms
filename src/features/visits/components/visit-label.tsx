@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateLabelAction } from "@/features/schedules/actions/schedule-actions";
+import { queueScheduleUpdate } from "@/features/visits/services/visit-client";
+import { useSync } from "@/lib/offline/sync-context";
 import { toast } from "sonner";
 
 interface VisitLabelProps {
@@ -21,9 +23,15 @@ const LABEL_OPTIONS = [
 export function VisitLabel({ scheduleId, currentLabel, editable }: VisitLabelProps) {
   const [showOptions, setShowOptions] = useState(false);
   const queryClient = useQueryClient();
+  const { online } = useSync();
 
   const mutation = useMutation({
     mutationFn: async (label: string | null) => {
+      if (!online) {
+        await queueScheduleUpdate({ id: scheduleId, label: label || null });
+        toast.success("Label tersimpan (luring) — akan disinkronkan");
+        return;
+      }
       const fd = new FormData();
       fd.set("id", scheduleId);
       fd.set("label", label ?? "");

@@ -6,6 +6,8 @@ import {
 } from "@/lib/offline/db";
 import { notifyOutboxChanged } from "@/lib/offline/sync-context";
 import { createClient } from "@/lib/supabase/client";
+import { deriveScheduleStatus } from "@/features/panen/services/panen-logic";
+import { dateString } from "@/lib/utils/date";
 import { randomUUID } from "./random-uuid";
 
 export interface QueueNotePayload {
@@ -71,6 +73,24 @@ async function currentUserId(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export type OfflineUserRole = "admin" | "qc" | "produksi";
+
+/** Role dari JWT app_metadata; default produksi. */
+async function currentRole(): Promise<OfflineUserRole> {
+  try {
+    const user = (await createClient().auth.getUser()).data.user;
+    const role = (user?.app_metadata as { role?: string } | undefined)?.role;
+    return role === "admin" || role === "qc" ? role : "produksi";
+  } catch {
+    return "produksi";
+  }
+}
+
+/** Status yang hanya boleh ditetapkan QC/admin (verifikasi selesai). */
+export function canSetCompleted(role: OfflineUserRole | string | null | undefined): boolean {
+  return role === "admin" || role === "qc";
 }
 
 /**
@@ -152,17 +172,25 @@ export interface QueueSchedulePayload {
   longitude?: number | null;
   accuracy?: number | null;
   visit_time?: string | null;
+  /** Override role (dipakai test); default: dari auth saat ini. */
+  role?: OfflineUserRole;
 }
-
-const FINAL_STATUSES = ["completed", "gagal_total"];
 
 /**
  * Mengupdate status/label/GPS secara lokal + antrean sinkron.
- * Status final (completed/gagal_total) wajib online — dilempar error lokal.
+ * - completed: hanya QC/admin (produksi ditolak).
+ * - gagal_total: wajib online (status final tanpa verifikasi offline).
  */
 export async function queueScheduleUpdate(payload: QueueSchedulePayload): Promise<void> {
-  if (payload.status && FINAL_STATUSES.includes(payload.status)) {
-    throw new Error("Status final hanya bisa diubah saat online");
+  const role = payload.role ?? (await currentRole());
+
+  if (payload.status) {
+    if (payload.status === "gagal_total") {
+      throw new Error("Status gagal_total hanya bisa diubah saat online");
+    }
+    if (payload.status === "completed" && !canSetCompleted(role)) {
+      throw new Error("Hanya QC yang dapat menandai selesai (completed)");
+    }
   }
 
   const db = getOfflineDb();
@@ -188,6 +216,132 @@ export async function queueScheduleUpdate(payload: QueueSchedulePayload): Promis
 
   await db.transaction("rw", db.schedules, db.outbox, async () => {
     await db.schedules.update(payload.id, patch);
+    await db.outbox.put(entry);
+  });
+  await notifyOutboxChanged(await db.outbox.count());
+}
+
+/** Menggeser tanggal kunjungan secara lokal + antrean sinkron. */
+export async function queueScheduleShift(scheduleId: string, days: number): Promise<void> {
+  if (!Number.isInteger(days) || days === 0) {
+    throw new Error("Jumlah hari tidak valid");
+  }
+
+  const db = getOfflineDb();
+  const row = await db.schedules.get(scheduleId);
+  if (!row?.visit_date) throw new Error("Jadwal tidak ditemukan");
+
+  const current = new Date(row.visit_date + "T00:00:00");
+  if (Number.isNaN(current.getTime())) throw new Error("Tanggal jadwal tidak valid");
+  current.setDate(current.getDate() + days);
+  const nextDate = dateString(current);
+
+  const entry: OutboxEntry = {
+    id: randomUUID(),
+    table: "schedules",
+    action: "shift",
+    entity_id: scheduleId,
+    payload: { days },
+    created_at: Date.now(),
+    attempts: 0,
+    last_error: null,
+  };
+
+  await db.transaction("rw", db.schedules, db.outbox, async () => {
+    await db.schedules.update(scheduleId, { visit_date: nextDate, updated_at: new Date().toISOString() });
+    await db.outbox.put(entry);
+  });
+  await notifyOutboxChanged(await db.outbox.count());
+}
+
+/** Menghapus jadwal (soft delete) secara lokal + antrean sinkron. */
+export async function queueScheduleDelete(scheduleId: string): Promise<void> {
+  const db = getOfflineDb();
+
+  const entry: OutboxEntry = {
+    id: randomUUID(),
+    table: "schedules",
+    action: "delete",
+    entity_id: scheduleId,
+    payload: {},
+    created_at: Date.now(),
+    attempts: 0,
+    last_error: null,
+  };
+
+  await db.transaction("rw", db.schedules, db.outbox, async () => {
+    await db.schedules.delete(scheduleId);
+    await db.outbox.put(entry);
+  });
+  await notifyOutboxChanged(await db.outbox.count());
+}
+
+export interface QueuePanenPayload {
+  scheduleId: string;
+  tgl_panen?: string | null;
+  panen_keterangan?: string | null;
+  /** Override role (dipakai test); default: dari auth saat ini. */
+  role?: OfflineUserRole;
+}
+
+/**
+ * Menyimpan data panen secara lokal + antrean sinkron.
+ * QC/admin: tgl_panen otomatis menetapkan status completed.
+ * Produksi : data panen disimpan tanpa auto-complete (completed hanya QC/admin).
+ */
+export async function queuePanenSave(payload: QueuePanenPayload): Promise<void> {
+  const role = payload.role ?? (await currentRole());
+  const db = getOfflineDb();
+  const row = await db.schedules.get(payload.scheduleId);
+  if (!row) throw new Error("Jadwal tidak ditemukan");
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const entryPayload: Record<string, unknown> = {};
+  const tglPanen = payload.tgl_panen || null;
+  const keterangan = payload.panen_keterangan || null;
+
+  if (payload.tgl_panen !== undefined) {
+    patch.tgl_panen = tglPanen;
+    entryPayload.tgl_panen = tglPanen;
+  }
+  if (payload.panen_keterangan !== undefined) {
+    patch.panen_keterangan = keterangan;
+    entryPayload.panen_keterangan = keterangan;
+  }
+
+  const privileged = canSetCompleted(role);
+
+  if (tglPanen && privileged) {
+    patch.status = "completed";
+    entryPayload._auto_complete = true;
+  } else if (tglPanen === null) {
+    const hasActivity = !!(row.visit_time || row.notes || row.latitude);
+    const derived = deriveScheduleStatus({
+      real_tanam_ha: row.real_tanam_ha ? Number(row.real_tanam_ha) : null,
+      gagal_tanam: row.gagal_tanam ? Number(row.gagal_tanam) : null,
+      sisa_di_lahan_ha: row.sisa_di_lahan_ha ? Number(row.sisa_di_lahan_ha) : null,
+      hasActivity,
+    });
+    const derivedStatus = derived?.status;
+    if (derivedStatus && (privileged || derivedStatus !== "completed")) {
+      patch.status = derivedStatus;
+      entryPayload.status = derivedStatus;
+    }
+  }
+
+  const entry: OutboxEntry = {
+    id: randomUUID(),
+    table: "schedules",
+    action: "upsert",
+    entity_id: payload.scheduleId,
+    payload: entryPayload,
+    created_at: Date.now(),
+    attempts: 0,
+    last_error: null,
+  };
+
+  await db.transaction("rw", db.schedules, db.outbox, async () => {
+    await db.schedules.update(payload.scheduleId, patch);
     await db.outbox.put(entry);
   });
   await notifyOutboxChanged(await db.outbox.count());

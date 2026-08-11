@@ -33,6 +33,9 @@ export async function savePanenAction(
     return { success: false, error: "Tidak memiliki akses ke jadwal ini" };
   }
 
+  // Produksi tidak memicu status completed (verifikasi selesai hanya QC/admin).
+  const produksi = ctx.role === "produksi";
+
   try {
     const admin = createAdminClient();
     const update: Record<string, string | null | undefined> = {
@@ -40,7 +43,7 @@ export async function savePanenAction(
     };
     if (parsed.data.tgl_panen) {
       update.tgl_panen = parsed.data.tgl_panen;
-      update.status = "completed";
+      if (!produksi) update.status = "completed";
     } else {
       update.tgl_panen = null;
       // When panen is cleared, re-derive status from real_tanam_ha/gagal_tanam
@@ -58,8 +61,9 @@ export async function savePanenAction(
           sisa_di_lahan_ha: schedule.sisa_di_lahan_ha,
           hasActivity,
         });
-        if (derived) {
-          update.status = derived.status;
+        const derivedStatus = derived?.status;
+        if (derivedStatus && (!produksi || derivedStatus !== "completed")) {
+          update.status = derivedStatus;
           if (derived.panen_keterangan) update.panen_keterangan = derived.panen_keterangan;
         }
       }

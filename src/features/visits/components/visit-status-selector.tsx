@@ -10,6 +10,8 @@ interface VisitStatusSelectorProps {
   scheduleId: string;
   currentStatus: VisitStatus;
   editable?: boolean;
+  /** Role user; role produksi tidak dapat memilih completed. */
+  role?: string | null;
   onSuccess?: () => void;
 }
 
@@ -25,11 +27,14 @@ export function VisitStatusSelector({
   scheduleId,
   currentStatus,
   editable = true,
+  role,
   onSuccess,
 }: VisitStatusSelectorProps) {
   const [showOptions, setShowOptions] = useState(false);
   const updateStatus = useUpdateVisitStatus();
-  const transitions = STATUS_TRANSITIONS[currentStatus] ?? [];
+  const transitions = (STATUS_TRANSITIONS[currentStatus] ?? []).filter(
+    (s) => !(s === "completed" && role === "produksi"),
+  );
 
   async function handleStatusChange(status: VisitStatus) {
     await updateStatus.mutateAsync({ id: scheduleId, status });

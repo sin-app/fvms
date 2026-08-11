@@ -74,8 +74,8 @@ export function VisitDetail({ id }: VisitDetailProps) {
           Kembali
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <VisitStatusSelector scheduleId={id} currentStatus={schedule.status} editable={canEdit} />
-          <VisitLabel scheduleId={id} currentLabel={schedule.label} editable={canLabel && online} />
+          <VisitStatusSelector scheduleId={id} currentStatus={schedule.status} editable={canEdit} role={role} />
+          <VisitLabel scheduleId={id} currentLabel={schedule.label} editable={canLabel} />
         </div>
       </div>
 
@@ -139,7 +139,7 @@ export function VisitDetail({ id }: VisitDetailProps) {
             scheduleId={id}
             tglPanen={schedule.tgl_panen}
             panenKeterangan={schedule.panen_keterangan}
-            editable={canEdit && online}
+            editable={canEdit}
           />
 
           <div className="rounded-xl border p-5">

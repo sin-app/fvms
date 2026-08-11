@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Sprout, Calendar } from "lucide-react";
-import { useActionState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { savePanenAction } from "../actions/panen-actions";
+import { useSavePanen } from "../hooks/use-save-panen";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/date";
 
@@ -18,25 +15,20 @@ interface PanenCardProps {
 }
 
 export function PanenCard({ scheduleId, tglPanen, panenKeterangan, editable }: PanenCardProps) {
-  const [state, formAction, isPending] = useActionState(savePanenAction, { success: false });
   const [editing, setEditing] = useState(false);
-  const queryClient = useQueryClient();
+  const savePanen = useSavePanen();
   const isHarvested = !!tglPanen;
 
-  useEffect(() => {
-    if (!state) return;
-    if (state.success) {
-      queryClient.invalidateQueries({ queryKey: ["visit", scheduleId] });
-      queryClient.invalidateQueries({ queryKey: ["visit-timeline", scheduleId] });
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["schedule"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["calendar"] });
-      toast.success("Data panen berhasil disimpan");
-    } else if (state.error) {
-      toast.error(state.error);
-    }
-  }, [state, queryClient, scheduleId]);
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    void savePanen.mutateAsync({
+      scheduleId,
+      tgl_panen: (fd.get("tgl_panen") as string) || null,
+      panen_keterangan: (fd.get("panen_keterangan") as string) || null,
+    });
+    setEditing(false);
+  }
 
   if (!editing) {
     return (
@@ -76,7 +68,7 @@ export function PanenCard({ scheduleId, tglPanen, panenKeterangan, editable }: P
         <Sprout className="h-5 w-5 text-green-500" />
         <h3 className="text-sm font-semibold">Data Panen</h3>
       </div>
-      <form action={formAction} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <input type="hidden" name="schedule_id" value={scheduleId} />
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Tanggal Panen</label>
@@ -96,11 +88,10 @@ export function PanenCard({ scheduleId, tglPanen, panenKeterangan, editable }: P
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
           />
         </div>
-        {state?.error && (
-          <p className="text-xs text-red-500">{state.error}</p>
-        )}
         <div className="flex gap-2">
-          <Button type="submit" size="sm" disabled={isPending}>{isPending ? "Menyimpan..." : "Simpan"}</Button>
+          <Button type="submit" size="sm" disabled={savePanen.isPending}>
+            {savePanen.isPending ? "Menyimpan..." : "Simpan"}
+          </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => setEditing(false)}>
             Batal
           </Button>

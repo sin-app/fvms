@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { dateString } from "@/lib/utils/date";
 import {
   getOfflineDb,
   getMeta,
@@ -226,7 +227,7 @@ export async function pushOutbox(opts: SyncOptions): Promise<PushResult> {
 
   for (const entry of entries) {
     try {
-      await applyOutboxEntry(supabase, entry);
+      await applyOutboxEntry(supabase, entry, opts.user);
       await db.outbox.delete(entry.id);
       pushed += 1;
     } catch (error) {
@@ -245,6 +246,7 @@ export async function pushOutbox(opts: SyncOptions): Promise<PushResult> {
 async function applyOutboxEntry(
   supabase: SupabaseClient,
   entry: OutboxEntry,
+  user?: SyncUserContext,
 ): Promise<void> {
   const { table, action, entity_id: entityId, payload } = entry;
 
@@ -256,12 +258,76 @@ async function applyOutboxEntry(
     return;
   }
 
+  if (table === "schedules" && action === "insert") {
+    const p = payload as Record<string, unknown>;
+    const allowed = [
+      "id", "user_id", "visit_date", "kabupaten_id", "kecamatan_id", "desa_id",
+      "status", "label", "block_no", "no_plot", "member_name", "document_no", "nis",
+      "cgr", "cgr_code", "ph_tanah", "tgl_tanam", "real_tanam_ha", "gagal_tanam",
+      "sisa_di_lahan_ha", "detaseling", "tgl_panen", "real_panen", "rencana_panen",
+      "panen_keterangan", "varietas", "notes",
+    ];
+    const row: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (p[key] !== undefined) row[key] = p[key];
+    }
+    if (!Object.keys(row).length) throw new Error("schedules: payload kosong");
+    const { error } = await supabase.from("schedules").insert(row);
+    if (error) throw new Error(`schedules insert: ${error.message}`);
+    return;
+  }
+
+  if (table === "schedules" && action === "delete") {
+    const { error } = await supabase
+      .from("schedules")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", entityId);
+    if (error) throw new Error(`schedules delete: ${error.message}`);
+    return;
+  }
+
+  if (table === "schedules" && action === "shift") {
+    const days = Number((payload as { days?: unknown }).days);
+    if (!Number.isInteger(days) || days === 0) {
+      throw new Error("schedules: shift days tidak valid");
+    }
+    const { data, error: fetchError } = await supabase
+      .from("schedules")
+      .select("visit_date")
+      .eq("id", entityId)
+      .maybeSingle();
+    if (fetchError) throw new Error(`schedules shift fetch: ${fetchError.message}`);
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row?.visit_date) throw new Error("schedules: jadwal tidak ditemukan");
+    const current = new Date(String(row.visit_date) + "T00:00:00");
+    if (Number.isNaN(current.getTime())) throw new Error("schedules: tanggal tidak valid");
+    current.setDate(current.getDate() + days);
+    const { error } = await supabase
+      .from("schedules")
+      .update({ visit_date: dateString(current) })
+      .eq("id", entityId);
+    if (error) throw new Error(`schedules shift: ${error.message}`);
+    return;
+  }
+
   if (table === "schedules" && action === "upsert") {
     const p = payload as Record<string, unknown>;
-    if (typeof p.status === "string" && (p.status === "completed" || p.status === "gagal_total")) {
+
+    if (p._auto_complete === true && user && user.role !== "produksi") {
+      p.status = "completed";
+    }
+    const targetStatus = typeof p.status === "string" ? p.status : undefined;
+    if (targetStatus === "gagal_total") {
       throw new Error("schedules: status final hanya lewat koneksi online");
     }
-    const allowed = ["status", "label", "latitude", "longitude", "accuracy", "visit_time"];
+    if (targetStatus === "completed" && user && user.role === "produksi") {
+      throw new Error("schedules: completed hanya untuk QC/admin");
+    }
+
+    const allowed = [
+      "status", "label", "latitude", "longitude", "accuracy", "visit_time",
+      "visit_date", "tgl_panen", "real_panen", "rencana_panen", "panen_keterangan",
+    ];
     const update: Record<string, unknown> = {};
     for (const key of allowed) {
       if (p[key] !== undefined) update[key] = p[key];

@@ -3,8 +3,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction } from "../actions/schedule-actions";
-import { queueScheduleUpdate } from "@/features/visits/services/visit-client";
+import {
+  queueScheduleUpdate,
+  queueScheduleShift,
+  queueScheduleDelete,
+} from "@/features/visits/services/visit-client";
 import { useSync } from "@/lib/offline/sync-context";
+import { useAuth } from "@/features/auth/components/auth-context";
 import { useLocalQuery } from "@/lib/offline/use-local-query";
 import { loadOfflineScheduleRows } from "../services/offline-read";
 import type { ScheduleFilters, ScheduleListResult } from "../types";
@@ -30,8 +35,14 @@ export function useSchedules(filters: ScheduleFilters) {
 
 export function useDeleteSchedule() {
   const queryClient = useQueryClient();
+  const { online } = useSync();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!online) {
+        await queueScheduleDelete(id);
+        toast.success("Jadwal dihapus (luring) — akan disinkronkan");
+        return;
+      }
       const fd = new FormData();
       fd.set("id", id);
       const result = await deleteScheduleAction({ success: false }, fd);
@@ -51,8 +62,14 @@ export function useDeleteSchedule() {
 
 export function useShiftScheduleDate() {
   const queryClient = useQueryClient();
+  const { online } = useSync();
   return useMutation({
     mutationFn: async ({ id, days }: { id: string; days: number }) => {
+      if (!online) {
+        await queueScheduleShift(id, days);
+        toast.success(days > 0 ? "Jadwal digeser +1 hari (luring)" : "Jadwal dikembalikan -1 hari (luring)");
+        return;
+      }
       const fd = new FormData();
       fd.set("id", id);
       fd.set("days", String(days));
@@ -71,10 +88,42 @@ export function useShiftScheduleDate() {
   });
 }
 
+const OFFLINE_BULK_ACTIONS = new Set([
+  "approve", "delete", "shift_forward", "shift_backward",
+  "pending", "in_progress", "gagal_partial", "completed",
+]);
+
 export function useBulkAction() {
   const queryClient = useQueryClient();
+  const { online } = useSync();
+  const { user } = useAuth();
+  const role = user?.role;
   return useMutation({
     mutationFn: async (data: { ids: string[]; action: string }) => {
+      if (!online) {
+        if (data.action === "cancel") {
+          throw new Error("Aksi cancel (gagal_total) memerlukan koneksi online");
+        }
+        if (!OFFLINE_BULK_ACTIONS.has(data.action)) {
+          throw new Error("Aksi tidak tersedia saat luring");
+        }
+        if (data.action === "delete" && role !== "admin") {
+          throw new Error("Hanya admin yang dapat menghapus jadwal");
+        }
+        for (const id of data.ids) {
+          if (data.action === "delete") {
+            await queueScheduleDelete(id);
+          } else if (data.action === "shift_forward") {
+            await queueScheduleShift(id, 1);
+          } else if (data.action === "shift_backward") {
+            await queueScheduleShift(id, -1);
+          } else {
+            await queueScheduleUpdate({ id, status: data.action === "approve" ? "in_progress" : data.action });
+          }
+        }
+        toast.success("Aksi tersimpan (luring) — akan disinkronkan");
+        return;
+      }
       const fd = new FormData();
       fd.set("ids", JSON.stringify(data.ids));
       fd.set("bulkAction", data.action);

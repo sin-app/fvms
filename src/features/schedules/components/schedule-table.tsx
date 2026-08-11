@@ -86,13 +86,12 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const totalPages = data?.totalPages ?? 1;
 
   const isAdmin = user?.role === "admin";
-  const canDelete = user?.role === "admin" && !offline;
-  const canBulkShift = !offline && (user?.role === "admin" || user?.role === "qc");
+  const canDelete = user?.role === "admin";
+  const canBulkShift = user?.role === "admin" || user?.role === "qc";
   const canEdit = (schedule: Schedule) => !offline && (user?.role === "admin" || schedule.user_id === user?.id);
   const shiftSchedule = useShiftScheduleDate();
 
   function canShift(schedule: Schedule) {
-    if (offline) return false;
     if (user?.role === "admin") return true;
     return schedule.user_id === user?.id;
   }
@@ -166,7 +165,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
       {offline && (
         <div className="flex items-center gap-2 mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
           <CloudOff className="h-4 w-4 shrink-0" />
-          <span>Luring — menampilkan data tersimpan terakhir. Edit, hapus, dan geser jadwal dinonaktifkan sampai koneksi pulih.</span>
+          <span>Luring — menampilkan data tersimpan terakhir. Perubahan status, geser, hapus, dan panen tersimpan lokal dan disinkronkan otomatis saat koneksi pulih.</span>
         </div>
       )}
       {isFetching && (

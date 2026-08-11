@@ -4,6 +4,9 @@ import { getOfflineDb } from "@/lib/offline/db";
 import { pendingOutboxCount, pushOutbox } from "@/lib/offline/engine";
 import {
   queueScheduleUpdate,
+  queueScheduleShift,
+  queueScheduleDelete,
+  queuePanenSave,
   queueVisitNotesUpdate,
   queuePhotoUpload,
   queuePhotoDelete,
@@ -67,13 +70,25 @@ afterEach(() => {
 });
 
 describe("queueScheduleUpdate", () => {
-  it("menolak status final saat luring", async () => {
+  it("menolak completed untuk produksi dan gagal_total saat luring", async () => {
     await expect(
-      queueScheduleUpdate({ id: "s-1", status: "completed" }),
+      queueScheduleUpdate({ id: "s-1", status: "completed", role: "produksi" }),
+    ).rejects.toThrow("Hanya QC yang dapat menandai selesai");
+    await expect(
+      queueScheduleUpdate({ id: "s-1", status: "gagal_total", role: "qc" }),
     ).rejects.toThrow("hanya bisa diubah saat online");
     await expect(
-      queueScheduleUpdate({ id: "s-1", status: "gagal_total" }),
+      queueScheduleUpdate({ id: "s-1", status: "gagal_total", role: "produksi" }),
     ).rejects.toThrow("hanya bisa diubah saat online");
+  });
+
+  it("memperbolehkan completed untuk QC/admin saat luring", async () => {
+    await queueScheduleUpdate({ id: "s-1", status: "completed", role: "qc" });
+    const local = await getOfflineDb().schedules.get("s-1");
+    expect(local?.status).toBe("completed");
+    const entries = await getOfflineDb().outbox.toArray();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].payload.status).toBe("completed");
   });
 
   it("mengupdate baris lokal + outbox untuk status non-final", async () => {
@@ -103,6 +118,138 @@ describe("queueScheduleUpdate", () => {
     expect(payload.status).toBe("gagal_partial");
     expect(payload.label).toBeNull();
     expect(Object.keys(payload).sort()).toEqual(["label", "status"]);
+  });
+});
+
+describe("queueScheduleShift", () => {
+  it("menggeser tanggal lokal + outbox shift", async () => {
+    await queueScheduleShift("s-1", 1);
+    const local = await getOfflineDb().schedules.get("s-1");
+    expect(local?.visit_date).toBe("2026-08-11");
+
+    const entries = await getOfflineDb().outbox.toArray();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].table).toBe("schedules");
+    expect(entries[0].action).toBe("shift");
+    expect(entries[0].payload.days).toBe(1);
+  });
+
+  it("pushOutbox menggeser tanggal dari nilai server", async () => {
+    await queueScheduleShift("s-1", -1);
+    const { supabase, calls } = createFakeSupabase({
+      schedules: [{ id: "s-1", visit_date: "2026-08-10" }],
+    });
+    const result = await pushOutbox({ supabase, limit: 10 });
+    expect(result.pushed).toBe(1);
+
+    const update = calls.find((c) => c.method === "update");
+    expect(update).toBeDefined();
+    expect((update!.args[0] as { visit_date?: string }).visit_date).toBe("2026-08-09");
+  });
+
+  it("menolak days 0 / bukan integer", async () => {
+    await expect(queueScheduleShift("s-1", 0)).rejects.toThrow("Jumlah hari tidak valid");
+    await expect(queueScheduleShift("s-1", 1.5)).rejects.toThrow("Jumlah hari tidak valid");
+  });
+});
+
+describe("queueScheduleDelete", () => {
+  it("menghapus baris lokal + outbox delete", async () => {
+    await queueScheduleDelete("s-1");
+    expect(await getOfflineDb().schedules.get("s-1")).toBeUndefined();
+
+    const entries = await getOfflineDb().outbox.toArray();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].action).toBe("delete");
+  });
+
+  it("pushOutbox melakukan soft delete", async () => {
+    await queueScheduleDelete("s-1");
+    const { supabase, calls } = createFakeSupabase({});
+    const result = await pushOutbox({ supabase, limit: 10 });
+    expect(result.pushed).toBe(1);
+
+    const update = calls.find((c) => c.method === "update");
+    expect(update).toBeDefined();
+    expect((update!.args[0] as { deleted_at?: string }).deleted_at).toBeDefined();
+  });
+});
+
+describe("queuePanenSave", () => {
+  it("produksi: menyimpan panen tanpa auto-complete", async () => {
+    await queuePanenSave({
+      scheduleId: "s-1",
+      tgl_panen: "2026-08-15",
+      panen_keterangan: "Panen sukses",
+      role: "produksi",
+    });
+    const local = await getOfflineDb().schedules.get("s-1");
+    expect(local?.tgl_panen).toBe("2026-08-15");
+    expect(local?.status).toBe("pending");
+
+    const entries = await getOfflineDb().outbox.toArray();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].payload.tgl_panen).toBe("2026-08-15");
+    expect(entries[0].payload).not.toHaveProperty("_auto_complete");
+  });
+
+  it("qc: tgl_panen otomatis completed (lokal + payload)", async () => {
+    await queuePanenSave({ scheduleId: "s-1", tgl_panen: "2026-08-15", role: "qc" });
+    const local = await getOfflineDb().schedules.get("s-1");
+    expect(local?.status).toBe("completed");
+
+    const entries = await getOfflineDb().outbox.toArray();
+    expect(entries[0].payload._auto_complete).toBe(true);
+  });
+
+  it("produksi: membersihkan panen tidak memicu completed (status re-derive)", async () => {
+    await queuePanenSave({ scheduleId: "s-1", tgl_panen: "2026-08-15", role: "qc" });
+    await queuePanenSave({ scheduleId: "s-1", tgl_panen: null, role: "produksi" });
+    const local = await getOfflineDb().schedules.get("s-1");
+    expect(local?.tgl_panen).toBeNull();
+    expect(local?.status).toBe("pending");
+  });
+
+  it("pushOutbox: _auto_complete diterapkan untuk qc, diabaikan untuk produksi", async () => {
+    await queuePanenSave({ scheduleId: "s-1", tgl_panen: "2026-08-15", role: "qc" });
+    const { supabase, calls } = createFakeSupabase({});
+    const result = await pushOutbox({
+      supabase,
+      limit: 10,
+      user: { id: "u-1", role: "qc", assignedKabupatenIds: ["k-1"] },
+    });
+    expect(result.pushed).toBe(1);
+
+    const update = calls.find((c) => c.method === "update");
+    const payload = update!.args[0] as Record<string, unknown>;
+    expect(payload.status).toBe("completed");
+    expect(payload.tgl_panen).toBe("2026-08-15");
+    expect(payload).not.toHaveProperty("_auto_complete");
+  });
+
+  it("pushOutbox: produksi tidak mendapat status completed walau payload membawa status", async () => {
+    const { supabase, calls } = createFakeSupabase({});
+    const db = getOfflineDb();
+    await db.outbox.put({
+      id: "o-1",
+      table: "schedules",
+      action: "upsert",
+      entity_id: "s-1",
+      payload: { status: "completed" },
+      created_at: Date.now(),
+      attempts: 0,
+      last_error: null,
+    });
+    const result = await pushOutbox({
+      supabase,
+      limit: 10,
+      user: { id: "u-1", role: "produksi", assignedKabupatenIds: [] },
+    });
+    expect(result.pushed).toBe(0);
+    expect(result.failed).toBe(1);
+    const entry = await db.outbox.get("o-1");
+    expect(entry?.last_error).toContain("completed hanya untuk QC/admin");
+    expect(calls.filter((c) => c.method === "update")).toHaveLength(0);
   });
 });
 

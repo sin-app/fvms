@@ -79,7 +79,7 @@ export interface OfflineRegion {
 export interface OutboxEntry {
   id: string;
   table: "visit_notes" | "visit_photos" | "schedules";
-  action: "upsert" | "delete";
+  action: "upsert" | "delete" | "insert" | "shift";
   entity_id: string;
   payload: Record<string, unknown>;
   created_at: number;
