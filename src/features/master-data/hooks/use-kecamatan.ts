@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   fetchKecamatanList,
-  fetchAllKecamatan,
 } from "../api/master-data-client";
+import { useLocalQuery } from "@/lib/offline/use-local-query";
+import { loadOfflineKecamatan } from "../services/offline-master-data";
 import { createKecamatanAction, updateKecamatanAction } from "../actions/master-data-actions";
 import type { KecamatanInput } from "../schema/master-data-schema";
 
@@ -18,11 +19,10 @@ export function useKecamatanList(kabupatenId?: string, search?: string, page?: n
 }
 
 export function useAllKecamatan(kabupatenId: string) {
-  return useQuery({
+  return useLocalQuery({
     queryKey: ["kecamatan", "all", kabupatenId],
-    queryFn: () => fetchAllKecamatan(kabupatenId),
+    queryFn: () => loadOfflineKecamatan(kabupatenId),
     enabled: !!kabupatenId,
-    staleTime: 10 * 60 * 1000,
   });
 }
 

@@ -4,6 +4,7 @@ import {
   getMeta,
   setMeta,
   regionKey,
+  type OfflineActivityLog,
   type OfflineRegion,
   type OfflineScheduleRow,
   type OfflineVisitNote,
@@ -46,11 +47,12 @@ export interface HydrateResult {
   schedules: number;
   visitNotes: number;
   regions: number;
+  activityLogs: number;
   total: number;
 }
 
 const SCHEDULE_SELECT =
-  "id, visit_date, user_id, kabupaten_id, kecamatan_id, desa_id, status, label, block_no, no_plot, member_name, document_no, nis, cgr, cgr_code, ph_tanah, tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, tgl_panen, real_panen, rencana_panen, varietas, latitude, longitude, accuracy, visit_time, updated_at, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)";
+  "id, visit_date, user_id, kabupaten_id, kecamatan_id, desa_id, status, label, block_no, no_plot, member_name, document_no, nis, cgr, cgr_code, ph_tanah, tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, tgl_panen, real_panen, rencana_panen, panen_keterangan, varietas, latitude, longitude, accuracy, visit_time, notes, updated_at, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)";
 
 /**
  * Menarik data terbaru sesuai scope peran pengguna ke IndexedDB lokal.
@@ -80,18 +82,32 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
     );
   }
 
-  const [{ data: scheduleRows, error: schedError }, notesRes, regionsRes] = await Promise.all([
-    schedulesQuery,
-    supabase
-      .from("visit_notes")
-      .select("schedule_id, observation, problem, recommend, additional, updated_at")
-      .limit(limit),
-    Promise.all([
-      supabase.from("kabupaten").select("id, name").limit(limit),
-      supabase.from("kecamatan").select("id, name, kabupaten_id").limit(limit),
-      supabase.from("desa").select("id, name, kecamatan_id").limit(limit),
-    ]),
-  ]);
+  const activityQuery = supabase
+    .from("activity_logs")
+    .select("id, user_id, action, entity_type, entity_id, metadata, created_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (user.role === "produksi") {
+    activityQuery.eq("user_id", user.id);
+  } else if (user.role === "qc") {
+    activityQuery.eq("id", "__none__");
+  }
+
+  const [{ data: scheduleRows, error: schedError }, notesRes, regionsRes, activityRes] =
+    await Promise.all([
+      schedulesQuery,
+      supabase
+        .from("visit_notes")
+        .select("schedule_id, observation, problem, recommend, additional, updated_at")
+        .limit(limit),
+      Promise.all([
+        supabase.from("kabupaten").select("id, name").limit(limit),
+        supabase.from("kecamatan").select("id, name, kabupaten_id").limit(limit),
+        supabase.from("desa").select("id, name, kecamatan_id").limit(limit),
+      ]),
+      activityQuery,
+    ]);
 
   if (schedError) throw schedError;
 
@@ -102,11 +118,13 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
     db.schedules,
     db.visitNotes,
     db.regions,
+    db.activityLogs,
     db.meta,
     async () => {
       await db.schedules.clear();
       await db.visitNotes.clear();
       await db.regions.clear();
+      await db.activityLogs.clear();
     },
   );
 
@@ -131,6 +149,8 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
   });
 
   const notesRows = (notesRes.data ?? []) as unknown as OfflineVisitNote[];
+
+  const activityRows = (activityRes.data ?? []) as unknown as OfflineActivityLog[];
 
   const regions: OfflineRegion[] = [
     ...((regionsRes[0].data ?? []) as { id: string; name: string }[]).map((r) => ({
@@ -158,11 +178,13 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
     db.schedules,
     db.visitNotes,
     db.regions,
+    db.activityLogs,
     db.meta,
     async () => {
       await db.schedules.bulkPut(scheduleRowsOut);
       await db.visitNotes.bulkPut(notesRows);
       await db.regions.bulkPut(regions.map((r) => ({ ...r, key: regionKey(r.entity, r.id) })));
+      await db.activityLogs.bulkPut(activityRows);
 
       const now = new Date().toISOString();
       await setMeta(`watermark:schedules:${user.id}`, now);
@@ -176,7 +198,12 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
     schedules: scheduleRowsOut.length,
     visitNotes: (notesRes.data ?? []).length,
     regions: regionsRes.reduce((n, r) => n + (r.data ?? []).length, 0),
-    total: scheduleRowsOut.length + (notesRes.data ?? []).length + regionsRes.reduce((n, r) => n + (r.data ?? []).length, 0),
+    activityLogs: activityRows.length,
+    total:
+      scheduleRowsOut.length +
+      (notesRes.data ?? []).length +
+      regionsRes.reduce((n, r) => n + (r.data ?? []).length, 0) +
+      activityRows.length,
   };
 }
 

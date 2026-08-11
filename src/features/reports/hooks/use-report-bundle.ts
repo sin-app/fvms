@@ -1,14 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { fetchReportBundle } from "../api/report-client";
-import type { ReportFilters } from "../types";
+import { useLocalQuery } from "@/lib/offline/use-local-query";
+import { loadOfflineReportRows, buildOfflineReportData } from "../services/offline-report";
+import type { ReportFilters, ReportData } from "../types";
+import type { ReportRow } from "../types/report-data";
 
 export function useReportBundle(filters: ReportFilters) {
-  return useQuery({
+  return useLocalQuery<{ data: ReportData; rows: ReportRow[] }>({
     queryKey: ["report-bundle", filters],
-    queryFn: () => fetchReportBundle(filters),
-    placeholderData: (prev) => prev,
-    staleTime: 30_000,
+    queryFn: async () => {
+      const rows = await loadOfflineReportRows(filters);
+      return { rows, data: buildOfflineReportData(rows) };
+    },
   });
 }

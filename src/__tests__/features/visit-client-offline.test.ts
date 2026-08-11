@@ -38,6 +38,8 @@ const scheduleRow = {
   tgl_panen: null,
   real_panen: null,
   rencana_panen: null,
+  panen_keterangan: null,
+  notes: null,
   varietas: null,
   latitude: null,
   longitude: null,

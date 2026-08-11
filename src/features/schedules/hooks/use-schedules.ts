@@ -1,19 +1,30 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchScheduleList } from "../api/schedule-client";
 import { deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction } from "../actions/schedule-actions";
 import { queueScheduleUpdate } from "@/features/visits/services/visit-client";
 import { useSync } from "@/lib/offline/sync-context";
-import type { ScheduleFilters } from "../types";
+import { useLocalQuery } from "@/lib/offline/use-local-query";
+import { loadOfflineScheduleRows } from "../services/offline-read";
+import type { ScheduleFilters, ScheduleListResult } from "../types";
 
 export function useSchedules(filters: ScheduleFilters) {
-  return useQuery({
+  return useLocalQuery<ScheduleListResult>({
     queryKey: ["schedules", filters],
-    queryFn: () => fetchScheduleList(filters),
-    placeholderData: (prev) => prev,
-    staleTime: 15_000,
+    queryFn: async () => {
+      const rows = await loadOfflineScheduleRows(filters);
+      const page = filters.page ?? 1;
+      const pageSize = filters.pageSize ?? 20;
+      const from = (page - 1) * pageSize;
+      return {
+        data: rows.slice(from, from + pageSize),
+        total: rows.length,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil(rows.length / pageSize)),
+      };
+    },
   });
 }
 

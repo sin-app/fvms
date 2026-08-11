@@ -30,6 +30,8 @@ export interface SyncState {
   lastSyncAt: number | null;
   /** Pesan error sinkron terakhir (null bila bersih). */
   lastError: string | null;
+  /** Naik setiap hydrate selesai — dipakai query lokal untuk refetch dari IndexedDB. */
+  hydrateVersion: number;
 }
 
 const OUTBOX_CHANGE_EVENT = "fvms:outbox";
@@ -40,6 +42,7 @@ const initialState: SyncState = {
   pending: 0,
   lastSyncAt: null,
   lastError: null,
+  hydrateVersion: 0,
 };
 
 export function notifyOutboxChanged(count: number): void {
@@ -85,6 +88,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         ...prev,
         syncing: false,
         lastSyncAt: Date.now(),
+        hydrateVersion: prev.hydrateVersion + 1,
         lastError: pushed.failed > 0 ? `${pushed.failed} perubahan gagal dikirim` : null,
       }));
     } catch (error) {

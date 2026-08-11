@@ -54,3 +54,74 @@ export function loadOfflineScheduleRows(filters: ScheduleFilters): Promise<Offli
       ),
     );
 }
+
+/** Petugas unik (dari jadwal tersimpan) untuk dropdown filter — fallback luring. */
+export async function loadOfflineOfficers(kabupatenId?: string): Promise<import("@/types").User[]> {
+  const rows = await getOfflineDb().schedules.toArray();
+  const scoped = kabupatenId ? rows.filter((r) => r.kabupaten_id === kabupatenId) : rows;
+  const map = new Map<string, string>();
+  for (const r of scoped) {
+    if (r.user_id && r.user_name) map.set(r.user_id, r.user_name);
+  }
+  return Array.from(map.entries()).map(([id, name]) => ({
+    id,
+    email: "",
+    name,
+    role: "produksi",
+    avatar_url: null,
+    phone: null,
+    is_active: true,
+    assigned_kabupaten_ids: [],
+    last_login_at: null,
+    created_at: "",
+    updated_at: "",
+    deleted_at: null,
+  }) as import("@/types").User);
+}
+
+export const OFFLINE_DISTINCT_FIELDS = ["block_no", "no_plot", "nis", "document_no", "cgr"] as const;
+export type OfflineDistinctField = (typeof OFFLINE_DISTINCT_FIELDS)[number];
+
+/** Nilai unik per kolom (ala Excel) dari IndexedDB — mirror getDistinctScheduleValues. */
+export function loadOfflineDistinctValues(
+  activeFilters?: import("../types").DistinctFiltersInput,
+): Promise<Record<OfflineDistinctField, string[]>> {
+  const eqVal = (v?: string) => (v && v.trim() ? v.trim() : undefined);
+  const filters = activeFilters ?? {};
+
+  const matches = (s: import("@/lib/offline/db").OfflineScheduleRow, selfField: OfflineDistinctField): boolean => {
+    if (selfField !== "block_no" && filters.block_no?.length) {
+      if (!filters.block_no.includes(s.block_no ?? "")) return false;
+    }
+    const noPlot = eqVal(filters.no_plot);
+    if (selfField !== "no_plot" && noPlot && s.no_plot !== noPlot) return false;
+    const nis = eqVal(filters.nis);
+    if (selfField !== "nis" && nis && s.nis !== nis) return false;
+    const doc = eqVal(filters.document_no);
+    if (selfField !== "document_no" && doc && s.document_no !== doc) return false;
+    const cgr = eqVal(filters.cgr);
+    if (selfField !== "cgr" && cgr && s.cgr !== cgr) return false;
+    const kab = eqVal(filters.kabupaten_id);
+    if (kab && s.kabupaten_id !== kab) return false;
+    const kec = eqVal(filters.kecamatan_id);
+    if (kec && s.kecamatan_id !== kec) return false;
+    const desa = eqVal(filters.desa_id);
+    if (desa && s.desa_id !== desa) return false;
+    if (filters.member_name?.trim() && !like(s.member_name, filters.member_name.trim())) return false;
+    if (filters.varietas?.trim() && !(s.document_no ?? "").includes(`/${filters.varietas.trim()}/`)) return false;
+    return true;
+  };
+
+  return getOfflineDb()
+    .schedules.toArray()
+    .then((rows) => {
+      const result = {} as Record<OfflineDistinctField, string[]>;
+      for (const field of OFFLINE_DISTINCT_FIELDS) {
+        const values = rows.filter((r) => matches(r, field)).map((r) => r[field]);
+        result[field] = Array.from(new Set(values.filter((v): v is string => !!v))).sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true }),
+        );
+      }
+      return result;
+    });
+}

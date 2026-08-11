@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   fetchKabupatenList,
-  fetchAllKabupaten,
 } from "../api/master-data-client";
+import { useLocalQuery } from "@/lib/offline/use-local-query";
+import { loadOfflineKabupaten } from "../services/offline-master-data";
+import type { Kabupaten } from "@/types";
 import { createKabupatenAction, updateKabupatenAction } from "../actions/master-data-actions";
 import type { KabupatenInput } from "../schema/master-data-schema";
 
@@ -17,10 +19,9 @@ export function useKabupatenList(search?: string, page?: number) {
 }
 
 export function useAllKabupaten() {
-  return useQuery({
+  return useLocalQuery({
     queryKey: ["kabupaten", "all"],
-    queryFn: fetchAllKabupaten,
-    staleTime: 10 * 60 * 1000,
+    queryFn: loadOfflineKabupaten,
   });
 }
 

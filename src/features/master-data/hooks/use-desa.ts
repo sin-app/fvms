@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import {
   fetchDesaList,
   fetchAllDesa,
-  fetchDesaFilterOptions,
 } from "../api/master-data-client";
+import { useLocalQuery } from "@/lib/offline/use-local-query";
+import { loadOfflineDesaOptions } from "../services/offline-master-data";
 import { createDesaAction, updateDesaAction } from "../actions/master-data-actions";
 import type { DesaInput } from "../schema/master-data-schema";
 
@@ -28,10 +29,9 @@ export function useAllDesa(kecamatanId: string) {
 
 /** Opsi desa untuk dropdown filter (ala Excel), opsional dibatasi kabupaten. */
 export function useDesaFilterOptions(kabupatenId?: string) {
-  return useQuery({
+  return useLocalQuery({
     queryKey: ["desa", "filter", kabupatenId ?? "all"],
-    queryFn: () => fetchDesaFilterOptions(kabupatenId),
-    staleTime: 10 * 60 * 1000,
+    queryFn: () => loadOfflineDesaOptions(kabupatenId),
   });
 }
 

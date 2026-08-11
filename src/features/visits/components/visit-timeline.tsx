@@ -1,6 +1,7 @@
 "use client";
 
 import { useVisitTimeline } from "../hooks/use-visit";
+import { useSync } from "@/lib/offline/sync-context";
 import { LoadingState } from "@/components/shared/loading-state";
 import { timeAgo } from "@/lib/utils/date";
 
@@ -17,6 +18,15 @@ const ACTION_LABELS: Record<string, string> = {
 
 export function VisitTimeline({ scheduleId }: VisitTimelineProps) {
   const { data: logs, isLoading } = useVisitTimeline(scheduleId);
+  const { online } = useSync();
+
+  if (!online) {
+    return (
+      <div className="text-center py-8 text-sm text-muted-foreground">
+        Riwayat aktivitas tidak tersedia saat luring.
+      </div>
+    );
+  }
 
   if (isLoading) return <LoadingState variant="list" count={3} />;
 

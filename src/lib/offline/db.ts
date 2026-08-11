@@ -25,11 +25,13 @@ export interface OfflineScheduleRow {
   tgl_panen: string | null;
   real_panen: string | null;
   rencana_panen: string | null;
+  panen_keterangan: string | null;
   varietas: string | null;
   latitude: number | null;
   longitude: number | null;
   accuracy: number | null;
   visit_time: string | null;
+  notes: string | null;
   updated_at: string;
   kabupaten_name?: string | null;
   kecamatan_name?: string | null;
@@ -55,6 +57,16 @@ export interface OfflineVisitPhoto {
   mime_type: string | null;
   created_at: string;
   blob: Blob | null;
+}
+
+export interface OfflineActivityLog {
+  id: string;
+  user_id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
 }
 
 export interface OfflineRegion {
@@ -97,6 +109,7 @@ class FvmsOfflineDB extends Dexie {
   visitNotes!: Table<OfflineVisitNote, string>;
   visitPhotos!: Table<OfflineVisitPhoto, string>;
   regions!: Table<OfflineRegion, string>;
+  activityLogs!: Table<OfflineActivityLog, string>;
   outbox!: Table<OutboxEntry, string>;
   meta!: Table<OfflineMeta, string>;
 
@@ -107,6 +120,15 @@ class FvmsOfflineDB extends Dexie {
       visitNotes: "schedule_id, updated_at",
       visitPhotos: "id, schedule_id, created_at",
       regions: "key, entity, id, parent_id",
+      outbox: "id, table, created_at, attempts",
+      meta: "key",
+    });
+    this.version(2).stores({
+      schedules: "id, visit_date, status, kabupaten_id, user_id, updated_at",
+      visitNotes: "schedule_id, updated_at",
+      visitPhotos: "id, schedule_id, created_at",
+      regions: "key, entity, id, parent_id",
+      activityLogs: "id, created_at",
       outbox: "id, table, created_at, attempts",
       meta: "key",
     });
@@ -143,12 +165,16 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
 
 export async function clearOfflineData(): Promise<void> {
   const db = getOfflineDb();
-  await db.transaction("rw", db.schedules, db.visitNotes, db.visitPhotos, db.regions, db.meta, async () => {
+  await db.transaction(
+    "rw",
+    [db.schedules, db.visitNotes, db.visitPhotos, db.regions, db.activityLogs, db.meta],
+    async () => {
     await Promise.all([
       db.schedules.clear(),
       db.visitNotes.clear(),
       db.visitPhotos.clear(),
       db.regions.clear(),
+      db.activityLogs.clear(),
     ]);
     await db.meta.clear();
   });

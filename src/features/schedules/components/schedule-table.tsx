@@ -4,8 +4,8 @@ import { useState, Fragment, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout, CloudOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSync } from "@/lib/offline/sync-context";
 import { useSchedules, useDeleteSchedule, useShiftScheduleDate } from "../hooks/use-schedules";
-import { loadOfflineScheduleRows } from "../services/offline-read";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -74,39 +74,16 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
       setSelectedIds(new Set());
     }
   }, [filters]);
-  const { data, isLoading, isFetching, isError } = useSchedules({ ...filters, page });
+  const { data, isLoading, isFetching } = useSchedules({ ...filters, page });
   const deleteSchedule = useDeleteSchedule();
   const bulkAction = useBulkAction();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { online } = useSync();
 
-  const [offlineRows, setOfflineRows] = useState<Schedule[] | null>(null);
-  const offline = isError && offlineRows !== null;
-  const rows = offlineRows ?? data?.data ?? [];
-  const totalPages = offline ? 1 : data?.totalPages ?? 1;
-  const filterKey = JSON.stringify(filters);
-
-  const [prevIsError, setPrevIsError] = useState(isError);
-  if (prevIsError !== isError) {
-    setPrevIsError(isError);
-    if (isError) {
-      setPage(1);
-      setSelectedIds(new Set());
-    } else {
-      setOfflineRows(null);
-      setPage(1);
-    }
-  }
-
-  useEffect(() => {
-    if (!isError) return;
-    let cancelled = false;
-    loadOfflineScheduleRows(filters)
-      .then((r) => { if (!cancelled) setOfflineRows(r); })
-      .catch(() => { if (!cancelled) setOfflineRows([]); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isError, filterKey]);
+  const offline = !online;
+  const rows = data?.data ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   const isAdmin = user?.role === "admin";
   const canDelete = user?.role === "admin" && !offline;
@@ -170,8 +147,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
     setDeleting(null);
   }
 
-  if (isLoading) return <LoadingState variant="table" />;
-  if (isError && !offlineRows) return <LoadingState variant="table" />;
+  if (isLoading && !data) return <LoadingState variant="table" />;
 
   if (!rows.length) {
     return (

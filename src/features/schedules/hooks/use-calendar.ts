@@ -1,9 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { fetchCalendarEvents } from "../api/schedule-client";
-import type { CalendarEvent } from "../types";
-import type { Schedule } from "@/types";
+import { useLocalQuery } from "@/lib/offline/use-local-query";
+import { loadOfflineScheduleRows } from "../services/offline-read";
+import type { ScheduleFilters, CalendarEvent } from "../types";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#f59e0b",
@@ -13,16 +12,19 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function useCalendarEvents(start: string, end: string) {
-  return useQuery({
+  return useLocalQuery<CalendarEvent[]>({
     queryKey: ["calendar", start, end],
     queryFn: async () => {
-      const schedules = await fetchCalendarEvents(start, end);
+      const filters: ScheduleFilters = { date_from: start, date_to: end };
+      const schedules = await loadOfflineScheduleRows(filters);
       return transformToCalendarEvents(schedules);
     },
   });
 }
 
-function transformToCalendarEvents(schedules: Schedule[]): CalendarEvent[] {
+function transformToCalendarEvents(
+  schedules: import("@/types").Schedule[],
+): CalendarEvent[] {
   return schedules.map((s) => {
     const color = STATUS_COLORS[s.status] ?? "#6b7280";
     const kab = (s as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "";

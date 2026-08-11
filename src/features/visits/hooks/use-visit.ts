@@ -2,31 +2,83 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchVisitDetail, fetchVisitTimeline } from "../api/visit-client";
+import { fetchVisitTimeline, fetchSignedPhotoUrls } from "../api/visit-client";
 import { saveVisitNotesAction, uploadPhotoAction, deletePhotoAction, updatePhotoAction } from "../actions/visit-actions";
 import { useSync } from "@/lib/offline/sync-context";
+import { useLocalQuery } from "@/lib/offline/use-local-query";
+import { offlineRowToSchedule } from "@/features/schedules/services/offline-read";
+import type { Schedule, VisitNotes, VisitPhoto } from "@/types";
 import {
   queueVisitNotesUpdate,
   queuePhotoUpload,
   queuePhotoDelete,
   queuePhotoCaptionUpdate,
+  getOfflineVisitDetail,
+  offlinePhotoObjectUrl,
 } from "../services/visit-client";
 
 export const OFFLINE_SAVED_TOAST = "Tersimpan (luring) — akan disinkronkan otomatis";
 
+export interface ComposedVisitDetail {
+  schedule: Schedule | undefined;
+  notes: VisitNotes | null;
+  photos: VisitPhoto[];
+}
+
 export function useVisitDetail(id: string) {
-  return useQuery({
-    queryKey: ["visit", id],
-    queryFn: () => fetchVisitDetail(id),
+  const { online } = useSync();
+  return useLocalQuery<ComposedVisitDetail>({
+    queryKey: ["visit", id, online],
+    queryFn: async () => {
+      const local = await getOfflineVisitDetail(id);
+      if (!local.schedule) return { schedule: undefined, notes: null, photos: [] };
+
+      const signed = online
+        ? await fetchSignedPhotoUrls(local.photos.filter((p) => !p.blob).map((p) => p.url))
+        : {};
+
+      const photos: VisitPhoto[] = local.photos.map((p) => ({
+        id: p.id,
+        schedule_id: p.schedule_id,
+        url: p.blob ? (offlinePhotoObjectUrl(p) ?? "") : (signed[p.url] ?? ""),
+        thumbnail: null,
+        caption: p.caption,
+        file_size: p.file_size,
+        mime_type: p.mime_type,
+        created_at: p.created_at,
+      }));
+
+      const notes: VisitNotes | null = local.notes
+        ? {
+            id: local.schedule.id,
+            schedule_id: local.schedule.id,
+            observation: local.notes.observation,
+            problem: local.notes.problem,
+            recommend: local.notes.recommend,
+            additional: local.notes.additional,
+            created_at: local.notes.updated_at,
+            updated_at: local.notes.updated_at,
+          }
+        : null;
+
+      const schedule: Schedule = {
+        ...offlineRowToSchedule(local.schedule),
+        visit_notes: notes ?? undefined,
+        visit_photos: photos,
+      };
+
+      return { schedule, notes, photos };
+    },
     enabled: !!id,
   });
 }
 
 export function useVisitTimeline(scheduleId: string) {
+  const { online } = useSync();
   return useQuery({
     queryKey: ["visit-timeline", scheduleId],
     queryFn: () => fetchVisitTimeline(scheduleId),
-    enabled: !!scheduleId,
+    enabled: !!scheduleId && online,
   });
 }
 
