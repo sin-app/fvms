@@ -9,6 +9,7 @@ import { NotificationPrefs } from "@/features/settings/components/notification-p
 import { AppearanceSettings } from "@/features/settings/components/appearance-settings";
 import { LanguageSwitcher } from "@/features/settings/components/language-switcher";
 import { ApiKeyManager } from "@/features/settings/components/api-key-manager";
+import { BackupRestore } from "@/features/settings/components/backup-restore";
 
 export default function SettingsPage() {
   const { user, isLoading } = useAuth();
@@ -60,6 +61,11 @@ export default function SettingsPage() {
           <ApiKeyManager />
         </section>
       )}
+
+      <section className="rounded-xl border bg-card p-6 space-y-6">
+        <h2 className="text-lg font-semibold">Backup &amp; Restore</h2>
+        <BackupRestore isAdmin={user.role === "admin"} />
+      </section>
 
       <section className="rounded-xl border bg-card p-6">
         <LogoutButton />
