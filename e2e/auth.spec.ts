@@ -33,8 +33,8 @@ test.describe("Authentication", () => {
 test.describe("Dashboard", () => {
   test("shows dashboard stats", async ({ page }) => {
     await page.goto("/dashboard");
-    await expect(page.getByText(/hari ini/i)).toBeVisible();
-    await expect(page.getByText(/selesai/i)).toBeVisible();
+    await expect(page.getByText(/hari ini/i).first()).toBeVisible();
+    await expect(page.getByText(/selesai/i).first()).toBeVisible();
   });
 
   test("navigates to schedules page", async ({ page }) => {
