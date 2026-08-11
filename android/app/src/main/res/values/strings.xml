@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="asset_statements">[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"web","site":"https://fvms-eight.vercel.app/"}}]</string>
+    <string name="webAppUrl">https://fvms-eight.vercel.app/</string>
+    <string name="webAppScope">https://fvms-eight.vercel.app/</string>
+    <string name="webAppManifestId">https://fvms-eight.vercel.app/</string>
 </resources>

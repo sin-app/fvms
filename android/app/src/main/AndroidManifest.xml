@@ -10,7 +10,7 @@
         android:theme="@style/Theme.FVMS">
 
         <activity
-            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:name="id.sinapp.fvms.LauncherActivity"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
