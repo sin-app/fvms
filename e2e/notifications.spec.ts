@@ -1,18 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-const ADMIN_EMAIL = "admin@fvms.com";
-const ADMIN_PASSWORD = "Admin123!";
-
 test.describe("Notifications", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel(/email/i).fill(ADMIN_EMAIL);
-    await page.getByLabel(/password/i).fill(ADMIN_PASSWORD);
-    await page.getByRole("button", { name: /masuk/i }).click();
-    await page.waitForURL(/\/dashboard/);
-  });
-
   test("navigates to notifications via sidebar", async ({ page }) => {
+    await page.goto("/dashboard");
     await page.getByRole("link", { name: /notifikasi/i }).click();
     await page.waitForURL(/\/notifications/);
     await expect(page.getByRole("heading", { name: /notifikasi/i })).toBeVisible();

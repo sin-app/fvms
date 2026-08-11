@@ -45,3 +45,4 @@ supabase/.temp/
 android/build
 android/app/build
 android/.gradle/
+e2e/.auth/
