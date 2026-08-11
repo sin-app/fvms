@@ -1,6 +1,7 @@
 import { getOfflineDb } from "@/lib/offline/db";
 import { deriveScheduleStatus, getPanenStatus } from "@/features/panen/services/panen-logic";
 import { todayString } from "@/lib/utils/date";
+import { getVarietasFromDocumentNo } from "@/lib/utils/varietas";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 
@@ -73,7 +74,8 @@ export async function loadOfflineReportRows(filters: ReportFilters): Promise<Rep
         no_plot: s.no_plot ?? null,
         nis: s.nis ?? null,
         cgr: s.cgr ?? null,
-        varietas: s.document_no ?? null,
+        varietas: getVarietasFromDocumentNo(s.document_no),
+        document_no: s.document_no ?? null,
         panen_status: ps.label,
         ph_tanah: toNumberOrNull(s.ph_tanah),
         tgl_tanam: s.tgl_tanam ?? null,

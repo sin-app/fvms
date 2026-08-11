@@ -108,7 +108,7 @@ const SCHEDULE_UPSERT_COLUMNS = [
   "status", "label", "block_no", "no_plot", "member_name", "document_no", "nis",
   "cgr", "cgr_code", "ph_tanah", "tgl_tanam", "real_tanam_ha", "gagal_tanam",
   "sisa_di_lahan_ha", "detaseling", "tgl_panen", "real_panen", "rencana_panen",
-  "panen_keterangan", "varietas", "latitude", "longitude", "accuracy",
+  "panen_keterangan", "latitude", "longitude", "accuracy",
   "visit_time", "notes",
 ] as const;
 

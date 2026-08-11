@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getAuthContext, qcKabupatenScope } from "@/lib/auth/authorization";
 import { todayString } from "@/lib/utils/date";
+import { getVarietasFromDocumentNo } from "@/lib/utils/varietas";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
@@ -370,7 +371,8 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
       no_plot: s.no_plot ?? null,
       nis: s.nis ?? null,
       cgr: s.cgr ?? null,
-      varietas: s.document_no ?? null,
+      varietas: getVarietasFromDocumentNo(s.document_no),
+      document_no: s.document_no ?? null,
       panen_status: ps.label,
       ph_tanah: s.ph_tanah ?? null,
       tgl_tanam: s.tgl_tanam ?? null,
@@ -436,7 +438,7 @@ export async function exportToExcel(rows: ReportRow[]): Promise<ArrayBuffer> {
       Block: r.block_no ?? "",
       Plot: r.no_plot ?? "",
       Member: r.member_name ?? "",
-      DocNo: r.varietas ?? "",
+      DocNo: r.document_no ?? "",
       NIS: r.nis ?? "",
       PHTanah: r.ph_tanah ?? "",
       TglTanam: r.tgl_tanam ?? "",

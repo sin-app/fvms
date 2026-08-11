@@ -34,7 +34,7 @@ const baseRow = (over: Partial<OfflineScheduleRow>): OfflineScheduleRow => ({
   rencana_panen: null,
   panen_keterangan: null,
   notes: null,
-  varietas: "Ciherang",
+  varietas: null,
   latitude: null,
   longitude: null,
   accuracy: null,
@@ -56,7 +56,7 @@ describe("offline-read", () => {
   });
 
   it("menormalkan nama join terdenormalisasi ke bentuk Schedule", () => {
-    const s = offlineRowToSchedule(baseRow({}));
+    const s = offlineRowToSchedule(baseRow({ document_no: "2026/Ciherang/001" }));
     expect(s.kabupaten?.name).toBe("Kab. A");
     expect(s.kecamatan?.name).toBe("Kec. A");
     expect(s.desa?.name).toBe("Desa A");
@@ -81,13 +81,17 @@ describe("offline-read", () => {
 
   it("memfilter teks ilike/like, block multi-select, dan panen", () => {
     const rows = [
-      baseRow({ id: "1", member_name: "Pak Budi", varietas: "Ciherang", block_no: "B01" }),
-      baseRow({ id: "2", member_name: "Ibu Sari", varietas: "IR64", block_no: "B01" }),
-      baseRow({ id: "3", member_name: "Pak Budi", varietas: "Ciherang", block_no: "B02", tgl_panen: "2026-08-01" }),
+      baseRow({ id: "1", member_name: "Pak Budi", document_no: "2026/Ciherang/001", block_no: "B01" }),
+      baseRow({ id: "2", member_name: "Ibu Sari", document_no: "2026/IR64/002", block_no: "B01" }),
+      baseRow({ id: "3", member_name: "Pak Budi", document_no: "2026/Ciherang/003", block_no: "B02", tgl_panen: "2026-08-01" }),
+      baseRow({ id: "4", member_name: "Pak Joko", document_no: "KJM/JMP-18/AMP-V/2026/133", block_no: "B03" }),
     ].map(offlineRowToSchedule);
 
     expect(filterOfflineSchedules(rows, { member_name: "budi" }).map((r) => r.id)).toEqual(["1", "3"]);
     expect(filterOfflineSchedules(rows, { varietas: "cih" }).map((r) => r.id)).toEqual(["1", "3"]);
+    // varietas diekstrak dari segmen kedua document_no: KJM/JMP-18/... -> JMP-18
+    expect(filterOfflineSchedules(rows, { varietas: "jmp" }).map((r) => r.id)).toEqual(["4"]);
+    expect(rows[3].varietas).toBe("JMP-18");
     expect(filterOfflineSchedules(rows, { block_no: ["B01"] }).map((r) => r.id)).toEqual(["1", "2"]);
     expect(filterOfflineSchedules(rows, { panen_status: "panen" }).map((r) => r.id)).toEqual(["3"]);
   });

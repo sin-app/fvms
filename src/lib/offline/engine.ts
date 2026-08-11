@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dateString } from "@/lib/utils/date";
+import { getVarietasFromDocumentNo } from "@/lib/utils/varietas";
 import {
   getOfflineDb,
   getMeta,
@@ -53,7 +54,7 @@ export interface HydrateResult {
 }
 
 const SCHEDULE_SELECT =
-  "id, visit_date, user_id, kabupaten_id, kecamatan_id, desa_id, status, label, block_no, no_plot, member_name, document_no, nis, cgr, cgr_code, ph_tanah, tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, tgl_panen, real_panen, rencana_panen, panen_keterangan, varietas, latitude, longitude, accuracy, visit_time, notes, updated_at, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)";
+  "id, visit_date, user_id, kabupaten_id, kecamatan_id, desa_id, status, label, block_no, no_plot, member_name, document_no, nis, cgr, cgr_code, ph_tanah, tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, tgl_panen, real_panen, rencana_panen, panen_keterangan, latitude, longitude, accuracy, visit_time, notes, updated_at, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), users!schedules_user_id_fkey(name)";
 
 /**
  * Menarik data terbaru sesuai scope peran pengguna ke IndexedDB lokal.
@@ -146,6 +147,8 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
       kecamatan_name: kec,
       desa_name: desa,
       user_name: u,
+      // varietas bukan kolom DB; diturunkan dari segmen kedua document_no (mis. "KJM/JMP-18/...").
+      varietas: getVarietasFromDocumentNo(typeof r.document_no === "string" ? r.document_no : null),
     };
   });
 
@@ -265,7 +268,7 @@ async function applyOutboxEntry(
       "status", "label", "block_no", "no_plot", "member_name", "document_no", "nis",
       "cgr", "cgr_code", "ph_tanah", "tgl_tanam", "real_tanam_ha", "gagal_tanam",
       "sisa_di_lahan_ha", "detaseling", "tgl_panen", "real_panen", "rencana_panen",
-      "panen_keterangan", "varietas", "notes",
+      "panen_keterangan", "notes",
     ];
     const row: Record<string, unknown> = {};
     for (const key of allowed) {

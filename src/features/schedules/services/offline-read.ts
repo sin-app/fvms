@@ -1,5 +1,6 @@
 import { getOfflineDb, type OfflineScheduleRow } from "@/lib/offline/db";
 import { getPanenStatus } from "@/features/panen/services/panen-logic";
+import { getVarietasFromDocumentNo } from "@/lib/utils/varietas";
 import type { Schedule, Kabupaten, Kecamatan, Desa, User } from "@/types";
 import type { ScheduleFilters } from "../types";
 
@@ -9,6 +10,7 @@ export function offlineRowToSchedule(row: OfflineScheduleRow): OfflineSchedule {
   const { kabupaten_name, kecamatan_name, desa_name, user_name, ...rest } = row;
   return {
     ...(rest as unknown as OfflineSchedule),
+    varietas: row.varietas ?? getVarietasFromDocumentNo(row.document_no),
     ...(kabupaten_name ? { kabupaten: { name: kabupaten_name } as Kabupaten } : {}),
     ...(kecamatan_name ? { kecamatan: { name: kecamatan_name } as Kecamatan } : {}),
     ...(desa_name ? { desa: { name: desa_name } as Desa } : {}),
@@ -30,7 +32,8 @@ export function filterOfflineSchedules(rows: OfflineSchedule[], filters: Schedul
     if (filters.date_from && s.visit_date < filters.date_from) return false;
     if (filters.date_to && s.visit_date > filters.date_to) return false;
     if (!like(s.member_name, filters.member_name)) return false;
-    if (!like(s.varietas, filters.varietas)) return false;
+    // varietas bukan kolom DB: diambil dari segmen kedua document_no (mis. "KJM/JMP-18/...").
+    if (!like(getVarietasFromDocumentNo(s.document_no), filters.varietas)) return false;
     if (filters.cgr && s.cgr !== filters.cgr) return false;
     if (filters.block_no?.length && !filters.block_no.includes(s.block_no ?? "")) return false;
     if (filters.no_plot && s.no_plot !== filters.no_plot) return false;

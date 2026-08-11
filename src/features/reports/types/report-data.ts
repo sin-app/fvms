@@ -17,6 +17,7 @@ export interface ReportRow {
   no_plot: string | null;
   nis: string | null;
   cgr: string | null;
+  document_no: string | null;
   varietas: string | null;
   panen_status: string | null;
   ph_tanah: number | null;
