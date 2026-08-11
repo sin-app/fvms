@@ -10,7 +10,7 @@
         android:theme="@style/Theme.FVMS">
 
         <activity
-            android:name="id.sinapp.fvms.LauncherActivity"
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
@@ -36,6 +36,10 @@
         <meta-data
             android:name="asset_statements"
             android:resource="@string/asset_statements" />
+
+        <meta-data
+            android:name="twa"
+            android:resource="@xml/twa_manifest" />
     </application>
 
 </manifest>
