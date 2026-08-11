@@ -12,8 +12,10 @@ test.describe("Notifications", () => {
     await page.waitForURL(/\/dashboard/);
   });
 
-  test("shows notification bell in header", async ({ page }) => {
-    await expect(page.locator('[class*="notification"]').first()).toBeVisible();
+  test("navigates to notifications via sidebar", async ({ page }) => {
+    await page.getByRole("link", { name: /notifikasi/i }).click();
+    await page.waitForURL(/\/notifications/);
+    await expect(page.getByRole("heading", { name: /notifikasi/i })).toBeVisible();
   });
 
   test("navigates to notification page", async ({ page }) => {

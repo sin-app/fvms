@@ -15,11 +15,17 @@ test.describe("Reports", () => {
   test("shows reports page with filters and stats", async ({ page }) => {
     await page.goto("/reports");
     await expect(page.getByRole("heading", { name: /laporan/i })).toBeVisible();
-    await expect(page.getByLabel(/kabupaten/i)).toBeVisible();
+    await expect(
+      page.getByRole("combobox").filter({ hasText: "Semua Kabupaten" }),
+    ).toBeVisible();
   });
 
   test("can filter by date range", async ({ page }) => {
     await page.goto("/reports");
+    const preset = page
+      .getByRole("combobox")
+      .filter({ hasText: /bulan ini|hari ini|minggu ini/i });
+    await preset.selectOption("custom");
     const dateInputs = page.locator('input[type="date"]');
     await expect(dateInputs.first()).toBeVisible();
     await expect(dateInputs.nth(1)).toBeVisible();

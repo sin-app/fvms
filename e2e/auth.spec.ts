@@ -6,7 +6,7 @@ const ADMIN_PASSWORD = "Admin123!";
 test.describe("Authentication", () => {
   test("shows login page", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByRole("heading", { name: /masuk/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /fvms/i })).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
   });
@@ -38,7 +38,7 @@ test.describe("Dashboard", () => {
   });
 
   test("shows dashboard stats", async ({ page }) => {
-    await expect(page.getByText(/total jadwal/i)).toBeVisible();
+    await expect(page.getByText(/hari ini/i)).toBeVisible();
     await expect(page.getByText(/selesai/i)).toBeVisible();
   });
 

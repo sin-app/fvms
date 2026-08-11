@@ -24,7 +24,11 @@ test.describe("Schedules", () => {
 
   test("can filter schedules by status", async ({ page }) => {
     await page.goto("/schedules");
-    await page.locator("select").first().selectOption("pending");
+    const statusSelect = page
+      .getByRole("combobox")
+      .filter({ has: page.locator('option[value="pending"]') });
+    await statusSelect.selectOption("pending");
+    await expect(statusSelect).toHaveValue("pending");
     await page.waitForTimeout(500);
   });
 
