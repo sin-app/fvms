@@ -14,6 +14,7 @@ const pageTitles: Record<string, string> = {
   "/master-data/desa": "Master Data - Desa",
   "/schedules": "Jadwal",
   "/schedules/calendar": "Kalender",
+  "/pengajuan-lahan": "Pengajuan Lahan",
   "/visits": "Detail Kunjungan",
   "/import": "Import Excel",
   "/reports": "Laporan",
