@@ -69,20 +69,36 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
   if (!user) throw new Error("hydrateOffline: user wajib");
   const limit = opts.limit ?? DEFAULT_LIMIT;
 
-  const schedulesQuery = supabase
-    .from("schedules")
-    .select(SCHEDULE_SELECT)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const BATCH = 1000;
+  let scheduleRows: unknown[] = [];
+  let from = 0;
+  for (;;) {
+    // Batch via range: PostgREST "max_rows" (default 1000 di Supabase)
+    // memotong request besar ke jumlah maksimum baris per request.
+    // Loop ini memastikan seluruh data tetap ditarik walau max_rows kecil.
+    const schedulesQuery = supabase
+      .from("schedules")
+      .select(SCHEDULE_SELECT)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(from, from + BATCH - 1);
 
-  if (user.role === "produksi") {
-    schedulesQuery.eq("user_id", user.id);
-  } else if (user.role === "qc") {
-    schedulesQuery.in(
-      "kabupaten_id",
-      user.assignedKabupatenIds.length > 0 ? user.assignedKabupatenIds : ["__none__"],
-    );
+    if (user.role === "produksi") {
+      schedulesQuery.eq("user_id", user.id);
+    } else if (user.role === "qc") {
+      schedulesQuery.in(
+        "kabupaten_id",
+        user.assignedKabupatenIds.length > 0 ? user.assignedKabupatenIds : ["__none__"],
+      );
+    }
+
+    const { data, error } = await schedulesQuery;
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    scheduleRows = scheduleRows.concat(data);
+    if (data.length < BATCH) break;
+    from += BATCH;
+    if (scheduleRows.length >= limit) break;
   }
 
   const activityQuery = supabase
@@ -97,22 +113,18 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
     activityQuery.eq("id", "__none__");
   }
 
-  const [{ data: scheduleRows, error: schedError }, notesRes, regionsRes, activityRes] =
-    await Promise.all([
-      schedulesQuery,
-      supabase
-        .from("visit_notes")
-        .select("schedule_id, observation, problem, recommend, additional, updated_at")
-        .limit(limit),
-      Promise.all([
-        supabase.from("kabupaten").select("id, name").limit(limit),
-        supabase.from("kecamatan").select("id, name, kabupaten_id").limit(limit),
-        supabase.from("desa").select("id, name, kecamatan_id").limit(limit),
-      ]),
-      activityQuery,
-    ]);
-
-  if (schedError) throw schedError;
+  const [notesRes, regionsRes, activityRes] = await Promise.all([
+    supabase
+      .from("visit_notes")
+      .select("schedule_id, observation, problem, recommend, additional, updated_at")
+      .limit(limit),
+    Promise.all([
+      supabase.from("kabupaten").select("id, name").limit(limit),
+      supabase.from("kecamatan").select("id, name, kabupaten_id").limit(limit),
+      supabase.from("desa").select("id, name, kecamatan_id").limit(limit),
+    ]),
+    activityQuery,
+  ]);
 
   const db = getOfflineDb();
 

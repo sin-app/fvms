@@ -70,22 +70,6 @@ export function SyncSettings() {
       });
   }, []);
 
-  useEffect(() => {
-    if (!isOfflineDbAvailable()) return;
-    let cancelled = false;
-    getOfflineDb()
-      .schedules.count()
-      .then((count) => {
-        if (!cancelled) setLocalSchedules(count);
-      })
-      .catch(() => {
-        if (!cancelled) setLocalSchedules(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [syncing]);
-
   async function handleSync() {
     if (syncing || !online) return;
     try {

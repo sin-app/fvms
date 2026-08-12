@@ -15,7 +15,7 @@ export function createFakeSupabase(scripts: { [table: string]: unknown[] | (() =
             return Promise.resolve(result).then(onFulfilled);
           };
         }
-        if (prop === "select" || prop === "is" || prop === "limit" || prop === "eq" || prop === "in" || prop === "order" || prop === "maybeSingle" || prop === "single") {
+        if (prop === "select" || prop === "is" || prop === "limit" || prop === "eq" || prop === "in" || prop === "order" || prop === "range" || prop === "maybeSingle" || prop === "single") {
           return (...args: unknown[]) => {
             calls.push({ table, method: prop, args });
             return b;
