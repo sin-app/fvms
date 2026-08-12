@@ -8,6 +8,21 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import { loginSchema, resetPasswordSchema, updatePasswordSchema } from "../schema/auth-schema";
 import { isLoginRateLimited, registerLoginFailure, registerLoginSuccess, isEmailRateLimited, registerEmailFailure, isIpRateLimited, registerIpFailure } from "@/lib/auth/rate-limit";
 import type { ActionResponse } from "@/types/common";
+import { logger } from "@/lib/logger";
+
+/** Ambil IP klien. Header x-forwarded-for dikontrol proxy Vercel;
+ *  fallback x-real-ip untuk kasus tanpa rantai proxy. */
+async function getClientIp(): Promise<string | null> {
+  const h = await headers();
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real;
+  const forwarded = h.get("x-forwarded-for")?.trim();
+  if (!forwarded) return null;
+  // Di belakang Vercel, nilai pertama diisi proxy lokal asli;
+  // gunakan nilai terakhir dari rantai yang ditambahkan Vercel.
+  const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
+  return parts[parts.length - 1] ?? null;
+}
 
 export async function loginAction(
   prevState: ActionResponse,
@@ -27,7 +42,7 @@ export async function loginAction(
     };
   }
 
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = await getClientIp();
   if (await isLoginRateLimited(parsed.data.email, ip)) {
     return {
       success: false,
@@ -47,7 +62,11 @@ export async function loginAction(
     if (error.message.includes("Invalid login credentials")) {
       return { success: false, error: "Email atau password salah" };
     }
-    return { success: false, error: error.message };
+    logger.warn("loginAction: unexpected sign-in error", {
+      email: parsed.data.email,
+      message: error.message,
+    });
+    return { success: false, error: "Gagal masuk. Coba lagi nanti." };
   }
 
   registerLoginSuccess(parsed.data.email, ip);
@@ -90,7 +109,7 @@ export async function resetPasswordAction(
     };
   }
 
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = await getClientIp();
   if (await isEmailRateLimited("reset-password", parsed.data.email, ip)) {
     return {
       success: false,
@@ -109,7 +128,11 @@ export async function resetPasswordAction(
 
   if (error) {
     await registerEmailFailure("reset-password", parsed.data.email, ip);
-    return { success: false, error: error.message };
+    logger.warn("resetPasswordAction: unexpected error", {
+      email: parsed.data.email,
+      message: error.message,
+    });
+    return { success: false, error: "Gagal mengirim email reset. Coba lagi nanti." };
   }
 
   return {
@@ -122,7 +145,7 @@ export async function updatePasswordAction(
   _prevState: ActionResponse,
   formData: FormData,
 ): Promise<ActionResponse> {
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = await getClientIp();
   if (await isIpRateLimited("update-password", ip)) {
     return {
       success: false,
@@ -148,7 +171,8 @@ export async function updatePasswordAction(
 
   if (error) {
     await registerIpFailure("update-password", ip);
-    return { success: false, error: error.message };
+    logger.warn("updatePasswordAction: unexpected error", { message: error.message });
+    return { success: false, error: "Gagal memperbarui password. Coba lagi nanti." };
   }
 
   revalidatePath("/", "layout");

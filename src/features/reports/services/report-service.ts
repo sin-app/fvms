@@ -142,11 +142,11 @@ if (filters.member_name) {
 
   // By officer
   const officerMap = new Map<string, { name: string; total: number; completed: number }>();
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   schedules.forEach((s) => {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     const uid = (s as unknown as ReportRowRelation).user_id;
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     const uname = (s as unknown as ReportRowRelation).users?.name ?? "Unknown";
     const existing = officerMap.get(uid) ?? { name: uname, total: 0, completed: 0 };
     existing.total++;
@@ -164,11 +164,11 @@ if (filters.member_name) {
 
   // By kabupaten
   const kabMap = new Map<string, { name: string; total: number; completed: number }>();
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   schedules.forEach((s) => {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     const kid = (s as unknown as ReportRowRelation).kabupaten_id;
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     const kname = (s as unknown as ReportRowRelation).kabupaten?.name ?? "Unknown";
     const existing = kabMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
     existing.total++;
@@ -185,12 +185,12 @@ if (filters.member_name) {
 
   // By kecamatan (only when schedules have kecamatan data)
   const kecMap = new Map<string, { name: string; total: number; completed: number }>();
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   schedules.forEach((s) => {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     const kid = (s as unknown as ReportRowRelation).kecamatan_id;
     if (!kid) return;
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     const kname = (s as unknown as ReportRowRelation).kecamatan?.name ?? "Unknown";
     const existing = kecMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
     existing.total++;
@@ -335,7 +335,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   if (!data) return [];
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   let rows = (data as unknown as ReportRowRelation[]).map((s) => {
     const ps = getPanenStatus({
       tgl_panen: s.tgl_panen,

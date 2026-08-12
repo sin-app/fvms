@@ -151,11 +151,11 @@ export async function getDashboardData(
 
   return {
     stats,
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     todaySchedules: (todaySchedulesRes.data ?? []) as unknown as Schedule[],
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     upcomingSchedules: (upcomingSchedulesRes.data ?? []) as unknown as Schedule[],
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+     
     recentActivities: (recentActivityRes.data ?? []) as unknown as ActivityLog[],
   };
 }

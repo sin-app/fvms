@@ -36,7 +36,6 @@ export async function loadOfflineReportRows(filters: ReportFilters): Promise<Rep
     return true;
   });
 
-  const now = todayString();
 
   return filtered
     .map((s) => {

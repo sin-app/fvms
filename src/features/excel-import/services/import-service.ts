@@ -22,7 +22,8 @@ function isUniqueViolation(message: string): boolean {
 
 function cellToString(value: unknown): string {
   if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
+  if (typeof value === "string") return value.slice(0, 8000);
+  if (typeof value === "number") return String(value);
   if (typeof value === "number") return String(value);
   if (value instanceof Date) {
     const y = value.getFullYear();
@@ -40,11 +41,14 @@ function cellToString(value: unknown): string {
   return String(value);
 }
 
-function sheetToJson(ws: ExcelJS.Worksheet): ExcelRow[] {
+function sheetToJson(ws: ExcelJS.Worksheet, maxRows = 5000): ExcelRow[] {
   const rows: ExcelRow[] = [];
   const headers: string[] = [];
 
   ws.eachRow((row, rowNumber) => {
+    if (rowNumber > maxRows + 1) {
+      throw new Error(`Jumlah baris melebihi batas maksimal (${maxRows})`);
+    }
     const values = (row.values as unknown[]).slice(1);
 
     if (rowNumber === 1) {
@@ -81,8 +85,12 @@ function assertValidXlsx(file: Buffer) {
 export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
   assertValidXlsx(file);
   const workbook = new ExcelJS.Workbook();
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   await workbook.xlsx.load(file as unknown as ArrayBuffer);
+
+  if (workbook.worksheets.length > 32) {
+    throw new Error("File Excel terlalu kompleks (terlalu banyak sheet)");
+  }
 
   const ws = workbook.worksheets[0];
   if (!ws) {
@@ -107,8 +115,12 @@ export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
 export async function getFullData(file: Buffer): Promise<ExcelRow[]> {
   assertValidXlsx(file);
   const workbook = new ExcelJS.Workbook();
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   await workbook.xlsx.load(file as unknown as ArrayBuffer);
+
+  if (workbook.worksheets.length > 32) {
+    throw new Error("File Excel terlalu kompleks (terlalu banyak sheet)");
+  }
 
   const ws = workbook.worksheets[0];
   if (!ws) return [];

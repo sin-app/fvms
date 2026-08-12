@@ -1,9 +1,19 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { generateDueSoonNotifications } from "@/features/notifications/services/notification-service";
 import { sendPushNotifications } from "@/lib/push-sender";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
+
+function bearerMatches(auth: string | null, secret: string): boolean {
+  if (!auth) return false;
+  const expected = `Bearer ${secret}`;
+  // Bandingkan hash agar panjang sama (timingSafeEqual butuh panjang identik).
+  const a = crypto.createHash("sha256").update(auth).digest();
+  const b = crypto.createHash("sha256").update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -13,7 +23,7 @@ export async function GET(request: Request) {
   }
 
   const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  if (!bearerMatches(auth, secret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

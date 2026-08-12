@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { User } from "@/types";
 import type { UserInput } from "../schema/user-schema";
 
-function randomPassword(length = 16): string {
+export function randomPassword(length = 16): string {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
   let out = "";
@@ -126,7 +126,7 @@ export async function getUsers(): Promise<User[]> {
     .select("*")
     .order("name", { ascending: true });
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   return (data ?? []) as unknown as User[];
 }
 

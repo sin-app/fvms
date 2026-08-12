@@ -81,7 +81,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, syncing: true, lastError: null }));
     try {
       const supabase = createClient();
-      const ctx = syncUserContext(user);
+      // Role dari DB (source of truth), bukan metadata JWT yang bisa
+      // diedit user — hindari spoof role di alur sinkron.
+      const role = user.role === "admin" || user.role === "qc" ? user.role : "produksi";
+      const ctx = syncUserContext({ ...user, role });
       const pushed = await pushOutbox({ supabase, user: ctx });
       await hydrateOffline({ supabase, user: ctx });
       setState((prev) => ({

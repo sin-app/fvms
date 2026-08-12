@@ -180,4 +180,11 @@ export async function clearOfflineData(): Promise<void> {
   });
 }
 
+/** Hapus seluruh cache service worker (Serwist) di browser. */
+export async function clearServiceWorkerCaches(): Promise<void> {
+  if (typeof caches === "undefined") return;
+  const keys = await caches.keys();
+  await Promise.all(keys.map((key) => caches.delete(key)));
+}
+
 export type { FvmsOfflineDB as OfflineDatabase };

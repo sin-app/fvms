@@ -29,8 +29,10 @@ function userFromSession(session: {
   user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null; app_metadata?: Record<string, unknown> | null };
 }): User {
   const meta = session.user.user_metadata ?? {};
+  // Role hanya dari app_metadata (dikontrol server/admin), jangan dari
+  // user_metadata yang bisa diedit user sendiri — hindari spoof role client.
   const appMeta = session.user.app_metadata ?? {};
-  const role = (meta.role ?? appMeta.role) as User["role"] | undefined;
+  const role = (appMeta.role ?? meta.role) as User["role"] | undefined;
   return {
     id: session.user.id,
     email: session.user.email ?? "",

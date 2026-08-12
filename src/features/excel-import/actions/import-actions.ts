@@ -69,7 +69,12 @@ export async function executeImportAction(
     return { success: false, error: "Data tidak lengkap" };
   }
 
-  const parsedMapping = columnMappingSchema.safeParse(JSON.parse(mappingJson));
+  let parsedMapping;
+  try {
+    parsedMapping = columnMappingSchema.safeParse(JSON.parse(mappingJson));
+  } catch {
+    return { success: false, error: "Format mapping kolom tidak valid" };
+  }
   if (!parsedMapping.success) {
     return { success: false, error: "Mapping kolom tidak valid" };
   }
@@ -84,6 +89,9 @@ export async function executeImportAction(
   try {
     const buffer = await fileFromForm(formData);
     const data = await getFullData(buffer);
+    if (data.length > MAX_EXCEL_ROWS) {
+      return { success: false, error: `Jumlah baris melebihi batas maksimal (${MAX_EXCEL_ROWS})` };
+    }
     const result = await bulkImportSchedules(data, mapping, ctx.userId);
     revalidateSchedulePaths();
     return {

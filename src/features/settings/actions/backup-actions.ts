@@ -24,7 +24,7 @@ export async function importBackupAction(
     const file = formData.get("file");
     if (!(file instanceof File)) throw new Error("File backup wajib dipilih");
     const json = await file.text();
-    const counts = await restoreFromBackup(json);
+    await restoreFromBackup(json);
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Gagal import backup" };

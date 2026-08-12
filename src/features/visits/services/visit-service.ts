@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getConfig } from "@/lib/config";
 import { getAuthContext, canAccessSchedule } from "@/lib/auth/authorization";
@@ -100,17 +101,30 @@ export async function uploadVisitPhoto(
   file: File,
 ): Promise<{ url: string; file_size: number; mime_type: string }> {
   const config = getConfig();
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const filePath = `visits/${scheduleId}/${crypto.randomUUID()}.${ext}`;
+  const filePath = `visits/${scheduleId}/${crypto.randomUUID()}.webp`;
 
-  const buffer = new Uint8Array(await file.arrayBuffer());
-  const contentType = file.type || "image/jpeg";
+  const source = new Uint8Array(await file.arrayBuffer());
 
   // Verify the actual file content (magic bytes) instead of trusting the
   // client-supplied Content-Type, to prevent arbitrary file uploads.
-  if (!isImageBuffer(buffer)) {
+  if (!isImageBuffer(source)) {
     throw new Error("File bukan gambar yang valid (JPG/PNG/WebP)");
   }
+
+  // Re-encode server-side so stored bytes are always a clean WebP image:
+  // strips embedded scripts/metadata from polyglot files and makes the
+  // served Content-Type authoritative instead of client-controlled.
+  let buffer: Buffer;
+  try {
+    buffer = await sharp(source, { failOn: "error" })
+      .rotate()
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+  } catch {
+    throw new Error("File bukan gambar yang valid (JPG/PNG/WebP)");
+  }
+  const contentType = "image/webp";
 
   // 1) Upload the binary to Supabase Storage via the REST API using the
   //    service-role key. Avoids the supabase-js storage client quirks in the
@@ -126,7 +140,7 @@ export async function uploadVisitPhoto(
         "Cache-Control": "3600",
         "x-upsert": "false",
       },
-      body: buffer,
+      body: new Uint8Array(buffer),
     },
   );
 
@@ -157,7 +171,7 @@ export async function uploadVisitPhoto(
       body: JSON.stringify({
         schedule_id: scheduleId,
         url: objectPath,
-        file_size: file.size,
+        file_size: buffer.length,
         mime_type: contentType,
       }),
     },
@@ -176,7 +190,7 @@ export async function uploadVisitPhoto(
     inserted = Array.isArray(rows) ? rows[0] : rows;
   } catch {
     // Storage succeeded; return what we know.
-    inserted = { url: objectPath, file_size: file.size, mime_type: contentType };
+    inserted = { url: objectPath, file_size: buffer.length, mime_type: contentType };
   }
 
   return inserted;

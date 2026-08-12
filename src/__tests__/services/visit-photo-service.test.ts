@@ -25,12 +25,13 @@ describe("visit-photo-service", () => {
     vi.unstubAllGlobals();
   });
 
-  function createMockFile(name = "test.jpg", type = "image/jpeg", size = 1024): File {
-    // Magic bytes for JPEG: FF D8 FF
-    const header = new Uint8Array([0xff, 0xd8, 0xff]);
-    const body = new Uint8Array(size - header.length);
-    const blob = new Blob([header, body], { type });
-    return new File([blob], name, { type });
+  function createMockFile(name = "test.png", type = "image/png"): File {
+    // 1x1 PNG valid (sharp akan re-encode ke WebP di server).
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+      "base64",
+    );
+    return new File([png], name, { type });
   }
 
   describe("uploadVisitPhoto", () => {
@@ -44,19 +45,20 @@ describe("visit-photo-service", () => {
           // Storage upload response
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve(JSON.stringify({ Key: "visits/sched-1/photo.jpg" })),
+            text: () => Promise.resolve(JSON.stringify({ Key: "visits/sched-1/photo.webp" })),
           });
         }
         // DB insert response
         return Promise.resolve({
           ok: true,
-          text: () => Promise.resolve(JSON.stringify([{ url: "visits/sched-1/photo.jpg", file_size: 1024, mime_type: "image/jpeg" }])),
+          text: () => Promise.resolve(JSON.stringify([{ url: "visits/sched-1/photo.webp", file_size: 256, mime_type: "image/webp" }])),
         });
       });
 
       const result = await uploadVisitPhoto("sched-1", mockFile);
-      expect(result.url).toContain("photo.jpg");
-      expect(result.file_size).toBe(1024);
+      expect(result.url).toContain("photo.webp");
+      expect(result.mime_type).toBe("image/webp");
+      expect(result.file_size).toBeGreaterThan(0);
     });
 
     it("throws on upload error", async () => {

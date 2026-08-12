@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin-client";
-import { createAuthUser, setPassword } from "@/features/auth/services/user-service";
+import { createAuthUser, setPassword, randomPassword } from "@/features/auth/services/user-service";
 import { logger } from "@/lib/logger";
 
 interface ResolveOutput {
@@ -76,11 +76,11 @@ export function createUserUpserter(): UserUpsertResult {
               email: row.email,
               name: row.name,
               role: "produksi",
-              password: row.email,
+              password: randomPassword(),
             });
           } catch {
             try {
-              await setPassword(row.id, row.email);
+              await setPassword(row.id, randomPassword());
             } catch (e: unknown) {
               const msg = e instanceof Error ? e.message : String(e);
               authErrors.push(`${row.email}: ${msg}`);

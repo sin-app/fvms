@@ -23,7 +23,6 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   const supabase = await createClient();
 
   let userId: string | undefined;
-  let metaRole: UserRole | undefined;
 
   try {
     const {
@@ -31,9 +30,6 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     } = await supabase.auth.getUser();
     if (user) {
       userId = user.id;
-      // app_metadata dikontrol server (admin) dan tidak bisa diedit user sendiri.
-      // user_metadata BISA diedit user — jangan pernah dijadikan sumber role.
-      metaRole = parseRole(user.app_metadata?.role);
     }
   } catch {
     // getUser can intermittently fail; fall back to session below.
@@ -46,7 +42,6 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       } = await supabase.auth.getSession();
       if (session?.user) {
         userId = session.user.id;
-        metaRole = parseRole(session.user.app_metadata?.role);
       }
     } catch {
       // ignore
@@ -56,6 +51,8 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   if (!userId) return null;
 
   // Read role + assigned kabupaten from the database (source of truth).
+  // Fail-closed: kalau DB tidak dapat dibaca / role tidak valid, tolak akses
+  // agar metadata JWT yang stale atau role hasil downgrade tidak terpakai.
   try {
     const admin = createAdminClient();
     const { data } = await admin
@@ -63,14 +60,20 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       .select("role, assigned_kabupaten_ids")
       .eq("id", userId)
       .maybeSingle();
-    const role = parseRole(data?.role) ?? metaRole ?? "produksi";
+    const role = parseRole(data?.role);
+    if (!role) {
+      // User tidak terdaftar / role tidak valid di DB → tolak (fail-closed),
+      // jangan fallback ke metadata JWT yang bisa stale.
+      logger.error("getAuthContext: unknown role in DB", { userId });
+      return null;
+    }
     const assignedKabupatenIds: string[] = Array.isArray(data?.assigned_kabupaten_ids)
       ? data!.assigned_kabupaten_ids.filter((v): v is string => typeof v === "string")
       : [];
     return { userId, role, assignedKabupatenIds };
   } catch {
-    const role = metaRole ?? "produksi";
-    return { userId, role, assignedKabupatenIds: [] };
+    logger.error("getAuthContext: failed to read user role from DB", { userId });
+    return null;
   }
 }
 

@@ -7,7 +7,6 @@ import {
 } from "../api/master-data-client";
 import { useLocalQuery } from "@/lib/offline/use-local-query";
 import { loadOfflineKabupaten } from "../services/offline-master-data";
-import type { Kabupaten } from "@/types";
 import { createKabupatenAction, updateKabupatenAction } from "../actions/master-data-actions";
 import type { KabupatenInput } from "../schema/master-data-schema";
 

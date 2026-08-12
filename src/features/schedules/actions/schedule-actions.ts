@@ -11,7 +11,7 @@ import {
 import type { ActionResponse } from "@/types/common";
 import { STATUS_TRANSITIONS, SCHEDULE_STATUSES } from "@/lib/constants/status";
 import type { VisitStatus } from "@/types";
-import { dateString, todayString } from "@/lib/utils/date";
+import { dateString } from "@/lib/utils/date";
 import { getAuthContext, isPrivileged, canAccessSchedule, qcKabupatenScope } from "@/lib/auth/authorization";
 import { deriveScheduleStatus } from "@/features/panen/services/panen-logic";
 import { revalidateSchedulePaths } from "@/lib/revalidate";
@@ -76,7 +76,7 @@ export async function updateScheduleAction(
     .is("deleted_at", null)
     .maybeSingle();
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+   
   const existingPhotos = (existing as unknown as { visit_photos?: { id: string }[] | null })?.visit_photos ?? [];
   const hasActivity = !!(
     existing?.visit_time ||
@@ -143,8 +143,8 @@ export async function shiftScheduleDateAction(
 
   const daysRaw = formData.get("days");
   const days = daysRaw ? Number(daysRaw) : 1;
-  if (!Number.isInteger(days) || days === 0) {
-    return { success: false, error: "Jumlah hari tidak valid" };
+  if (!Number.isInteger(days) || days === 0 || Math.abs(days) > 365) {
+    return { success: false, error: "Jumlah hari tidak valid (maksimal ±365 hari)" };
   }
 
   if (!(await canAccessSchedule(id, ctx))) {

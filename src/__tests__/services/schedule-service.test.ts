@@ -102,7 +102,7 @@ describe("schedule-service", () => {
       const mockEq = vi.fn().mockReturnValue(resolve);
       const captured: string[] = [];
 
-      const mockFrom = vi.fn().mockImplementation((table: string) => ({
+      const mockFrom = vi.fn().mockImplementation(() => ({
         select: (field: string) => {
           captured.push(field);
           return {
@@ -179,7 +179,7 @@ describe("schedule-service", () => {
       const count = (col: string) => calls.filter(([c]) => c === col).length;
       // Block multi-select -> in, diterapkan di 4 query lain (self-excluded)
       expect(count("block_no")).toBe(4);
-      expect(calls.filter(([c, v]) => c === "block_no").some(([, v]) => Array.isArray(v) && (v as string[]).length === 2)).toBe(true);
+      expect(calls.filter(([c]) => c === "block_no").some(([, val]) => Array.isArray(val) && (val as string[]).length === 2)).toBe(true);
       // Kolom data lain tetap eq, dibatasi 4 filter lain (self-excluded)
       expect(count("no_plot")).toBe(4);
       expect(count("nis")).toBe(4);

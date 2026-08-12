@@ -13,6 +13,27 @@ export function hashApiKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
 }
 
+// Rate limit best-effort per API key (in-memory; reset per instance fetch).
+// Serverless = tidak persisten lintas warm instance, tapi mencegah abuse
+// satu instance. Batas lunak: 300 permintaan / menit / key.
+const API_RATE_LIMIT_PER_MINUTE = 300;
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(keyHash: string): boolean {
+  const now = Date.now();
+  const bucket = rateBuckets.get(keyHash);
+  if (!bucket || now >= bucket.resetAt) {
+    rateBuckets.set(keyHash, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+  bucket.count += 1;
+  if (bucket.count > API_RATE_LIMIT_PER_MINUTE) {
+    return true;
+  }
+  rateBuckets.set(keyHash, bucket);
+  return false;
+}
+
 export async function authenticateApiKey(request: Request): Promise<ApiAuthResult> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -24,11 +45,18 @@ export async function authenticateApiKey(request: Request): Promise<ApiAuthResul
     return { authenticated: false, error: "Invalid API key", status: 401 };
   }
 
+  const keyHash = hashApiKey(apiKey);
+
+  // Cek rate limit sebelum query (nama key tidak perlu diungkap).
+  if (isRateLimited(keyHash)) {
+    return { authenticated: false, error: "Too many requests", status: 429 };
+  }
+
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("api_keys")
     .select("user_id, permissions")
-    .eq("key_hash", hashApiKey(apiKey))
+    .eq("key_hash", keyHash)
     .eq("is_active", true)
     .single();
 
@@ -37,7 +65,7 @@ export async function authenticateApiKey(request: Request): Promise<ApiAuthResul
   }
 
   // Update last_used_at
-  await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", hashApiKey(apiKey));
+  await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", keyHash);
 
   return {
     authenticated: true,

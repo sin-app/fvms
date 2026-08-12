@@ -46,3 +46,7 @@ android/build
 android/app/build
 android/.gradle/
 e2e/.auth/
+
+# generated service worker
+public/sw.js
+public/swe-worker.*.js

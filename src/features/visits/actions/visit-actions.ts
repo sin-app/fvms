@@ -72,6 +72,14 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
     return { success: false, error: "File terlalu besar. Maksimal 10MB" };
   }
 
+  const { count } = await createAdminClient()
+    .from("visit_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("schedule_id", scheduleId);
+  if ((count ?? 0) >= 10) {
+    return { success: false, error: "Maksimal 10 foto per jadwal" };
+  }
+
   const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
   if (!allowedTypes.includes(file.type)) {
     return { success: false, error: "Tipe file tidak didukung. Gunakan JPG, PNG, atau WebP" };

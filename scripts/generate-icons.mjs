@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const publicDir = resolve(import.meta.dirname, "..", "public");

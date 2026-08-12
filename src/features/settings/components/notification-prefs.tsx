@@ -7,7 +7,6 @@ import { subscribeToPush, unsubscribeFromPush, isPushSubscribed } from "@/featur
 import { Loader2 } from "lucide-react";
 
 export function NotificationPrefs() {
-  const [pushEnabled, setPushEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -22,11 +21,9 @@ export function NotificationPrefs() {
       if (v) {
         const ok = await subscribeToPush();
         setSubscribed(ok);
-        setPushEnabled(ok);
       } else {
         await unsubscribeFromPush();
         setSubscribed(false);
-        setPushEnabled(false);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
