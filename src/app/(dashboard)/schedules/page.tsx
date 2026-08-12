@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Plus, Calendar, FileDown } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -11,19 +11,24 @@ import { createScheduleAction } from "@/features/schedules/actions/schedule-acti
 import { useDebounce } from "@/hooks/use-debounce";
 import { exportPdf } from "@/lib/export/pdf";
 import { useAuth } from "@/features/auth/components/auth-context";
+import { LoadingState } from "@/components/shared/loading-state";
+import {
+  loadPersistedFilters,
+  savePersistedFilters,
+} from "@/features/schedules/services/filter-persist";
 
 export default function SchedulesPage() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const isProduksi = user?.role === "produksi";
   const [memberName, setMemberName] = useState("");
+  const [userId, setUserId] = useState("");
   const [blockNo, setBlockNo] = useState<string[]>([]);
   const [noPlot, setNoPlot] = useState("");
   const [nis, setNis] = useState("");
   const [documentNo, setDocumentNo] = useState("");
   const [status, setStatus] = useState("all");
   const [cgr, setCgr] = useState("");
-  const [userId, setUserId] = useState("");
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
   const [desaId, setDesaId] = useState("");
@@ -34,6 +39,58 @@ export default function SchedulesPage() {
   const [panenStatus, setPanenStatus] = useState("all");
   const [label, setLabel] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
+  const [filtersReady, setFiltersReady] = useState(false);
+  const restoredFor = useRef<string | null>(null);
+
+  // Pulihkan filter tersimpan (sessionStorage per user) saat halaman dimuat
+  // atau user login — agar filter "menetap" saat kembali dari halaman visit.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (restoredFor.current === user.id) return;
+    restoredFor.current = user.id;
+    const p = loadPersistedFilters(user.id);
+    setMemberName(p.member_name ?? "");
+    setUserId(p.user_id ?? "");
+    setBlockNo(p.block_no ?? []);
+    setNoPlot(p.no_plot ?? "");
+    setNis(p.nis ?? "");
+    setDocumentNo(p.document_no ?? "");
+    setStatus(p.status ?? "all");
+    setCgr(p.cgr ?? "");
+    setKabupatenId(p.kabupaten_id ?? "");
+    setKecamatanId(p.kecamatan_id ?? "");
+    setDesaId(p.desa_id ?? "");
+    setDateRange(p.date_range ?? "");
+    setDateFrom(p.date_from ?? "");
+    setDateTo(p.date_to ?? "");
+    setVarietas(p.varietas ?? "");
+    setPanenStatus(p.panen_status ?? "all");
+    setLabel(p.label ?? "all");
+    setFiltersReady(true);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    savePersistedFilters(user.id, {
+      member_name: memberName,
+      user_id: userId,
+      block_no: blockNo,
+      no_plot: noPlot,
+      nis,
+      document_no: documentNo,
+      status,
+      cgr,
+      kabupaten_id: kabupatenId,
+      kecamatan_id: kecamatanId,
+      desa_id: desaId,
+      date_range: dateRange,
+      date_from: dateFrom,
+      date_to: dateTo,
+      varietas,
+      panen_status: panenStatus,
+      label,
+    });
+  }, [user?.id, memberName, userId, blockNo, noPlot, nis, documentNo, status, cgr, kabupatenId, kecamatanId, desaId, dateRange, dateFrom, dateTo, varietas, panenStatus, label]);
 
   const debouncedMemberName = useDebounce(memberName, 450);
   const debouncedVarietas = useDebounce(varietas, 450);
@@ -119,6 +176,8 @@ export default function SchedulesPage() {
     document_no: documentNo || undefined,
     cgr: cgr || undefined,
   };
+
+  if (isLoading || !user || !filtersReady) return <LoadingState variant="card" />;
 
   return (
     <div className="space-y-6">
