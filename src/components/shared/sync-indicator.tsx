@@ -47,5 +47,18 @@ export function SyncIndicator() {
     );
   }
 
-  return null;
+  // Online & idle: tombol sinkron manual selalu tersedia agar data
+  // terbaru (mis. hasil import admin) bisa ditarik tanpa logout-login.
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => void syncNow()}
+      className="h-7 gap-1.5 rounded-full px-2.5 text-[11px] font-semibold text-muted-foreground hover:text-brand"
+      title="Sinkronkan data terbaru"
+    >
+      <RefreshCw className="h-3.5 w-3.5" />
+      Sinkron
+    </Button>
+  );
 }

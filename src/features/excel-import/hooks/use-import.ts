@@ -4,9 +4,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { previewExcelFileAction, executeImportAction } from "../actions/import-actions";
+import { useSync } from "@/lib/offline/sync-context";
 import type { ImportPreview, ColumnMapping } from "../types";
 
 export function useExcelImport() {
+  const { syncNow } = useSync();
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [loading, setLoading] = useState(false);
@@ -112,6 +114,11 @@ export function useExcelImport() {
         if (res.data.replaced) parts.push(`${res.data.replaced} diperbarui`);
         if (res.data.errors) parts.push(`${res.data.errors} gagal`);
         toast.success(`Import berhasil: ${parts.join(", ")}`);
+        // Data local-first (IndexedDB) hanya segar setelah re-hydrate;
+        // tanpa ini halaman perlu logout-login untuk melihat hasil import.
+        void syncNow().then(() => {
+          void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+        });
       } else {
         toast.error(res.error ?? "Gagal import");
       }

@@ -16,6 +16,7 @@ import {
   pendingOutboxCount,
   pushOutbox,
   syncUserContext,
+  type HydrateResult,
 } from "./engine";
 import { createClient } from "@/lib/supabase/client";
 
@@ -56,7 +57,7 @@ export function outboxChangeEventName(): string {
 
 interface SyncContextValue extends SyncState {
   /** Jalankan sinkron manual: push outbox lalu tarik data terbaru. */
-  syncNow: () => Promise<void>;
+  syncNow: () => Promise<HydrateResult | null>;
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null);
@@ -76,8 +77,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const syncNow = useCallback(async () => {
-    if (!user || !isOfflineDbAvailable()) return;
+  const syncNow = useCallback(async (): Promise<HydrateResult | null> => {
+    if (!user || !isOfflineDbAvailable()) return null;
     setState((prev) => ({ ...prev, syncing: true, lastError: null }));
     try {
       const supabase = createClient();
@@ -86,7 +87,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const role = user.role === "admin" || user.role === "qc" ? user.role : "produksi";
       const ctx = syncUserContext({ ...user, role });
       const pushed = await pushOutbox({ supabase, user: ctx });
-      await hydrateOffline({ supabase, user: ctx });
+      const hydrate = await hydrateOffline({ supabase, user: ctx });
       setState((prev) => ({
         ...prev,
         syncing: false,
@@ -94,19 +95,27 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         hydrateVersion: prev.hydrateVersion + 1,
         lastError: pushed.failed > 0 ? `${pushed.failed} perubahan gagal dikirim` : null,
       }));
+      return hydrate;
     } catch (error) {
       setState((prev) => ({
         ...prev,
         syncing: false,
         lastError: error instanceof Error ? error.message : String(error),
       }));
+      return null;
     } finally {
       void refreshPending();
     }
   }, [user, refreshPending]);
 
   useEffect(() => {
-    if (!user || !isOfflineDbAvailable()) return;
+    if (!user) {
+      // User logout: reset guard agar login berikutnya selalu re-hydrate
+      // (data server bisa berubah oleh sesi/import lain).
+      hydratedFor.current = null;
+      return;
+    }
+    if (!isOfflineDbAvailable()) return;
     if (hydratedFor.current === user.id) return;
     hydratedFor.current = user.id;
     void refreshPending();

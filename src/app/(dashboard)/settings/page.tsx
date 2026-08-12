@@ -10,6 +10,7 @@ import { AppearanceSettings } from "@/features/settings/components/appearance-se
 import { LanguageSwitcher } from "@/features/settings/components/language-switcher";
 import { ApiKeyManager } from "@/features/settings/components/api-key-manager";
 import { BackupRestore } from "@/features/settings/components/backup-restore";
+import { SyncSettings } from "@/features/settings/components/sync-settings";
 
 export default function SettingsPage() {
   const { user, isLoading } = useAuth();
@@ -59,6 +60,13 @@ export default function SettingsPage() {
             Gunakan API Key untuk mengakses data melalui REST API. Simpan key dengan aman — tidak bisa dilihat lagi setelah dibuat.
           </p>
           <ApiKeyManager />
+        </section>
+      )}
+
+      {user.role === "admin" && (
+        <section className="rounded-xl border bg-card p-6 space-y-6">
+          <h2 className="text-lg font-semibold">Sinkronisasi Data</h2>
+          <SyncSettings />
         </section>
       )}
 

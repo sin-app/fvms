@@ -73,6 +73,7 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
     .from("schedules")
     .select(SCHEDULE_SELECT)
     .is("deleted_at", null)
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (user.role === "produksi") {
