@@ -6,3 +6,8 @@ export function revalidateSchedulePaths(id?: string) {
   revalidatePath("/reports");
   if (id) revalidatePath(`/visits/${id}`);
 }
+
+export function revalidateProposalPaths() {
+  revalidatePath("/pengajuan-lahan");
+  revalidatePath("/dashboard");
+}

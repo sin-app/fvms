@@ -163,6 +163,42 @@ export interface ExcelImport {
   created_at: string;
 }
 
+export type LandProposalStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export interface LandProposal {
+  id: string;
+  proposed_by: string;
+  reviewed_by: string | null;
+  kabupaten_id: string;
+  kecamatan_id: string;
+  desa_id: string;
+  block_no: string | null;
+  no_plot: string | null;
+  document_no: string | null;
+  member_name: string | null;
+  cgr: string | null;
+  cgr_code: string | null;
+  nis: string | null;
+  ph_tanah: number | null;
+  real_tanam_ha: number | null;
+  detaseling: string | null;
+  tgl_tanam: string | null;
+  rencana_panen: string | null;
+  notes: string | null;
+  status: LandProposalStatus;
+  review_note: string | null;
+  created_schedule_id: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  kabupaten?: Kabupaten;
+  kecamatan?: Kecamatan;
+  desa?: Desa;
+  proposed_by_user?: User;
+  reviewed_by_user?: User;
+  created_schedule?: Schedule;
+}
+
 export type Tables =
   | "users"
   | "kabupaten"
@@ -173,7 +209,8 @@ export type Tables =
   | "visit_photos"
   | "activity_logs"
   | "notifications"
-  | "excel_imports";
+  | "excel_imports"
+  | "land_proposals";
 
 export type Row<T extends Tables> =
   T extends "users" ? User :
@@ -186,4 +223,5 @@ export type Row<T extends Tables> =
   T extends "activity_logs" ? ActivityLog :
   T extends "notifications" ? Notification :
   T extends "excel_imports" ? ExcelImport :
+  T extends "land_proposals" ? LandProposal :
   never;

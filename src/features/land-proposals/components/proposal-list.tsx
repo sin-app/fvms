@@ -1,0 +1,220 @@
+"use client";
+
+import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Pencil, XCircle, CheckCircle2, UserCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { PageHeader } from "@/components/shared/page-header";
+import { formatDate } from "@/lib/utils/date";
+import type { ActionResponse } from "@/types/common";
+import type { AuthContext } from "@/lib/auth/authorization";
+import type { LandProposal, LandProposalStatus } from "@/types";
+import { ProposalForm } from "./proposal-form";
+import { RejectDialog } from "./reject-dialog";
+import { AssignPetugasDialog } from "./assign-petugas-dialog";
+import {
+  createLandProposalAction,
+  updateLandProposalAction,
+  cancelLandProposalAction,
+  approveLandProposalAction,
+} from "../actions/land-proposal-actions";
+
+const STATUS_BADGE: Record<LandProposalStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  pending: { label: "Menunggu", variant: "secondary" },
+  approved: { label: "Disetujui", variant: "default" },
+  rejected: { label: "Ditolak", variant: "destructive" },
+  cancelled: { label: "Dibatalkan", variant: "outline" },
+};
+
+interface ProposalListProps {
+  proposals: LandProposal[];
+  currentUser: AuthContext;
+}
+
+export function ProposalList({ proposals, currentUser }: ProposalListProps) {
+  const isReviewer = currentUser.role === "admin" || currentUser.role === "qc";
+  const [showCreate, setShowCreate] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Pengajuan Lahan"
+        description={isReviewer ? "Tinjau & setujui pengajuan lahan di wilayah Anda" : "Ajukan lahan baru untuk tanaman baru"}
+        actions={
+          !isReviewer ? (
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Ajukan Lahan Baru
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {showCreate && (
+        <ProposalForm
+          action={createLandProposalAction}
+          open={showCreate}
+          onOpenChange={setShowCreate}
+        />
+      )}
+
+      {proposals.length === 0 ? (
+        <EmptyState
+          title="Belum ada pengajuan"
+          description={isReviewer ? "Pengajuan lahan dari produksi akan muncul di sini." : "Ajukan lahan baru untuk mulai."}
+        />
+      ) : (
+        <div className="space-y-3">
+          {proposals.map((p) => (
+            <ProposalCard key={p.id} proposal={p} currentUser={currentUser} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; currentUser: AuthContext }) {
+  const isOwner = proposal.proposed_by === currentUser.userId;
+  const isReviewer = currentUser.role === "admin" || currentUser.role === "qc";
+
+  const [showEdit, setShowEdit] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState(false);
+
+  const badge = STATUS_BADGE[proposal.status];
+  const title =
+    proposal.member_name ?? proposal.document_no ?? [proposal.block_no, proposal.no_plot].filter(Boolean).join("/") ?? "Lahan baru";
+  const location = [proposal.kabupaten?.name, proposal.kecamatan?.name, proposal.desa?.name]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <Card className="p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium truncate">{title}</span>
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+          </div>
+          {location && <p className="text-sm text-muted-foreground">{location}</p>}
+          <p className="text-xs text-muted-foreground">
+            Diajukan {formatDate(proposal.created_at)} oleh {proposal.proposed_by_user?.name ?? "—"}
+            {proposal.reviewed_by_user?.name ? ` · Direview ${proposal.reviewed_by_user.name}` : ""}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-3 lg:grid-cols-4">
+        <Info label="Block" value={proposal.block_no} />
+        <Info label="No Plot" value={proposal.no_plot} />
+        <Info label="NIS" value={proposal.nis} />
+        <Info label="CGR" value={proposal.cgr} />
+        <Info label="Real Tanam" value={proposal.real_tanam_ha != null ? `${proposal.real_tanam_ha} HA` : undefined} />
+        <Info label="PH Tanah" value={proposal.ph_tanah != null ? String(proposal.ph_tanah) : undefined} />
+        <Info label="Tgl Tanam" value={proposal.tgl_tanam ? formatDate(proposal.tgl_tanam) : undefined} />
+        <Info label="Rencana Panen" value={proposal.rencana_panen ? formatDate(proposal.rencana_panen) : undefined} />
+      </div>
+
+      {proposal.notes && <p className="mt-2 text-sm text-muted-foreground">{proposal.notes}</p>}
+      {proposal.review_note && (
+        <p className="mt-2 text-sm text-destructive">Catatan penolakan: {proposal.review_note}</p>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {isReviewer && proposal.status === "pending" && (
+          <>
+            <ApproveButton proposal={proposal} />
+            <Button variant="outline" size="sm" onClick={() => setShowReject(true)}>
+              <XCircle className="mr-1 h-4 w-4" /> Tolak
+            </Button>
+          </>
+        )}
+
+        {isReviewer && proposal.status === "approved" && proposal.created_schedule_id && (
+          <Button size="sm" onClick={() => setShowAssign(true)}>
+            <UserCheck className="mr-1 h-4 w-4" /> Assign Petugas
+          </Button>
+        )}
+
+        {isOwner && proposal.status === "pending" && (
+          <>
+            <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+              <Pencil className="mr-1 h-4 w-4" /> Edit
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setCancelTarget(true)}>
+              <XCircle className="mr-1 h-4 w-4" /> Batalkan
+            </Button>
+          </>
+        )}
+      </div>
+
+      {showEdit && (
+        <ProposalForm
+          action={updateLandProposalAction}
+          defaultValues={proposal}
+          open={showEdit}
+          onOpenChange={setShowEdit}
+        />
+      )}
+      {showReject && (
+        <RejectDialog proposal={proposal} open={showReject} onOpenChange={setShowReject} />
+      )}
+      {showAssign && (
+        <AssignPetugasDialog proposal={proposal} open={showAssign} onOpenChange={setShowAssign} />
+      )}
+      {cancelTarget && (
+        <ConfirmDialog
+          open={cancelTarget}
+          onOpenChange={setCancelTarget}
+          title="Batalkan Pengajuan"
+          message="Yakin ingin membatalkan pengajuan lahan ini?"
+          confirmLabel="Batalkan"
+          variant="destructive"
+          onConfirm={async () => {
+            const formData = new FormData();
+            formData.set("id", proposal.id);
+            await cancelLandProposalAction({ success: false }, formData);
+            setCancelTarget(false);
+          }}
+        />
+      )}
+    </Card>
+  );
+}
+
+function Info({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="truncate">{value}</p>
+    </div>
+  );
+}
+
+function ApproveButton({ proposal }: { proposal: LandProposal }) {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(
+    async (prev: ActionResponse, formData: FormData) => {
+      const result = await approveLandProposalAction(prev, formData);
+      if (result.success) router.refresh();
+      return result;
+    },
+    { success: false },
+  );
+
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="id" value={proposal.id} />
+      <Button type="submit" size="sm" disabled={pending}>
+        <CheckCircle2 className="mr-1 h-4 w-4" /> {pending ? "Menyetujui..." : "Setujui"}
+      </Button>
+      {state.error && <p className="mt-1 text-xs text-destructive">{state.error}</p>}
+    </form>
+  );
+}

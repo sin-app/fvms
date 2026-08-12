@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   Users,
+  Sprout,
 } from "lucide-react";
 
 export interface NavItem {
@@ -30,6 +31,7 @@ export const navItems: NavItem[] = [
     ],
   },
   { href: "/schedules", label: "Jadwal", icon: CalendarCheck },
+  { href: "/pengajuan-lahan", label: "Pengajuan Lahan", icon: Sprout },
   { href: "/schedules/calendar", label: "Kalender", icon: CalendarDays },
   { href: "/import", label: "Import Excel", icon: FileSpreadsheet, adminOnly: true },
   { href: "/reports", label: "Laporan", icon: BarChart3 },
