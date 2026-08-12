@@ -13,12 +13,48 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useSync } from "@/lib/offline/sync-context";
 import { getOfflineDb, isOfflineDbAvailable } from "@/lib/offline/db";
+import { createClient } from "@/lib/supabase/client";
 import { formatDateTime, timeAgo } from "@/lib/utils/date";
 
 export function SyncSettings() {
   const { online, syncing, pending, lastSyncAt, lastError, syncNow } = useSync();
   const [localSchedules, setLocalSchedules] = useState<number | null>(null);
+  const [serverSchedules, setServerSchedules] = useState<number | null>(null);
   const [lastResult, setLastResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOfflineDbAvailable()) return;
+    let cancelled = false;
+    getOfflineDb()
+      .schedules.count()
+      .then((count) => {
+        if (!cancelled) setLocalSchedules(count);
+      })
+      .catch(() => {
+        if (!cancelled) setLocalSchedules(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [syncing]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { count } = await createClient()
+          .from("schedules")
+          .select("id", { count: "exact", head: true })
+          .is("deleted_at", null);
+        if (!cancelled) setServerSchedules(count);
+      } catch {
+        if (!cancelled) setServerSchedules(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [syncing]);
 
   const refreshLocalCount = useCallback(() => {
     if (!isOfflineDbAvailable()) return Promise.resolve(false);
@@ -79,6 +115,14 @@ export function SyncSettings() {
           <Database className="h-4 w-4 text-brand" />
           {localSchedules === null ? "…" : localSchedules.toLocaleString("id-ID")} jadwal
           tersimpan offline di perangkat ini
+          {serverSchedules !== null &&
+            (localSchedules === serverSchedules ? (
+              <span className="text-emerald-600 dark:text-emerald-400">(sesuai server)</span>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400">
+                (server: {serverSchedules.toLocaleString("id-ID")} — klik Sinkronkan Sekarang)
+              </span>
+            ))}
         </p>
         {!online && (
           <p className="flex items-center gap-2 text-amber-600 dark:text-amber-400">

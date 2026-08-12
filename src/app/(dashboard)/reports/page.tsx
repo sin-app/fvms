@@ -10,7 +10,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { StatCard } from "@/components/shared/stat-card";
 import { CalendarCheck, Clock, AlertTriangle, CheckCircle, Sprout, Loader2 } from "lucide-react";
 import { useAuth } from "@/features/auth/components/auth-context";
-import { todayString, firstOfMonthString } from "@/lib/utils/date";
+import { todayString, dateString } from "@/lib/utils/date";
 import type { ReportFilters } from "@/features/reports";
 
 export default function ReportsPage() {
@@ -20,7 +20,9 @@ export default function ReportsPage() {
     user?.role === "qc" ? (user.assigned_kabupaten_ids ?? []) : undefined;
 
   const today = todayString();
-  const firstOfMonth = firstOfMonthString();
+  // Default "Semua Tanggal" (rentang lebar 5 tahun) agar laporan langsung
+  // menampilkan seluruh data, bukan hanya bulan berjalan.
+  const wideFrom = dateString(new Date(new Date().getFullYear() - 5, 0, 1));
 
   const [memberName, setMemberName] = useState("");
   const [blockNo, setBlockNo] = useState<string[]>([]);
@@ -33,8 +35,8 @@ export default function ReportsPage() {
   const [kabupatenId, setKabupatenId] = useState("");
   const [kecamatanId, setKecamatanId] = useState("");
   const [desaId, setDesaId] = useState("");
-  const [dateRange, setDateRange] = useState("month");
-  const [dateFrom, setDateFrom] = useState(firstOfMonth);
+  const [dateRange, setDateRange] = useState("");
+  const [dateFrom, setDateFrom] = useState(wideFrom);
   const [dateTo, setDateTo] = useState(today);
   const [varietas, setVarietas] = useState("");
   const [panenStatus, setPanenStatus] = useState("all");
