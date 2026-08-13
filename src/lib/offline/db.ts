@@ -76,9 +76,99 @@ export interface OfflineRegion {
   parent_id: string | null;
 }
 
+export interface OfflineLandProposal {
+  id: string;
+  proposed_by: string | null;
+  reviewed_by: string | null;
+  kabupaten_id: string | null;
+  kecamatan_id: string | null;
+  desa_id: string | null;
+  block_no: string | null;
+  no_plot: string | null;
+  document_no: string | null;
+  member_name: string | null;
+  cgr: string | null;
+  cgr_code: string | null;
+  nis: string | null;
+  ph_tanah: number | null;
+  real_tanam_ha: number | null;
+  detaseling: string | null;
+  tgl_tanam: string | null;
+  rencana_panen: string | null;
+  notes: string | null;
+  status: string;
+  review_note: string | null;
+  created_schedule_id: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface OfflineLandProposalPhoto {
+  id: string;
+  proposal_id: string;
+  url: string;
+  thumbnail: string | null;
+  caption: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+  created_at: string;
+  blob: Blob | null;
+}
+
+export interface OfflineNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  link: string | null;
+  created_at: string;
+}
+
+export interface OfflineUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  avatar_url: string | null;
+  phone: string | null;
+  is_active: boolean;
+  assigned_kabupaten_ids: string[];
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface OfflineExcelImport {
+  id: string;
+  user_id: string;
+  filename: string;
+  total_rows: number;
+  success_rows: number;
+  error_rows: number;
+  column_mapping: Record<string, unknown> | null;
+  status: string;
+  error_log: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export interface OutboxEntry {
   id: string;
-  table: "visit_notes" | "visit_photos" | "schedules";
+  table:
+    | "visit_notes"
+    | "visit_photos"
+    | "schedules"
+    | "land_proposals"
+    | "land_proposal_photos"
+    | "notifications"
+    | "users"
+    | "kabupaten"
+    | "kecamatan"
+    | "desa"
+    | "excel_imports";
   action: "upsert" | "delete" | "insert" | "shift";
   entity_id: string;
   payload: Record<string, unknown>;
@@ -110,6 +200,11 @@ class FvmsOfflineDB extends Dexie {
   visitPhotos!: Table<OfflineVisitPhoto, string>;
   regions!: Table<OfflineRegion, string>;
   activityLogs!: Table<OfflineActivityLog, string>;
+  landProposals!: Table<OfflineLandProposal, string>;
+  landProposalPhotos!: Table<OfflineLandProposalPhoto, string>;
+  notifications!: Table<OfflineNotification, string>;
+  users!: Table<OfflineUser, string>;
+  excelImports!: Table<OfflineExcelImport, string>;
   outbox!: Table<OutboxEntry, string>;
   meta!: Table<OfflineMeta, string>;
 
@@ -129,6 +224,20 @@ class FvmsOfflineDB extends Dexie {
       visitPhotos: "id, schedule_id, created_at",
       regions: "key, entity, id, parent_id",
       activityLogs: "id, created_at",
+      outbox: "id, table, created_at, attempts",
+      meta: "key",
+    });
+    this.version(3).stores({
+      schedules: "id, visit_date, status, kabupaten_id, user_id, updated_at",
+      visitNotes: "schedule_id, updated_at",
+      visitPhotos: "id, schedule_id, created_at",
+      regions: "key, entity, id, parent_id",
+      activityLogs: "id, created_at",
+      landProposals: "id, kabupaten_id, proposed_by, status, created_at, updated_at",
+      landProposalPhotos: "id, proposal_id, created_at",
+      notifications: "id, user_id, is_read, created_at",
+      users: "id, role, is_active, email",
+      excelImports: "id, user_id, created_at",
       outbox: "id, table, created_at, attempts",
       meta: "key",
     });
@@ -167,7 +276,19 @@ export async function clearOfflineData(): Promise<void> {
   const db = getOfflineDb();
   await db.transaction(
     "rw",
-    [db.schedules, db.visitNotes, db.visitPhotos, db.regions, db.activityLogs, db.meta],
+    [
+      db.schedules,
+      db.visitNotes,
+      db.visitPhotos,
+      db.regions,
+      db.activityLogs,
+      db.landProposals,
+      db.landProposalPhotos,
+      db.notifications,
+      db.users,
+      db.excelImports,
+      db.meta,
+    ],
     async () => {
     await Promise.all([
       db.schedules.clear(),
@@ -175,6 +296,11 @@ export async function clearOfflineData(): Promise<void> {
       db.visitPhotos.clear(),
       db.regions.clear(),
       db.activityLogs.clear(),
+      db.landProposals.clear(),
+      db.landProposalPhotos.clear(),
+      db.notifications.clear(),
+      db.users.clear(),
+      db.excelImports.clear(),
     ]);
     await db.meta.clear();
   });
@@ -185,6 +311,18 @@ export async function clearServiceWorkerCaches(): Promise<void> {
   if (typeof caches === "undefined") return;
   const keys = await caches.keys();
   await Promise.all(keys.map((key) => caches.delete(key)));
+}
+
+export const OUTBOX_CHANGE_EVENT = "fvms:outbox";
+
+/** Beri tahu UI bahwa jumlah mutasi lokal berubah (dipakai SyncProvider). */
+export function notifyOutboxChanged(count: number): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(OUTBOX_CHANGE_EVENT, { detail: { count } }));
+}
+
+export function outboxChangeEventName(): string {
+  return OUTBOX_CHANGE_EVENT;
 }
 
 export type { FvmsOfflineDB as OfflineDatabase };

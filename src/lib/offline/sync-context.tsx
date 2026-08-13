@@ -10,7 +10,13 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/features/auth/components/auth-context";
-import { getOfflineDb, isOfflineDbAvailable } from "./db";
+import {
+  getOfflineDb,
+  isOfflineDbAvailable,
+  notifyOutboxChanged,
+  outboxChangeEventName,
+  OUTBOX_CHANGE_EVENT,
+} from "./db";
 import {
   hydrateOffline,
   pendingOutboxCount,
@@ -35,8 +41,6 @@ export interface SyncState {
   hydrateVersion: number;
 }
 
-const OUTBOX_CHANGE_EVENT = "fvms:outbox";
-
 const initialState: SyncState = {
   online: true,
   syncing: false,
@@ -46,14 +50,7 @@ const initialState: SyncState = {
   hydrateVersion: 0,
 };
 
-export function notifyOutboxChanged(count: number): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(OUTBOX_CHANGE_EVENT, { detail: { count } }));
-}
-
-export function outboxChangeEventName(): string {
-  return OUTBOX_CHANGE_EVENT;
-}
+export { notifyOutboxChanged, outboxChangeEventName, OUTBOX_CHANGE_EVENT };
 
 interface SyncContextValue extends SyncState {
   /** Jalankan sinkron manual: push outbox lalu tarik data terbaru. */
