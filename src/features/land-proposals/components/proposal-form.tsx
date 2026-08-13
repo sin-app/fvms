@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ReusableDialog } from "@/components/shared/reusable-dialog";
 import { RegionSelector } from "@/features/master-data";
+import { ProposalGps } from "./proposal-gps";
 import { cn } from "@/lib/utils";
 import type { ActionResponse } from "@/types/common";
 import type { LandProposal } from "@/types";
@@ -158,6 +159,14 @@ export function ProposalForm({
               className="min-h-[2.5rem]"
             />
           </div>
+        </div>
+
+        <div className="border-t pt-4 mt-2">
+          <ProposalGps
+            defaultLatitude={defaultValues?.latitude}
+            defaultLongitude={defaultValues?.longitude}
+            defaultAccuracy={defaultValues?.accuracy}
+          />
         </div>
 
         {state.error && <p className="text-sm text-destructive">{state.error}</p>}

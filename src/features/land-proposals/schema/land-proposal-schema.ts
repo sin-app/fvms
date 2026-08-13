@@ -25,6 +25,24 @@ export const landProposalSchema = z.object({
   tgl_tanam: z.string().optional(),
   rencana_panen: z.string().optional(),
   notes: z.string().optional(),
+  latitude: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? null : Number(v)))
+    .refine((v) => v === null || !Number.isNaN(v), "Latitude harus berupa angka"),
+  longitude: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? null : Number(v)))
+    .refine((v) => v === null || !Number.isNaN(v), "Longitude harus berupa angka"),
+  accuracy: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? null : Number(v)))
+    .refine((v) => v === null || !Number.isNaN(v), "Akurasi harus berupa angka"),
+}).refine((d) => (d.latitude === null) === (d.longitude === null), {
+  message: "Latitude dan Longitude harus diisi bersama",
+  path: ["latitude"],
 });
 
 export type LandProposalInput = z.infer<typeof landProposalSchema>;

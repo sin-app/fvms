@@ -46,6 +46,7 @@ function buildChain(response: unknown) {
     "order",
     "update",
     "insert",
+    "delete",
     "maybeSingle",
     "single",
     "contains",
@@ -82,6 +83,9 @@ const PROPOSAL: LandProposal = {
   tgl_tanam: null,
   rencana_panen: null,
   notes: null,
+  latitude: null,
+  longitude: null,
+  accuracy: null,
   status: "pending",
   review_note: null,
   created_schedule_id: null,
@@ -97,7 +101,16 @@ const PROD_CTX: AuthContext = { userId: "prod-1", role: "produksi", assignedKabu
 
 function mockFrom(responses: unknown[]) {
   const queue = [...responses];
+  const removeMock = vi.fn().mockResolvedValue({ error: null });
+  const signMock = vi.fn().mockResolvedValue({ data: { signedUrl: "https://signed/url" } });
+  const storageMock = {
+    from: vi.fn(() => ({
+      createSignedUrl: signMock,
+      remove: removeMock,
+    })),
+  };
   (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({
+    storage: storageMock,
     from: vi.fn(() => buildChain(queue.length > 1 ? queue.shift() : queue[0])),
   });
 }
@@ -165,6 +178,39 @@ describe("updateLandProposal", () => {
     await expect(
       updateLandProposal("prop-1", { kabupaten_id: "kab-a", kecamatan_id: "kec-a", desa_id: "desa-a" }, PROD_CTX),
     ).rejects.toThrow("pending");
+  });
+
+  it("allows admin to edit pending proposal from produksi", async () => {
+    const updated = { ...PROPOSAL, block_no: "B-EDITED" };
+    mockFrom([{ data: PROPOSAL, error: null }, { data: updated, error: null }]);
+    const result = await updateLandProposal(
+      "prop-1",
+      { kabupaten_id: "kab-a", kecamatan_id: "kec-a", desa_id: "desa-a", block_no: "B-EDITED" },
+      ADMIN_CTX,
+    );
+    expect(result.block_no).toBe("B-EDITED");
+  });
+
+  it("resets rejected proposal to pending when admin edits", async () => {
+    const rejected = { ...PROPOSAL, status: "rejected" as const, review_note: "data salah" };
+    const updated = { ...PROPOSAL, status: "pending", review_note: null, reviewed_by: null };
+    mockFrom([{ data: rejected, error: null }, { data: updated, error: null }]);
+
+    const result = await updateLandProposal(
+      "prop-1",
+      { kabupaten_id: "kab-a", kecamatan_id: "kec-a", desa_id: "desa-a" },
+      ADMIN_CTX,
+    );
+
+    expect(result.status).toBe("pending");
+    expect(result.review_note).toBeNull();
+  });
+
+  it("blocks admin editing approved proposal", async () => {
+    mockFrom([{ data: { ...PROPOSAL, status: "approved" }, error: null }]);
+    await expect(
+      updateLandProposal("prop-1", { kabupaten_id: "kab-a", kecamatan_id: "kec-a", desa_id: "desa-a" }, ADMIN_CTX),
+    ).rejects.toThrow("pending atau ditolak");
   });
 });
 

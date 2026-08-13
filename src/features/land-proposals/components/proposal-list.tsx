@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, XCircle, CheckCircle2, UserCheck } from "lucide-react";
+import { Plus, Pencil, XCircle, CheckCircle2, UserCheck, Eye, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -14,8 +14,10 @@ import type { ActionResponse } from "@/types/common";
 import type { AuthContext } from "@/lib/auth/authorization";
 import type { LandProposal, LandProposalStatus } from "@/types";
 import { ProposalForm } from "./proposal-form";
+import { ProposalPhotos } from "./proposal-photos";
 import { RejectDialog } from "./reject-dialog";
 import { AssignPetugasDialog } from "./assign-petugas-dialog";
+import { ProposalDetailDialog } from "./proposal-detail-dialog";
 import {
   createLandProposalAction,
   updateLandProposalAction,
@@ -80,10 +82,20 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
 function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; currentUser: AuthContext }) {
   const isOwner = proposal.proposed_by === currentUser.userId;
   const isReviewer = currentUser.role === "admin" || currentUser.role === "qc";
+  const isAdmin = currentUser.role === "admin";
+
+  const canEdit = isOwner
+    ? proposal.status === "pending"
+    : isAdmin
+      ? proposal.status === "pending" || proposal.status === "rejected"
+      : false;
+
+  const photoEditable = isAdmin || (isOwner && proposal.status === "pending");
 
   const [showEdit, setShowEdit] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [cancelTarget, setCancelTarget] = useState(false);
 
   const badge = STATUS_BADGE[proposal.status];
@@ -106,6 +118,13 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
             Diajukan {formatDate(proposal.created_at)} oleh {proposal.proposed_by_user?.name ?? "—"}
             {proposal.reviewed_by_user?.name ? ` · Direview ${proposal.reviewed_by_user.name}` : ""}
           </p>
+          {proposal.latitude != null && proposal.longitude != null && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {proposal.latitude.toFixed(5)}, {proposal.longitude.toFixed(5)}
+              {proposal.accuracy != null ? ` (±${proposal.accuracy.toFixed(0)}m)` : ""}
+            </p>
+          )}
         </div>
       </div>
 
@@ -125,7 +144,21 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
         <p className="mt-2 text-sm text-destructive">Catatan penolakan: {proposal.review_note}</p>
       )}
 
+      {(proposal.photos && proposal.photos.length > 0) || photoEditable ? (
+        <div className="mt-3 border-t pt-3">
+          <ProposalPhotos
+            proposalId={proposal.id}
+            photos={proposal.photos ?? []}
+            editable={photoEditable}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => setShowDetail(true)}>
+          <Eye className="mr-1 h-4 w-4" /> Detail
+        </Button>
+
         {isReviewer && proposal.status === "pending" && (
           <>
             <ApproveButton proposal={proposal} />
@@ -141,15 +174,16 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
           </Button>
         )}
 
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+            <Pencil className="mr-1 h-4 w-4" /> Edit
+          </Button>
+        )}
+
         {isOwner && proposal.status === "pending" && (
-          <>
-            <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
-              <Pencil className="mr-1 h-4 w-4" /> Edit
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setCancelTarget(true)}>
-              <XCircle className="mr-1 h-4 w-4" /> Batalkan
-            </Button>
-          </>
+          <Button variant="ghost" size="sm" onClick={() => setCancelTarget(true)}>
+            <XCircle className="mr-1 h-4 w-4" /> Batalkan
+          </Button>
         )}
       </div>
 
@@ -166,6 +200,9 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
       )}
       {showAssign && (
         <AssignPetugasDialog proposal={proposal} open={showAssign} onOpenChange={setShowAssign} />
+      )}
+      {showDetail && (
+        <ProposalDetailDialog proposal={proposal} open={showDetail} onOpenChange={setShowDetail} />
       )}
       {cancelTarget && (
         <ConfirmDialog

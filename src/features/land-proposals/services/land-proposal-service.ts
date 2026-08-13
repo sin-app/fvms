@@ -4,10 +4,16 @@ import { qcKabupatenScope } from "@/lib/auth/authorization";
 import { createSchedule } from "@/features/schedules/services/schedule-service";
 import { createNotification } from "@/features/notifications/services/notification-service";
 import { dateString } from "@/lib/utils/date";
-import type { LandProposal, LandProposalStatus } from "@/types";
+import { getConfig } from "@/lib/config";
+import { logger } from "@/lib/logger";
+import type { LandProposal, LandProposalPhoto, LandProposalStatus } from "@/types";
+import crypto from "node:crypto";
+import sharp from "sharp";
 
 const PROPOSAL_SELECT =
-  "*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), proposed_by_user:users!land_proposals_proposed_by_fkey(name), reviewed_by_user:users!land_proposals_reviewed_by_fkey(name), created_schedule:schedules!land_proposals_created_schedule_id_fkey(id, visit_date)";
+  "*, kabupaten!inner(name), kecamatan!inner(name), desa!inner(name), proposed_by_user:users!land_proposals_proposed_by_fkey(name), reviewed_by_user:users!land_proposals_reviewed_by_fkey(name), created_schedule:schedules!land_proposals_created_schedule_id_fkey(id, visit_date), land_proposal_photos(id, url, caption, file_size, mime_type, created_at)";
+
+const PHOTO_SIGN_TTL_SECONDS = 60 * 60;
 
 function reviewAccess(ctx: AuthContext, kabupatenId: string): boolean {
   if (ctx.role === "admin") return true;
@@ -30,7 +36,8 @@ export async function listLandProposals(ctx: AuthContext): Promise<LandProposal[
   const { data, error } = await query.is("deleted_at", null).order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as LandProposal[];
+  const rows = (data ?? []) as LandProposal[];
+  return Promise.all(rows.map(withSignedPhotos));
 }
 
 export async function getLandProposal(id: string, ctx: AuthContext): Promise<LandProposal> {
@@ -47,7 +54,34 @@ export async function getLandProposal(id: string, ctx: AuthContext): Promise<Lan
   if (!(await canViewProposal(data as LandProposal, ctx))) {
     throw new Error("Tidak memiliki akses ke pengajuan ini");
   }
-  return data as LandProposal;
+  return withSignedPhotos(data as LandProposal);
+}
+
+async function withSignedPhotos(proposal: LandProposal): Promise<LandProposal> {
+  const raw = proposal as LandProposal & { land_proposal_photos?: LandProposalPhoto[] };
+  const photos = raw.land_proposal_photos ?? [];
+  const signed = await Promise.all(
+    photos.map(async (p) => ({ ...p, url: await signPhotoUrl(p.url) })),
+  );
+  const rest: LandProposal = { ...raw };
+  delete (rest as unknown as { land_proposal_photos?: LandProposalPhoto[] }).land_proposal_photos;
+  return { ...rest, photos: signed };
+}
+
+async function signPhotoUrl(objectPath: string): Promise<string> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.storage
+      .from("land-proposal-photos")
+      .createSignedUrl(objectPath, PHOTO_SIGN_TTL_SECONDS);
+    return data?.signedUrl ?? "";
+  } catch (e) {
+    logger.error("land-proposal-service: failed to sign photo URL", {
+      objectPath,
+      error: String(e),
+    });
+    return "";
+  }
 }
 
 async function canViewProposal(proposal: LandProposal, ctx: AuthContext): Promise<boolean> {
@@ -75,6 +109,9 @@ export interface LandProposalData {
   tgl_tanam?: string;
   rencana_panen?: string;
   notes?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy?: number | null;
 }
 
 export async function createLandProposal(data: LandProposalData, ctx: AuthContext): Promise<LandProposal> {
@@ -95,13 +132,29 @@ export async function updateLandProposal(
   ctx: AuthContext,
 ): Promise<LandProposal> {
   const proposal = await getLandProposal(id, ctx);
-  if (proposal.proposed_by !== ctx.userId) throw new Error("Hanya pengaju yang dapat mengubah pengajuan");
-  if (proposal.status !== "pending") throw new Error("Hanya pengajuan pending yang dapat diubah");
+
+  const isOwner = proposal.proposed_by === ctx.userId;
+  const isAdmin = ctx.role === "admin";
+
+  if (!isOwner && !isAdmin) throw new Error("Hanya pengaju atau admin yang dapat mengubah pengajuan");
+  if (isOwner && proposal.status !== "pending") {
+    throw new Error("Hanya pengajuan pending yang dapat diubah");
+  }
+  if (isAdmin && proposal.status !== "pending" && proposal.status !== "rejected") {
+    throw new Error("Admin hanya dapat mengubah pengajuan pending atau ditolak");
+  }
 
   const admin = createAdminClient();
+  const patch: Record<string, unknown> = { ...data };
+  if (isAdmin && proposal.status === "rejected") {
+    // Admin memperbaiki data pengajuan yang ditolak -> masuk antrean review lagi.
+    patch.status = "pending";
+    patch.review_note = null;
+    patch.reviewed_by = null;
+  }
   const { data: result, error } = await admin
     .from("land_proposals")
-    .update(data)
+    .update(patch)
     .eq("id", id)
     .select()
     .single();
@@ -234,6 +287,162 @@ export async function assignPetugas(
     .eq("id", proposal.created_schedule_id);
 
   if (error) throw error;
+}
+
+// ---------- Photos ----------
+
+function canManagePhotos(proposal: LandProposal, ctx: AuthContext): boolean {
+  if (ctx.role === "admin") return true;
+  return proposal.proposed_by === ctx.userId && proposal.status === "pending";
+}
+
+export async function uploadLandProposalPhoto(
+  proposalId: string,
+  file: File,
+  ctx: AuthContext,
+): Promise<{ url: string; file_size: number; mime_type: string }> {
+  const proposal = await getLandProposal(proposalId, ctx);
+  if (!canManagePhotos(proposal, ctx)) {
+    throw new Error("Hanya pengaju (saat pending) atau admin yang dapat menambah foto");
+  }
+
+  const config = getConfig();
+  const filePath = `proposals/${proposalId}/${crypto.randomUUID()}.webp`;
+
+  const source = new Uint8Array(await file.arrayBuffer());
+
+  if (!isImageBuffer(source)) {
+    throw new Error("File bukan gambar yang valid (JPG/PNG/WebP)");
+  }
+
+  let buffer: Buffer;
+  try {
+    buffer = await sharp(source, { failOn: "error" })
+      .rotate()
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+  } catch {
+    throw new Error("File bukan gambar yang valid (JPG/PNG/WebP)");
+  }
+  const contentType = "image/webp";
+
+  const uploadRes = await fetch(
+    `${config.supabaseUrl}/storage/v1/object/land-proposal-photos/${filePath}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+        apikey: config.supabaseServiceRoleKey,
+        "Content-Type": contentType,
+        "Cache-Control": "3600",
+        "x-upsert": "false",
+      },
+      body: new Uint8Array(buffer),
+    },
+  );
+
+  const uploadBodyText = await uploadRes.text();
+  if (!uploadRes.ok) {
+    throw new Error(
+      `STORAGE_UPLOAD_HTTP_${uploadRes.status}: ${uploadBodyText.slice(0, 300)}`,
+    );
+  }
+
+  const objectPath = filePath;
+
+  const insertRes = await fetch(
+    `${config.supabaseUrl}/rest/v1/land_proposal_photos`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+        apikey: config.supabaseServiceRoleKey,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        proposal_id: proposalId,
+        url: objectPath,
+        file_size: buffer.length,
+        mime_type: contentType,
+      }),
+    },
+  );
+
+  const insertBodyText = await insertRes.text();
+  if (!insertRes.ok) {
+    throw new Error(
+      `DB_INSERT_HTTP_${insertRes.status}: ${insertBodyText.slice(0, 300)}`,
+    );
+  }
+
+  let inserted: { url: string; file_size: number; mime_type: string };
+  try {
+    const rows = JSON.parse(insertBodyText);
+    inserted = Array.isArray(rows) ? rows[0] : rows;
+  } catch {
+    inserted = { url: objectPath, file_size: buffer.length, mime_type: contentType };
+  }
+
+  return inserted;
+}
+
+export async function deleteLandProposalPhoto(
+  photoId: string,
+  proposalId: string,
+  ctx: AuthContext,
+): Promise<void> {
+  const proposal = await getLandProposal(proposalId, ctx);
+  if (!canManagePhotos(proposal, ctx)) {
+    throw new Error("Hanya pengaju (saat pending) atau admin yang dapat menghapus foto");
+  }
+
+  const admin = createAdminClient();
+  const { data: photo } = await admin
+    .from("land_proposal_photos")
+    .select("id, url")
+    .eq("id", photoId)
+    .eq("proposal_id", proposalId)
+    .maybeSingle();
+
+  if (!photo) throw new Error("Foto tidak ditemukan");
+
+  const { error } = await admin
+    .from("land_proposal_photos")
+    .delete()
+    .eq("id", photoId)
+    .eq("proposal_id", proposalId);
+
+  if (error) throw error;
+
+  try {
+    await admin.storage.from("land-proposal-photos").remove([photo.url]);
+  } catch (e) {
+    logger.warn("land-proposal-service: failed to remove photo object", {
+      photoId,
+      error: String(e),
+    });
+  }
+}
+
+// Validate image content by checking magic bytes (JPEG/PNG/WebP).
+function isImageBuffer(buf: Uint8Array): boolean {
+  if (buf.length < 12) return false;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true;
+  if (
+    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+    buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a
+  ) {
+    return true;
+  }
+  if (
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+  ) {
+    return true;
+  }
+  return false;
 }
 
 // ---------- Notifications ----------

@@ -8,6 +8,9 @@ export default defineConfig({
     // Using node environment as fallback. Component tests requiring DOM
     // APIs cannot run here; run them locally instead.
     environment: "node",
+    pool: "threads",
+    fileParallelism: false,
+    // NOTE: forks pool & file parallelism intermittently hang in this environment.
     globals: true,
     setupFiles: ["./src/__tests__/setup.ts"],
     coverage: {

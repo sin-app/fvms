@@ -165,6 +165,17 @@ export interface ExcelImport {
 
 export type LandProposalStatus = "pending" | "approved" | "rejected" | "cancelled";
 
+export interface LandProposalPhoto {
+  id: string;
+  proposal_id: string;
+  url: string;
+  thumbnail: string | null;
+  caption: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+  created_at: string;
+}
+
 export interface LandProposal {
   id: string;
   proposed_by: string;
@@ -185,6 +196,9 @@ export interface LandProposal {
   tgl_tanam: string | null;
   rencana_panen: string | null;
   notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
   status: LandProposalStatus;
   review_note: string | null;
   created_schedule_id: string | null;
@@ -197,6 +211,7 @@ export interface LandProposal {
   proposed_by_user?: User;
   reviewed_by_user?: User;
   created_schedule?: Schedule;
+  photos?: LandProposalPhoto[];
 }
 
 export type Tables =
@@ -210,7 +225,8 @@ export type Tables =
   | "activity_logs"
   | "notifications"
   | "excel_imports"
-  | "land_proposals";
+  | "land_proposals"
+  | "land_proposal_photos";
 
 export type Row<T extends Tables> =
   T extends "users" ? User :
@@ -224,4 +240,5 @@ export type Row<T extends Tables> =
   T extends "notifications" ? Notification :
   T extends "excel_imports" ? ExcelImport :
   T extends "land_proposals" ? LandProposal :
+  T extends "land_proposal_photos" ? LandProposalPhoto :
   never;

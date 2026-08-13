@@ -10,9 +10,13 @@ import {
   rejectLandProposal,
   assignPetugas,
   notifyProposalSubmitted,
+  uploadLandProposalPhoto,
+  deleteLandProposalPhoto,
 } from "../services/land-proposal-service";
-import type { ActionResponse } from "@/types/common";
 import { revalidateProposalPaths, revalidateSchedulePaths } from "@/lib/revalidate";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { logger } from "@/lib/logger";
+import type { ActionResponse } from "@/types/common";
 
 function parseLandProposal(formData: FormData) {
   const raw = {
@@ -32,6 +36,9 @@ function parseLandProposal(formData: FormData) {
     tgl_tanam: (formData.get("tgl_tanam") as string) || undefined,
     rencana_panen: (formData.get("rencana_panen") as string) || undefined,
     notes: (formData.get("notes") as string) || undefined,
+    latitude: formData.get("latitude") ?? "",
+    longitude: formData.get("longitude") ?? "",
+    accuracy: formData.get("accuracy") ?? "",
   };
 
   const parsed = landProposalSchema.safeParse(raw);
@@ -191,6 +198,72 @@ export async function assignPetugasAction(
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menugaskan petugas";
+    return { success: false, error: msg };
+  }
+}
+
+export async function uploadProposalPhotoAction(
+  formData: FormData,
+): Promise<ActionResponse<{ url: string; file_size: number; mime_type: string }>> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+
+  const proposalId = formData.get("proposal_id") as string;
+  const file = formData.get("file") as File;
+
+  if (!proposalId || !file) {
+    return { success: false, error: "Data tidak lengkap" };
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    return { success: false, error: "File terlalu besar. Maksimal 10MB" };
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    return { success: false, error: "Tipe file tidak didukung. Gunakan JPG, PNG, atau WebP" };
+  }
+
+  const { count } = await createAdminClient()
+    .from("land_proposal_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("proposal_id", proposalId);
+  if ((count ?? 0) >= 10) {
+    return { success: false, error: "Maksimal 10 foto per pengajuan" };
+  }
+
+  try {
+    const result = await uploadLandProposalPhoto(proposalId, file, ctx);
+    revalidateProposalPaths();
+    return { success: true, data: result };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal mengupload foto";
+    logger.error("uploadProposalPhotoAction: upload failed", {
+      proposalId,
+      name: err instanceof Error ? err.name : "Error",
+      error: msg,
+    });
+    return { success: false, error: msg };
+  }
+}
+
+export async function deleteProposalPhotoAction(
+  _prev: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+
+  const photoId = formData.get("photo_id") as string;
+  const proposalId = formData.get("proposal_id") as string;
+  if (!photoId || !proposalId) return { success: false, error: "Data tidak lengkap" };
+
+  try {
+    await deleteLandProposalPhoto(photoId, proposalId, ctx);
+    revalidateProposalPaths();
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menghapus foto";
     return { success: false, error: msg };
   }
 }
