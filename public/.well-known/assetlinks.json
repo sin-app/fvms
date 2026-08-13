@@ -1,5 +1,5 @@
 [{
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": { "namespace": "android_app", "package_name": "id.sinapp.fvms" },
-  "sha256_cert_fingerprints": ["DF:12:AE:AE:D2:0C:60:A6:AC:73:69:6D:4E:BC:9F:9C:1E:60:50:9D:5C:B5:81:DE:04:DB:6B:B0:D5:C0:10:16"]
+  "sha256_cert_fingerprints": ["FE:C1:59:6D:18:35:77:E7:4D:5F:78:88:D1:0D:FC:79:71:FF:82:45:2B:6E:25:5D:05:C9:FB:86:CF:7B:8D:6A"]
 }]
