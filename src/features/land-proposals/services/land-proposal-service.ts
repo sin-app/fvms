@@ -465,11 +465,19 @@ export async function notifyProposalSubmitted(kabupatenId: string, label?: strin
     locationLabel = kab?.name ?? "";
   }
 
-  const { data: qcs } = await admin
+  // Kolom users.assigned_kabupaten_ids bertipe uuid[] (atau jsonb di env lain).
+  // Menghindari operator @> yang gagal untuk uuid[] @> text[], ambil QC lalu
+  // filter di JS — aman untuk kedua tipe kolom dan jumlah QC kecil.
+  const { data: qcsRaw } = await admin
     .from("users")
-    .select("id")
-    .eq("role", "qc")
-    .contains("assigned_kabupaten_ids", [kabupatenId]);
+    .select("id, assigned_kabupaten_ids")
+    .eq("role", "qc");
+
+  const qcs = (qcsRaw ?? []).filter(
+    (u) =>
+      Array.isArray(u.assigned_kabupaten_ids) &&
+      u.assigned_kabupaten_ids.includes(kabupatenId),
+  );
 
   const { data: admins } = await admin.from("users").select("id").eq("role", "admin");
 

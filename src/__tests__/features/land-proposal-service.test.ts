@@ -291,12 +291,25 @@ describe("assignPetugas", () => {
 describe("notifyProposalSubmitted", () => {
   it("notifies QCs in kabupaten and admins", async () => {
     mockFrom([
-      { data: [{ id: "qc-1" }, { id: "qc-2" }], error: null },
+      {
+        data: [
+          { id: "qc-1", assigned_kabupaten_ids: ["kab-a"] },
+          { id: "qc-2", assigned_kabupaten_ids: ["kab-b"] },
+        ],
+        error: null,
+      },
       { data: [{ id: "adm-1" }], error: null },
     ]);
 
     await notifyProposalSubmitted("kab-a", "Kab A");
 
-    expect(createNotification).toHaveBeenCalledTimes(3);
+    // qc-1 cocok (kab-a), qc-2 tidak (kab-b), plus admin -> 2 notifikasi
+    expect(createNotification).toHaveBeenCalledTimes(2);
+    expect(createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "qc-1" }),
+    );
+    expect(createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "adm-1" }),
+    );
   });
 });
