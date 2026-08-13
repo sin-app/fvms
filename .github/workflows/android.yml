@@ -87,7 +87,7 @@ jobs:
           echo "File public/.well-known/assetlinks.json dibuat & akan di-commit otomatis, lalu di-deploy Vercel." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update Vercel env TWA_SHA256_FINGERPRINT
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: prj_hAE11cMGEDihxGOeRmZsoMLZQN82
