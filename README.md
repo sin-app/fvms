@@ -75,6 +75,10 @@ Migrations live in `supabase/migrations/` (001–007). Apply them via the Supaba
 
 Deployed on Vercel as the **fvms** project → https://fvms-eight.vercel.app. Run `vercel --prod` (or connect the repo) after setting the environment variables above. Supabase project ref: `nzpjoxndqhcvphydiyaq`. Middleware is `src/proxy.ts` (Next.js 16), not `middleware.ts`. Daily cron via `vercel.json` → `GET /api/cron/notifications` (protected by `CRON_SECRET`).
 
+## Android App (TWA)
+
+FVMS juga dibungkus sebagai aplikasi Android native via **Trusted Web Activity** (folder `android/`) yang membuka PWA live di Vercel secara fullscreen. Build & distribusi **tanpa Play Store** dilakukan lewat GitHub Actions — lihat **[`android/README.md`](android/README.md)** untuk panduan lengkap (secret keystore, sideload APK, trust `assetlinks.json`).
+
 ## Project Structure
 
 ```
