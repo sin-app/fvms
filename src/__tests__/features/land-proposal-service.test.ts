@@ -215,7 +215,7 @@ describe("updateLandProposal", () => {
 });
 
 describe("approveLandProposal", () => {
-  it("creates schedule (owner = approver) and marks proposal approved", async () => {
+  it("creates schedule auto-assigned to proposer and marks proposal approved", async () => {
     const updated = { ...PROPOSAL, status: "approved", reviewed_by: "qc-1", created_schedule_id: "sched-1" };
     mockFrom([{ data: PROPOSAL, error: null }, { data: updated, error: null }]);
 
@@ -224,7 +224,7 @@ describe("approveLandProposal", () => {
     expect(result.status).toBe("approved");
     expect(result.created_schedule_id).toBe("sched-1");
     expect(createSchedule).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: "qc-1", visit_date: expect.any(String), status: "pending" }),
+      expect.objectContaining({ user_id: "prod-1", visit_date: expect.any(String), status: "pending" }),
     );
     expect(createNotification).toHaveBeenCalledWith(
       expect.objectContaining({ userId: "prod-1", title: "Pengajuan disetujui" }),

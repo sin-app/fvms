@@ -186,8 +186,10 @@ export async function approveLandProposal(id: string, ctx: AuthContext): Promise
 
   let scheduleId: string;
   try {
+    // Jadwal otomatis di-assign ke pengaju (petugas produksi) agar langsung
+    // muncul di daftar jadwalnya; QC/Admin tetap bisa reassign lewat Assign Petugas.
     const schedule = await createSchedule({
-      user_id: ctx.userId,
+      user_id: proposal.proposed_by,
       kabupaten_id: proposal.kabupaten_id,
       kecamatan_id: proposal.kecamatan_id,
       desa_id: proposal.desa_id,
@@ -484,7 +486,7 @@ export async function notifyProposalReviewed(
     userId: proposedBy,
     title: approved ? "Pengajuan disetujui" : "Pengajuan ditolak",
     message: approved
-      ? `Pengajuan lahan${kabupatenName ? ` di ${kabupatenName}` : ""} disetujui dan telah menjadi jadwal.`
+      ? `Pengajuan lahan${kabupatenName ? ` di ${kabupatenName}` : ""} disetujui dan telah menjadi jadwal untuk Anda.`
       : `Pengajuan lahan${kabupatenName ? ` di ${kabupatenName}` : ""} ditolak. Lihat catatan untuk detail.`,
     type: approved ? "success" : "warning",
     link: "/pengajuan-lahan",
