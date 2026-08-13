@@ -3,6 +3,7 @@ import type { AuthContext } from "@/lib/auth/authorization";
 import { qcKabupatenScope } from "@/lib/auth/authorization";
 import { createSchedule } from "@/features/schedules/services/schedule-service";
 import { createNotification } from "@/features/notifications/services/notification-service";
+import { sendPushToUsers } from "@/lib/push-sender";
 import { dateString } from "@/lib/utils/date";
 import { getConfig } from "@/lib/config";
 import { logger } from "@/lib/logger";
@@ -449,8 +450,21 @@ function isImageBuffer(buf: Uint8Array): boolean {
 
 // ---------- Notifications ----------
 
-export async function notifyProposalSubmitted(kabupatenId: string, label: string): Promise<void> {
+export async function notifyProposalSubmitted(kabupatenId: string, label?: string): Promise<void> {
   const admin = createAdminClient();
+
+  // Tentukan label lokasi dari nama kabupaten bila tidak diberikan secara eksplisit,
+  // agar notifikasi QC jelas merujuk pada lokasi penugasannya.
+  let locationLabel = label;
+  if (!locationLabel) {
+    const { data: kab } = await admin
+      .from("kabupaten")
+      .select("name")
+      .eq("id", kabupatenId)
+      .maybeSingle();
+    locationLabel = kab?.name ?? "";
+  }
+
   const { data: qcs } = await admin
     .from("users")
     .select("id")
@@ -469,12 +483,31 @@ export async function notifyProposalSubmitted(kabupatenId: string, label: string
       createNotification({
         userId,
         title: "Pengajuan lahan baru",
-        message: `Ada pengajuan lahan baru ${label ? `di ${label}` : ""} menunggu persetujuan.`,
+        message: `Ada pengajuan lahan baru${locationLabel ? ` di ${locationLabel}` : ""} menunggu persetujuan.`,
         type: "info",
         link: "/pengajuan-lahan",
       }),
     ),
   );
+
+  // Kirim web push ke penerima yang sama (admin + QC lokasi terkait) bila
+  // mereka memiliki subscription push aktif. Best-effort: kegagalan push
+  // tidak boleh menggagalkan pembuatan notifikasi.
+  const recipientIds = [...recipients];
+  if (recipientIds.length > 0) {
+    try {
+      await sendPushToUsers(
+        {
+          title: "Pengajuan lahan baru",
+          body: `Ada pengajuan lahan baru${locationLabel ? ` di ${locationLabel}` : ""} menunggu persetujuan.`,
+          url: "/pengajuan-lahan",
+        },
+        recipientIds,
+      );
+    } catch (e) {
+      logger.warn("notifyProposalSubmitted: push gagal", { error: String(e) });
+    }
+  }
 }
 
 export async function notifyProposalReviewed(
