@@ -142,10 +142,13 @@ export async function getScheduleList(
   const panenStatus =
     filters.panen_status && filters.panen_status !== "all" ? filters.panen_status : null;
 
+  const showDeleted = filters.includeDeleted === true && ctx?.role === "admin";
+
   const { query: baseQuery } = buildScheduleQuery(userId, filters, ctx);
 
   let query = baseQuery;
-  query = query.is("deleted_at", null).order("visit_date", { ascending: true });
+  query = (showDeleted ? query.not("deleted_at", "is", null) : query.is("deleted_at", null))
+    .order("visit_date", { ascending: true });
 
   if (panenStatus) {
     // Panen status is derived (rencana_panen may be computed from tgl_tanam + cgr),
@@ -193,9 +196,12 @@ export async function getScheduleRowsForExport(
   const panenStatus =
     filters.panen_status && filters.panen_status !== "all" ? filters.panen_status : null;
 
+  const showDeleted = filters.includeDeleted === true && ctx?.role === "admin";
+
   const { query } = buildScheduleQuery(userId, filters, ctx);
 
-  let exportQuery = query.is("deleted_at", null).order("visit_date", { ascending: true });
+  let exportQuery = (showDeleted ? query.not("deleted_at", "is", null) : query.is("deleted_at", null))
+    .order("visit_date", { ascending: true });
   if (panenStatus) exportQuery = exportQuery.limit(MAX_EXPORT_ROWS);
 
   const { data, error } = await exportQuery;
@@ -302,6 +308,16 @@ export async function deleteSchedule(id: string) {
   const { error } = await admin
     .from("schedules")
     .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+export async function restoreSchedule(id: string) {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("schedules")
+    .update({ deleted_at: null })
     .eq("id", id);
 
   if (error) throw error;

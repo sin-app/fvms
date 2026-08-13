@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction } from "../actions/schedule-actions";
+import { deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction, restoreScheduleAction } from "../actions/schedule-actions";
 import {
   queueScheduleUpdate,
   queueScheduleShift,
@@ -55,6 +55,31 @@ export function useDeleteSchedule() {
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
       queryClient.invalidateQueries({ queryKey: ["cgr"] });
       toast.success("Jadwal berhasil dihapus");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRestoreSchedule() {
+  const queryClient = useQueryClient();
+  const { online } = useSync();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!online) {
+        throw new Error("Pulihkan jadwal memerlukan koneksi online");
+      }
+      const fd = new FormData();
+      fd.set("id", id);
+      const result = await restoreScheduleAction({ success: false }, fd);
+      if (!result.success) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["cgr"] });
+      toast.success("Jadwal berhasil dipulihkan");
     },
     onError: (err: Error) => toast.error(err.message),
   });

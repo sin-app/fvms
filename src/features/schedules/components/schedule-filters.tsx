@@ -8,6 +8,7 @@ import { MultiFilterSelect } from "@/components/shared/multi-filter-select";
 import type { DistinctFiltersInput } from "../types";
 import { STATUS_LABELS } from "@/lib/constants/status";
 import { dateString } from "@/lib/utils/date";
+import { ArchiveRestore, Trash2 } from "lucide-react";
 
 interface ScheduleFiltersProps {
   memberName: string;
@@ -45,6 +46,9 @@ interface ScheduleFiltersProps {
   label: string;
   onLabelChange: (value: string) => void;
   hidePetugasFilter?: boolean;
+  /** Toggle "Jadwal Terhapus" — hanya untuk admin. */
+  showDeleted?: boolean;
+  onShowDeletedChange?: (value: boolean) => void;
   /** Filter aktif yang membatasi opsi dropdown lain (relasi cascading). */
   relations?: DistinctFiltersInput;
 }
@@ -126,6 +130,8 @@ export function ScheduleFilters({
   onLabelChange,
   hidePetugasFilter = false,
   relations,
+  showDeleted = false,
+  onShowDeletedChange,
 }: ScheduleFiltersProps) {
   const { data: kabupaten } = useAllKabupaten();
   const { data: kecamatan } = useAllKecamatan(kabupatenId);
@@ -301,6 +307,21 @@ export function ScheduleFilters({
           </div>
         )}
       </div>
+      {onShowDeletedChange && (
+        <button
+          type="button"
+          onClick={() => onShowDeletedChange(!showDeleted)}
+          className={`inline-flex items-center gap-2 h-10 rounded-lg border px-3 py-2 text-sm transition-colors ${
+            showDeleted
+              ? "border-destructive/50 bg-destructive/10 text-destructive"
+              : "border-input bg-background text-muted-foreground hover:bg-muted"
+          }`}
+          aria-pressed={showDeleted}
+        >
+          {showDeleted ? <ArchiveRestore className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+          {showDeleted ? "Jadwal Terhapus (klik untuk lihat jadwal aktif)" : "Lihat Jadwal Terhapus"}
+        </button>
+      )}
     </div>
   );
 }

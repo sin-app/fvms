@@ -21,6 +21,8 @@ export interface ScheduleFilters {
   varietas?: string;
   panen_status?: string;
   label?: string;
+  /** Hanya berlaku untuk admin: tampilkan jadwal yang dihapus (soft delete). */
+  includeDeleted?: boolean;
 }
 
 export interface ScheduleListResult {

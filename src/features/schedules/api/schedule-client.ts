@@ -19,7 +19,12 @@ export async function fetchScheduleRows(filters: ScheduleFilters) {
 
   const userId = ctx.role === "admin" || ctx.role === "qc" ? "all" : ctx.userId;
 
-  return getScheduleRowsForExport(userId, filters, ctx);
+  // Hanya admin yang boleh melihat jadwal terhapus.
+  const sanitized = filters.includeDeleted === true && ctx.role !== "admin"
+    ? { ...filters, includeDeleted: false }
+    : filters;
+
+  return getScheduleRowsForExport(userId, sanitized, ctx);
 }
 
 export async function fetchScheduleById(id: string) {

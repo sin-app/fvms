@@ -2,10 +2,10 @@
 
 import { useState, Fragment, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout, CloudOff } from "lucide-react";
+import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout, CloudOff, RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSync } from "@/lib/offline/sync-context";
-import { useSchedules, useDeleteSchedule, useShiftScheduleDate } from "../hooks/use-schedules";
+import { useSchedules, useDeleteSchedule, useShiftScheduleDate, useRestoreSchedule } from "../hooks/use-schedules";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -55,6 +55,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState<Schedule | null>(null);
+  const [restoring, setRestoring] = useState<Schedule | null>(null);
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [showBulkCancel, setShowBulkCancel] = useState(false);
@@ -87,9 +88,11 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
 
   const isAdmin = user?.role === "admin";
   const canDelete = user?.role === "admin";
+  const showDeleted = isAdmin && filters.includeDeleted === true;
   const canBulkShift = user?.role === "admin" || user?.role === "qc";
   const canEdit = (schedule: Schedule) => !offline && (user?.role === "admin" || schedule.user_id === user?.id);
   const shiftSchedule = useShiftScheduleDate();
+  const restoreSchedule = useRestoreSchedule();
 
   function canShift(schedule: Schedule) {
     if (user?.role === "admin") return true;
@@ -146,14 +149,22 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
     setDeleting(null);
   }
 
+  async function handleRestore() {
+    if (!restoring) return;
+    await restoreSchedule.mutateAsync(restoring.id);
+    setRestoring(null);
+  }
+
   if (isLoading && !data) return <LoadingState variant="table" />;
 
   if (!rows.length) {
     return (
       <EmptyState
-        title="Tidak ada jadwal"
-        description="Belum ada jadwal kunjungan. Import dari Excel atau buat jadwal baru."
-        action={{ label: "Import Excel", href: "/import" }}
+        title={showDeleted ? "Tidak ada jadwal terhapus" : "Tidak ada jadwal"}
+        description={showDeleted
+          ? "Semua jadwal aktif. Jadwal yang dihapus akan tampil di sini."
+          : "Belum ada jadwal kunjungan. Import dari Excel atau buat jadwal baru."}
+        action={showDeleted ? undefined : { label: "Import Excel", href: "/import" }}
       />
     );
   }
@@ -174,7 +185,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
           Memuat ulang...
         </div>
       )}
-      {selectedIds.size > 0 && !offline && (
+      {selectedIds.size > 0 && !offline && !showDeleted && (
         <div className="flex flex-wrap items-center gap-1.5 mb-3 p-3 rounded-lg border bg-muted/30">
           <span className="text-sm text-muted-foreground mr-auto w-full sm:w-auto mb-1 sm:mb-0">
             {selectedIds.size} dipilih
@@ -313,11 +324,13 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                       className="border-b last:border-0 hover:bg-muted/50 transition-colors"
                     >
                       <td className="p-3">
-                        <Checkbox
-                          checked={selectedIds.has(schedule.id)}
-                          onCheckedChange={() => toggleSelect(schedule.id)}
-                          aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
-                        />
+                        {!showDeleted && (
+                          <Checkbox
+                            checked={selectedIds.has(schedule.id)}
+                            onCheckedChange={() => toggleSelect(schedule.id)}
+                            aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
+                          />
+                        )}
                       </td>
                       <td className="p-3 text-sm whitespace-nowrap">
                         {(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}
@@ -385,49 +398,63 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
-                          {canEdit(schedule) && (
+                          {showDeleted ? (
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => setEditing(schedule)}
-                              aria-label="Edit"
-                              title="Edit"
+                              onClick={() => setRestoring(schedule)}
+                              aria-label="Pulihkan"
+                              title="Pulihkan jadwal"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <RotateCcw className="h-4 w-4" />
                             </Button>
-                          )}
-                          {canDelete && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleting(schedule)}
-                              aria-label="Hapus"
-                              title="Hapus"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
-                          {canShift(schedule) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleShiftInstant(schedule, 1)}
-                              aria-label="Geser +1 hari"
-                              title="Geser +1 hari"
-                            >
-                              <CalendarPlus className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canShift(schedule) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleShiftInstant(schedule, -1)}
-                              aria-label="Kembalikan -1 hari"
-                              title="Kembalikan -1 hari"
-                            >
-                              <CalendarMinus className="h-4 w-4" />
-                            </Button>
+                          ) : (
+                            <>
+                              {canEdit(schedule) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditing(schedule)}
+                                  aria-label="Edit"
+                                  title="Edit"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleting(schedule)}
+                                  aria-label="Hapus"
+                                  title="Hapus"
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
+                              {canShift(schedule) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleShiftInstant(schedule, 1)}
+                                  aria-label="Geser +1 hari"
+                                  title="Geser +1 hari"
+                                >
+                                  <CalendarPlus className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canShift(schedule) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleShiftInstant(schedule, -1)}
+                                  aria-label="Kembalikan -1 hari"
+                                  title="Kembalikan -1 hari"
+                                >
+                                  <CalendarMinus className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -464,12 +491,14 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 className="animate-fade-in-up rounded-2xl border bg-card p-3.5 transition-colors hover:bg-muted/40"
               >
                 <div className="flex items-center gap-2.5">
-                  <Checkbox
-                    checked={selectedIds.has(schedule.id)}
-                    onCheckedChange={() => toggleSelect(schedule.id)}
-                    className="shrink-0"
-                    aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
-                  />
+                  {!showDeleted && (
+                    <Checkbox
+                      checked={selectedIds.has(schedule.id)}
+                      onCheckedChange={() => toggleSelect(schedule.id)}
+                      className="shrink-0"
+                      aria-label={`Pilih ${(schedule as unknown as { desa?: { name: string } }).desa?.name ?? schedule.id}`}
+                    />
+                  )}
                   <StatusBadge status={schedule.status} size="sm" />
                   <LabelBadge label={schedule.label} />
                   <div className="ml-auto flex items-center gap-0.5">
@@ -481,7 +510,18 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                     >
                       <Eye className="h-4 w-4" />
                     </Link>
-                    {canEdit(schedule) && (
+                    {showDeleted ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => setRestoring(schedule)}
+                        aria-label="Pulihkan"
+                        title="Pulihkan jadwal"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    ) : canEdit(schedule) && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -526,7 +566,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
                 <div className="mt-2.5 flex items-center justify-between gap-2 border-t pt-2.5">
                   <PanenChip schedule={schedule} />
                   <div className="flex items-center gap-0.5">
-                    {canDelete && (
+                    {!showDeleted && canDelete && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -603,6 +643,16 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
         variant="destructive"
         onConfirm={handleDelete}
         loading={deleteSchedule.isPending}
+      />
+
+      <ConfirmDialog
+        open={!!restoring}
+        onOpenChange={(o) => !o && setRestoring(null)}
+        title="Pulihkan Jadwal?"
+        message="Jadwal ini akan kembali tampil di daftar jadwal untuk semua pengguna."
+        confirmLabel="Pulihkan"
+        onConfirm={handleRestore}
+        loading={restoreSchedule.isPending}
       />
 
       <ConfirmDialog

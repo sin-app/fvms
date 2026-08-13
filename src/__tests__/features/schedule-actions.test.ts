@@ -15,11 +15,16 @@ vi.mock("@/features/schedules/services/schedule-service", () => ({
   createSchedule: vi.fn(),
   updateSchedule: vi.fn(),
   deleteSchedule: vi.fn(),
+  restoreSchedule: vi.fn(),
   getScheduleOwnerIds: vi.fn(() => []),
 }));
 
-import { createScheduleAction, updateScheduleAction } from "@/features/schedules/actions/schedule-actions";
-import { createSchedule, updateSchedule } from "@/features/schedules/services/schedule-service";
+vi.mock("@/lib/revalidate", () => ({
+  revalidateSchedulePaths: vi.fn(),
+}));
+
+import { createScheduleAction, updateScheduleAction, restoreScheduleAction } from "@/features/schedules/actions/schedule-actions";
+import { createSchedule, updateSchedule, restoreSchedule } from "@/features/schedules/services/schedule-service";
 import { getAuthContext } from "@/lib/auth/authorization";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { ActionResponse } from "@/types/common";
@@ -176,6 +181,55 @@ describe("schedule-actions auto-derivation", () => {
 
       const [, data] = vi.mocked(updateSchedule).mock.calls[0];
       expect(data.status).toBe("pending");
+    });
+  });
+
+  describe("restoreScheduleAction", () => {
+    beforeEach(() => {
+      vi.mocked(restoreSchedule).mockResolvedValue(undefined);
+    });
+
+    it("restores a schedule as admin", async () => {
+      vi.mocked(getAuthContext).mockResolvedValue({
+        userId: "admin",
+        role: "admin",
+        assignedKabupatenIds: [],
+      } as never);
+
+      const fd = new FormData();
+      fd.set("id", "sched-1");
+      const result = await restoreScheduleAction(emptyResponse, fd);
+
+      expect(result.success).toBe(true);
+      expect(restoreSchedule).toHaveBeenCalledWith("sched-1");
+    });
+
+    it("rejects non-admin", async () => {
+      vi.mocked(getAuthContext).mockResolvedValue({
+        userId: "prod-1",
+        role: "produksi",
+        assignedKabupatenIds: [],
+      } as never);
+
+      const fd = new FormData();
+      fd.set("id", "sched-1");
+      const result = await restoreScheduleAction(emptyResponse, fd);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Hanya admin");
+      expect(restoreSchedule).not.toHaveBeenCalled();
+    });
+
+    it("rejects missing id", async () => {
+      vi.mocked(getAuthContext).mockResolvedValue({
+        userId: "admin",
+        role: "admin",
+        assignedKabupatenIds: [],
+      } as never);
+
+      const result = await restoreScheduleAction(emptyResponse, new FormData());
+      expect(result.success).toBe(false);
+      expect(restoreSchedule).not.toHaveBeenCalled();
     });
   });
 });

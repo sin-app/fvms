@@ -6,6 +6,7 @@ import {
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  restoreSchedule,
   getScheduleOwnerIds,
 } from "../services/schedule-service";
 import type { ActionResponse } from "@/types/common";
@@ -208,6 +209,30 @@ export async function deleteScheduleAction(
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal";
+    return { success: false, error: msg };
+  }
+}
+
+export async function restoreScheduleAction(
+  _prevState: ActionResponse,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+
+  const id = formData.get("id") as string;
+  if (!id) return { success: false, error: "ID tidak valid" };
+
+  if (ctx.role !== "admin") {
+    return { success: false, error: "Hanya admin yang dapat memulihkan jadwal" };
+  }
+
+  try {
+    await restoreSchedule(id);
+    revalidateSchedulePaths();
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal memulihkan jadwal";
     return { success: false, error: msg };
   }
 }

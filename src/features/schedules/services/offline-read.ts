@@ -23,6 +23,11 @@ const like = (value: string | null | undefined, term?: string) =>
 
 export function filterOfflineSchedules(rows: OfflineSchedule[], filters: ScheduleFilters): OfflineSchedule[] {
   return rows.filter((s) => {
+    if (filters.includeDeleted === true) {
+      if (!s.deleted_at) return false;
+    } else if (s.deleted_at) {
+      return false;
+    }
     if (filters.status && s.status !== filters.status) return false;
     if (filters.label && s.label !== filters.label) return false;
     if (filters.user_id && s.user_id !== filters.user_id) return false;

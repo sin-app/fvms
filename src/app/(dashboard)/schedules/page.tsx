@@ -21,6 +21,8 @@ export default function SchedulesPage() {
   const queryClient = useQueryClient();
   const { user, isLoading } = useAuth();
   const isProduksi = user?.role === "produksi";
+  const isAdmin = user?.role === "admin";
+  const [showDeleted, setShowDeleted] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [userId, setUserId] = useState("");
   const [blockNo, setBlockNo] = useState<string[]>([]);
@@ -162,6 +164,7 @@ export default function SchedulesPage() {
     varietas: debouncedVarietas || undefined,
     panen_status: panenStatus !== "all" ? panenStatus : undefined,
     label: label !== "all" ? label : undefined,
+    includeDeleted: isAdmin ? (showDeleted || undefined) : undefined,
   };
 
   const relations = {
@@ -196,7 +199,7 @@ export default function SchedulesPage() {
                 Kalender
               </Button>
             </Link>
-            <Button size="sm" onClick={() => setShowCreate(true)}>
+            <Button size="sm" onClick={() => setShowCreate(true)} disabled={showDeleted}>
               <Plus className="h-4 w-4 mr-1.5" />
               Buat Jadwal
             </Button>
@@ -241,6 +244,8 @@ export default function SchedulesPage() {
         onLabelChange={setLabel}
         hidePetugasFilter={isProduksi}
         relations={relations}
+        showDeleted={showDeleted}
+        onShowDeletedChange={setShowDeleted}
       />
 
       <ScheduleTable filters={filters} />
