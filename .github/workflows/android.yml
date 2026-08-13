@@ -13,6 +13,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,17 +67,30 @@ jobs:
           path: android/build/upload.keystore
           if-no-files-found: ignore
 
-      - name: Print signing fingerprint
+      - name: Compute fingerprint & write assetlinks.json (TWA trust)
+        id: fp
         env:
           TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
         run: |
           FP=$(keytool -list -v -keystore android/build/upload.keystore \
             -alias upload -storepass "${TWA_KEYSTORE_PASSWORD:-fvms-upload-2026}" 2>/dev/null | \
             grep -oE "[0-9A-F]{2}(:[0-9A-F]{2}){31}" | tail -1)
-          echo "FINGERPRINT=$FP"
-          echo "## Signing SHA-256" >> "$GITHUB_STEP_SUMMARY"
+          echo "fingerprint=$FP" >> "$GITHUB_OUTPUT"
+          mkdir -p public/.well-known
+          echo '[{' > public/.well-known/assetlinks.json
+          echo '  "relation": ["delegate_permission/common.handle_all_urls"],' >> public/.well-known/assetlinks.json
+          echo '  "target": { "namespace": "web", "site": "https://fvms-eight.vercel.app" },' >> public/.well-known/assetlinks.json
+          echo "  \"sha256_cert_fingerprints\": [\"$FP\"]" >> public/.well-known/assetlinks.json
+          echo '}]' >> public/.well-known/assetlinks.json
+          echo "## Signing SHA-256 (TWA trust)" >> "$GITHUB_STEP_SUMMARY"
           echo "$FP" >> "$GITHUB_STEP_SUMMARY"
-          echo "### Set env \`TWA_SHA256_FINGERPRINT\` di Vercel dengan nilai di atas (tanpa spasi)." >> "$GITHUB_STEP_SUMMARY"
+          echo "File public/.well-known/assetlinks.json dibuat & akan di-commit otomatis, lalu di-deploy Vercel." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit assetlinks.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(android): update TWA assetlinks.json fingerprint [skip ci]"
+          file_pattern: "public/.well-known/assetlinks.json"
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
