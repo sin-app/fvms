@@ -358,8 +358,8 @@ export async function pushOutbox(opts: SyncOptions): Promise<PushResult> {
 
 /** Enqueue sebuah mutasi lokal ke antrian outbox (dipanggil service saat offline). */
 export async function queueMutation(
-  entry: Omit<OutboxEntry, "created_at" | "attempts" | "last_error"> &
-    Partial<Pick<OutboxEntry, "created_at" | "attempts" | "last_error">>,
+  entry: Omit<OutboxEntry, "created_at" | "attempts" | "last_error" | "id"> &
+    Partial<Pick<OutboxEntry, "created_at" | "attempts" | "last_error" | "id">>,
 ): Promise<void> {
   const db = getOfflineDb();
   await db.outbox.put({
@@ -516,6 +516,7 @@ async function applyOutboxEntry(
       "id", "proposed_by", "kabupaten_id", "kecamatan_id", "desa_id", "block_no",
       "no_plot", "document_no", "member_name", "cgr", "cgr_code", "nis", "ph_tanah",
       "real_tanam_ha", "detaseling", "tgl_tanam", "rencana_panen", "notes", "status",
+      "latitude", "longitude", "accuracy",
     ];
     const row: Record<string, unknown> = pick(payload, allowed);
     if (!Object.keys(row).length) throw new Error("land_proposals: payload kosong");
@@ -531,7 +532,7 @@ async function applyOutboxEntry(
     const allowed = [
       "status", "review_note", "reviewed_by", "block_no", "no_plot", "member_name",
       "document_no", "nis", "ph_tanah", "real_tanam_ha", "detaseling", "tgl_tanam",
-      "rencana_panen", "notes",
+      "rencana_panen", "notes", "latitude", "longitude", "accuracy",
     ];
     const row: Record<string, unknown> = pick(payload, allowed);
     if (!Object.keys(row).length) throw new Error("land_proposals: payload kosong");

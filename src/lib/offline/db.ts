@@ -96,6 +96,9 @@ export interface OfflineLandProposal {
   tgl_tanam: string | null;
   rencana_panen: string | null;
   notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
   status: string;
   review_note: string | null;
   created_schedule_id: string | null;

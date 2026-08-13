@@ -10,6 +10,9 @@ import { ReusableDialog } from "@/components/shared/reusable-dialog";
 import { RegionSelector } from "@/features/master-data";
 import { ProposalGps } from "./proposal-gps";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/components/auth-context";
+import { useSync } from "@/lib/offline/sync-context";
+import { saveLandProposalOffline } from "../services/land-proposal-client";
 import type { ActionResponse } from "@/types/common";
 import type { LandProposal } from "@/types";
 
@@ -27,6 +30,10 @@ export function ProposalForm({
   onOpenChange,
 }: ProposalFormProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const { online } = useSync();
+  const [offlinePending, setOfflinePending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [state, formAction, pending] = useActionState(
     async (prev: ActionResponse, formData: FormData) => {
       const result = await action(prev, formData);
@@ -38,6 +45,26 @@ export function ProposalForm({
     },
     { success: false },
   );
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    if (online || !user) return;
+    e.preventDefault();
+    setSubmitError(null);
+    setOfflinePending(true);
+    try {
+      const result = await saveLandProposalOffline(new FormData(e.currentTarget), user, isEditing);
+      if (result.success) {
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        setSubmitError(result.error ?? "Gagal menyimpan secara luring");
+      }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Gagal menyimpan secara luring");
+    } finally {
+      setOfflinePending(false);
+    }
+  };
 
   const [kabupatenId, setKabupatenId] = useState(defaultValues?.kabupaten_id ?? "");
   const [kecamatanId, setKecamatanId] = useState(defaultValues?.kecamatan_id ?? "");
@@ -53,7 +80,7 @@ export function ProposalForm({
       description="Isi detail lahan yang akan ditanam (persetujuan QC/Admin)"
       className="sm:max-w-xl max-h-[90vh] overflow-y-auto"
     >
-      <form action={formAction} className="space-y-4">
+      <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
         {defaultValues && <input type="hidden" name="id" value={defaultValues.id} />}
 
         <RegionSelector
@@ -170,13 +197,22 @@ export function ProposalForm({
         </div>
 
         {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+        {submitError && <p className="text-sm text-destructive">{submitError}</p>}
 
         <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-background pb-1">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Batal
           </Button>
-          <Button type="submit" disabled={pending}>
-            {pending ? "Menyimpan..." : isEditing ? "Simpan" : "Ajukan"}
+          <Button type="submit" disabled={pending || offlinePending}>
+            {pending || offlinePending
+              ? "Menyimpan..."
+              : !online
+                ? isEditing
+                  ? "Simpan (Luring)"
+                  : "Ajukan (Luring)"
+                : isEditing
+                  ? "Simpan"
+                  : "Ajukan"}
           </Button>
         </div>
       </form>
