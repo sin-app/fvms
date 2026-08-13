@@ -24,6 +24,7 @@ import {
   syncUserContext,
   type HydrateResult,
 } from "./engine";
+import { notifyProposalSubmittedAction } from "@/features/land-proposals/actions/land-proposal-actions";
 import { createClient } from "@/lib/supabase/client";
 
 export interface SyncState {
@@ -83,7 +84,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       // diedit user — hindari spoof role di alur sinkron.
       const role = user.role === "admin" || user.role === "qc" ? user.role : "produksi";
       const ctx = syncUserContext({ ...user, role });
-      const pushed = await pushOutbox({ supabase, user: ctx });
+      const pushed = await pushOutbox({
+        supabase,
+        user: ctx,
+        onLandProposalInserted: async (proposalId) => {
+          await notifyProposalSubmittedAction(proposalId);
+        },
+      });
       const hydrate = await hydrateOffline({ supabase, user: ctx });
       setState((prev) => ({
         ...prev,

@@ -46,6 +46,8 @@ export interface SyncOptions {
   /** Hanya dibutuhkan hydrateOffline; pushOutbox mengabaikan. */
   user?: SyncUserContext;
   limit?: number;
+  /** Dipanggil setelah insert land_proposals berhasil (untuk kirim notifikasi). */
+  onLandProposalInserted?: (proposalId: string, kabupatenId: string) => Promise<void>;
 }
 
 const DEFAULT_LIMIT = 20000;
@@ -338,12 +340,12 @@ export async function pushOutbox(opts: SyncOptions): Promise<PushResult> {
   let pushed = 0;
   let failed = 0;
 
-  for (const entry of entries) {
-    try {
-      await applyOutboxEntry(supabase, entry, opts.user);
-      await db.outbox.delete(entry.id);
-      pushed += 1;
-    } catch (error) {
+   for (const entry of entries) {
+     try {
+       await applyOutboxEntry(supabase, entry, opts);
+       await db.outbox.delete(entry.id);
+       pushed += 1;
+     } catch (error) {
       failed += 1;
       await db.outbox.put({
         ...entry,
@@ -382,9 +384,10 @@ function pick(obj: Record<string, unknown>, keys: string[]): Record<string, unkn
 async function applyOutboxEntry(
   supabase: SupabaseClient,
   entry: OutboxEntry,
-  user?: SyncUserContext,
+  opts?: SyncOptions,
 ): Promise<void> {
   const { table, action, entity_id: entityId, payload } = entry;
+  const user = opts?.user;
 
   if (table === "visit_notes" && action === "upsert") {
     const { error } = await supabase
@@ -522,6 +525,13 @@ async function applyOutboxEntry(
     if (!Object.keys(row).length) throw new Error("land_proposals: payload kosong");
     const { error } = await supabase.from("land_proposals").insert(row);
     if (error) throw new Error(`land_proposals insert: ${error.message}`);
+    if (opts?.onLandProposalInserted) {
+      try {
+        await opts.onLandProposalInserted(entityId, String(payload.kabupaten_id ?? ""));
+      } catch {
+        // notifikasi gagal tidak boleh membatalkan insert proposal
+      }
+    }
     return;
   }
 

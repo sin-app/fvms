@@ -177,6 +177,30 @@ export async function rejectLandProposalAction(
   }
 }
 
+export async function notifyProposalSubmittedAction(
+  proposalId: string,
+): Promise<ActionResponse> {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("land_proposals")
+      .select("kabupaten_id")
+      .eq("id", proposalId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return { success: false, error: "Proposal tidak ditemukan" };
+
+    await notifyProposalSubmitted(data.kabupaten_id as string, proposalId);
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal mengirim notifikasi";
+    return { success: false, error: msg };
+  }
+}
+
 export async function assignPetugasAction(
   prevState: ActionResponse,
   formData: FormData,

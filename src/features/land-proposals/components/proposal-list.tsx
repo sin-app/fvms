@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, XCircle, CheckCircle2, UserCheck, Eye, MapPin } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -10,6 +11,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { formatDate } from "@/lib/utils/date";
+import { useSync } from "@/lib/offline/sync-context";
+import { cancelLandProposalOffline } from "../services/land-proposal-client";
 import type { ActionResponse } from "@/types/common";
 import type { AuthContext } from "@/lib/auth/authorization";
 import type { LandProposal, LandProposalStatus } from "@/types";
@@ -83,6 +86,7 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
   const isOwner = proposal.proposed_by === currentUser.userId;
   const isReviewer = currentUser.role === "admin" || currentUser.role === "qc";
   const isAdmin = currentUser.role === "admin";
+  const { online } = useSync();
 
   const canEdit = isOwner
     ? proposal.status === "pending"
@@ -213,9 +217,18 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
           confirmLabel="Batalkan"
           variant="destructive"
           onConfirm={async () => {
-            const formData = new FormData();
-            formData.set("id", proposal.id);
-            await cancelLandProposalAction({ success: false }, formData);
+            try {
+              if (!online) {
+                await cancelLandProposalOffline(proposal.id);
+              } else {
+                const formData = new FormData();
+                formData.set("id", proposal.id);
+                await cancelLandProposalAction({ success: false }, formData);
+              }
+            } catch {
+              toast.error("Gagal membatalkan pengajuan");
+              return;
+            }
             setCancelTarget(false);
           }}
         />

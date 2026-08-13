@@ -119,6 +119,23 @@ describe("saveLandProposalOffline", () => {
     expect(entries[0].action).toBe("upsert");
     expect(entries[0].payload).not.toHaveProperty("status");
   });
+
+  it("pushOutbox memanggil onLandProposalInserted untuk proposal luring", async () => {
+    await saveLandProposalOffline(buildForm(), { id: "u-1" }, false);
+    const outboxEntry = (await getOfflineDb().outbox.toArray())[0];
+    const notified: string[] = [];
+    const { supabase } = createFakeSupabase({});
+    const result = await pushOutbox({
+      supabase,
+      limit: 10,
+      user: { id: "u-1", role: "produksi", assignedKabupatenIds: [] },
+      onLandProposalInserted: async (proposalId, kabupatenId) => {
+        notified.push(`${proposalId}:${kabupatenId}`);
+      },
+    });
+    expect(result.pushed).toBe(1);
+    expect(notified).toEqual([`${outboxEntry.entity_id}:k-1`]);
+  });
 });
 
 describe("cancelLandProposalOffline", () => {
