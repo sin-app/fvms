@@ -114,7 +114,7 @@ Format (`public/.well-known/assetlinks.json`):
 ```json
 [{
   "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": { "namespace": "web", "site": "https://fvms-eight.vercel.app" },
+  "target": { "namespace": "android_app", "package_name": "id.sinapp.fvms" },
   "sha256_cert_fingerprints": ["AB:CD:...:EF"]
 }]
 ```

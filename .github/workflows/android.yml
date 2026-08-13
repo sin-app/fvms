@@ -79,7 +79,7 @@ jobs:
           mkdir -p public/.well-known
           echo '[{' > public/.well-known/assetlinks.json
           echo '  "relation": ["delegate_permission/common.handle_all_urls"],' >> public/.well-known/assetlinks.json
-          echo '  "target": { "namespace": "web", "site": "https://fvms-eight.vercel.app" },' >> public/.well-known/assetlinks.json
+          echo '  "target": { "namespace": "android_app", "package_name": "id.sinapp.fvms" },' >> public/.well-known/assetlinks.json
           echo "  \"sha256_cert_fingerprints\": [\"$FP\"]" >> public/.well-known/assetlinks.json
           echo '}]' >> public/.well-known/assetlinks.json
           echo "## Signing SHA-256 (TWA trust)" >> "$GITHUB_STEP_SUMMARY"

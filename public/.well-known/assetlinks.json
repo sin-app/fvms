@@ -1,5 +1,5 @@
 [{
   "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": { "namespace": "web", "site": "https://fvms-eight.vercel.app" },
+  "target": { "namespace": "android_app", "package_name": "id.sinapp.fvms" },
   "sha256_cert_fingerprints": ["DF:12:AE:AE:D2:0C:60:A6:AC:73:69:6D:4E:BC:9F:9C:1E:60:50:9D:5C:B5:81:DE:04:DB:6B:B0:D5:C0:10:16"]
 }]
