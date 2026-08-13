@@ -89,7 +89,7 @@ jobs:
       - name: Commit assetlinks.json
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore(android): update TWA assetlinks.json fingerprint [skip ci]"
+          commit_message: "chore(android): update TWA assetlinks.json fingerprint"
           file_pattern: "public/.well-known/assetlinks.json"
 
       - name: Upload AAB
