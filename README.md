@@ -42,7 +42,7 @@ Status is auto-derived from visit activity (real/gagal tanam, sisa di lahan, pan
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router), React Server Components, Server Actions
-- **Language:** TypeScript (strict)
+- **Language:** TypeScript (strict — `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`; `exactOptionalPropertyTypes` is intentionally **off** for Supabase generated-row compatibility)
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Database & Auth:** PostgreSQL + Supabase (Auth, Storage, RLS)
 - **Data fetching:** TanStack Query
