@@ -91,7 +91,7 @@ describe("offline-read", () => {
     expect(filterOfflineSchedules(rows, { varietas: "cih" }).map((r) => r.id)).toEqual(["1", "3"]);
     // varietas diekstrak dari segmen kedua document_no: KJM/JMP-18/... -> JMP-18
     expect(filterOfflineSchedules(rows, { varietas: "jmp" }).map((r) => r.id)).toEqual(["4"]);
-    expect(rows[3].varietas).toBe("JMP-18");
+    expect(rows[3]!.varietas).toBe("JMP-18");
     expect(filterOfflineSchedules(rows, { block_no: ["B01"] }).map((r) => r.id)).toEqual(["1", "2"]);
     expect(filterOfflineSchedules(rows, { panen_status: "panen" }).map((r) => r.id)).toEqual(["3"]);
   });
@@ -106,6 +106,6 @@ describe("offline-read", () => {
 
     const rows = await loadOfflineScheduleRows({ user_id: "u-1" });
     expect(rows.map((r) => r.id)).toEqual(["c", "a"]);
-    expect(rows[0].kabupaten?.name).toBe("Kab. A");
+    expect(rows[0]!.kabupaten?.name).toBe("Kab. A");
   });
 });

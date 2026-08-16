@@ -397,7 +397,7 @@ export async function bulkActionSchedules(
       if (invalid.length > 0) {
         return {
           success: false,
-          error: `Transisi status tidak diizinkan untuk ${invalid.length} jadwal (mis. ${invalid[0].id.slice(0, 8)}...)`,
+          error: `Transisi status tidak diizinkan untuk ${invalid.length} jadwal (mis. ${invalid[0]?.id.slice(0, 8) ?? ""}...)`,
         };
       }
 

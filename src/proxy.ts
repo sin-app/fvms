@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 import { createServerClient } from "@supabase/ssr";
 import { randomUUID } from "node:crypto";
 import { withRequestId } from "@/lib/logger";
@@ -87,7 +88,7 @@ function applyCookiesToResponse(
 ) {
   cookiesToSet.forEach(({ name, value, options }) => {
     request.cookies.set(name, value);
-    response.cookies.set(name, value, options);
+    response.cookies.set(name, value, options as Partial<ResponseCookie> | undefined);
   });
 }
 

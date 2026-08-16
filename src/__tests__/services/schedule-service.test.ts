@@ -51,7 +51,7 @@ describe("schedule-service", () => {
       await deleteSchedule("sched-1");
 
       expect(mockUpdate).toHaveBeenCalled();
-      const updateArg = mockUpdate.mock.calls[0][0];
+      const updateArg = mockUpdate.mock.calls[0]![0];
       expect(updateArg).toHaveProperty("deleted_at");
     });
   });

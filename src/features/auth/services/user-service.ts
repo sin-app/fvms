@@ -8,7 +8,10 @@ export function randomPassword(length = 16): string {
   let out = "";
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
-  for (let i = 0; i < length; i++) out += chars[bytes[i] % chars.length];
+  for (let i = 0; i < length; i++) {
+    const byte = bytes[i] ?? 0;
+    out += chars[byte % chars.length];
+  }
   return out;
 }
 

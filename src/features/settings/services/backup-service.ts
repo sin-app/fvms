@@ -76,9 +76,9 @@ export async function createBackupExport(): Promise<{ json: string; filename: st
 
   if (ctx.role === "admin") {
     payload.data.regions = {
-      kabupaten: ((regionsRes as { data: unknown[] }[])[0].data ?? []).map(pickScalars),
-      kecamatan: ((regionsRes as { data: unknown[] }[])[1].data ?? []).map(pickScalars),
-      desa: ((regionsRes as { data: unknown[] }[])[2].data ?? []).map(pickScalars),
+      kabupaten: ((regionsRes as { data: unknown[] }[])[0]?.data ?? []).map(pickScalars),
+      kecamatan: ((regionsRes as { data: unknown[] }[])[1]?.data ?? []).map(pickScalars),
+      desa: ((regionsRes as { data: unknown[] }[])[2]?.data ?? []).map(pickScalars),
     };
     payload.data.users = ((usersRes as { data: unknown[] }).data ?? []).map(pickScalars);
   }

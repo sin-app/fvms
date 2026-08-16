@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, info: unknown) {
+  override componentDidCatch(error: Error, info: unknown) {
     logger.error("ErrorBoundary caught", {
       message: error.message,
       stack: error.stack,
@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
 

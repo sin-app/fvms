@@ -417,11 +417,11 @@ export async function getDistinctScheduleValues(
   );
 
   return {
-    block_no: results[0],
-    no_plot: results[1],
-    nis: results[2],
-    document_no: results[3],
-    cgr: results[4],
+    block_no: results[0] ?? [],
+    no_plot: results[1] ?? [],
+    nis: results[2] ?? [],
+    document_no: results[3] ?? [],
+    cgr: results[4] ?? [],
   };
 }
 

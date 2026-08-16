@@ -119,7 +119,7 @@ describe("schedule-actions auto-derivation", () => {
 
       await createScheduleAction(emptyResponse, fd);
 
-      const callArgs = vi.mocked(createSchedule).mock.calls[0][0];
+      const callArgs = vi.mocked(createSchedule).mock.calls[0]![0];
       expect(callArgs.status).toBe("gagal_partial");
     });
 
@@ -128,7 +128,7 @@ describe("schedule-actions auto-derivation", () => {
 
       await createScheduleAction(emptyResponse, fd);
 
-      const callArgs = vi.mocked(createSchedule).mock.calls[0][0];
+      const callArgs = vi.mocked(createSchedule).mock.calls[0]![0];
       expect(callArgs.status).toBe("pending");
     });
   });
@@ -169,7 +169,7 @@ describe("schedule-actions auto-derivation", () => {
 
       await updateScheduleAction(emptyResponse, fd);
 
-      const [, data] = vi.mocked(updateSchedule).mock.calls[0];
+      const [, data] = vi.mocked(updateSchedule).mock.calls[0]!;
       expect(data.status).toBe("gagal_total");
     });
 
@@ -179,7 +179,7 @@ describe("schedule-actions auto-derivation", () => {
 
       await updateScheduleAction(emptyResponse, fd);
 
-      const [, data] = vi.mocked(updateSchedule).mock.calls[0];
+      const [, data] = vi.mocked(updateSchedule).mock.calls[0]!;
       expect(data.status).toBe("pending");
     });
   });

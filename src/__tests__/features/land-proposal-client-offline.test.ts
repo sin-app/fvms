@@ -70,14 +70,14 @@ describe("saveLandProposalOffline", () => {
 
     const rows = await getOfflineDb().landProposals.toArray();
     expect(rows).toHaveLength(1);
-    expect(rows[0].status).toBe("pending");
-    expect(rows[0].latitude).toBe(-6.2);
-    expect(rows[0].proposed_by).toBe("u-1");
+    expect(rows[0]!.status).toBe("pending");
+    expect(rows[0]!.latitude).toBe(-6.2);
+    expect(rows[0]!.proposed_by).toBe("u-1");
 
     const entries = await getOfflineDb().outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].table).toBe("land_proposals");
-    expect(entries[0].action).toBe("insert");
+    expect(entries[0]!.table).toBe("land_proposals");
+    expect(entries[0]!.action).toBe("insert");
 
     const { supabase, calls } = createFakeSupabase({});
     const result = await pushOutbox({
@@ -116,13 +116,13 @@ describe("saveLandProposalOffline", () => {
     expect(row?.status).toBe("rejected");
 
     const entries = await getOfflineDb().outbox.toArray();
-    expect(entries[0].action).toBe("upsert");
-    expect(entries[0].payload).not.toHaveProperty("status");
+    expect(entries[0]!.action).toBe("upsert");
+    expect(entries[0]!.payload).not.toHaveProperty("status");
   });
 
   it("pushOutbox memanggil onLandProposalInserted untuk proposal luring", async () => {
     await saveLandProposalOffline(buildForm(), { id: "u-1" }, false);
-    const outboxEntry = (await getOfflineDb().outbox.toArray())[0];
+    const outboxEntry = (await getOfflineDb().outbox.toArray())[0]!;
     const notified: string[] = [];
     const { supabase } = createFakeSupabase({});
     const result = await pushOutbox({
@@ -149,8 +149,8 @@ describe("cancelLandProposalOffline", () => {
 
     const entries = await getOfflineDb().outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].table).toBe("land_proposals");
-    expect(entries[0].action).toBe("upsert");
-    expect(entries[0].payload.status).toBe("cancelled");
+    expect(entries[0]!.table).toBe("land_proposals");
+    expect(entries[0]!.action).toBe("upsert");
+    expect(entries[0]!.payload.status).toBe("cancelled");
   });
 });

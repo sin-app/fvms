@@ -13,7 +13,7 @@ function getPanenAge(cgr: string | undefined | null): number {
   if (!cgr) return 0;
   const match = cgr.match(/(JMP-\d+)/i);
   if (!match) return 0;
-  return PANEN_AGE[match[1].toUpperCase()] ?? 0;
+  return PANEN_AGE[match[1]?.toUpperCase() ?? ""] ?? 0;
 }
 
 export function calcRencanaPanen(

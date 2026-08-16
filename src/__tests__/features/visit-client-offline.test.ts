@@ -88,7 +88,7 @@ describe("queueScheduleUpdate", () => {
     expect(local?.status).toBe("completed");
     const entries = await getOfflineDb().outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].payload.status).toBe("completed");
+    expect(entries[0]!.payload.status).toBe("completed");
   });
 
   it("mengupdate baris lokal + outbox untuk status non-final", async () => {
@@ -100,10 +100,10 @@ describe("queueScheduleUpdate", () => {
 
     const entries = await getOfflineDb().outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].table).toBe("schedules");
-    expect(entries[0].payload.status).toBe("in_progress");
-    expect(entries[0].payload.latitude).toBe(-6.2);
-    expect(entries[0].payload).not.toHaveProperty("label");
+    expect(entries[0]!.table).toBe("schedules");
+    expect(entries[0]!.payload.status).toBe("in_progress");
+    expect(entries[0]!.payload.latitude).toBe(-6.2);
+    expect(entries[0]!.payload).not.toHaveProperty("label");
   });
 
   it("pushOutbox meneruskan hanya field yang diizinkan", async () => {
@@ -129,9 +129,9 @@ describe("queueScheduleShift", () => {
 
     const entries = await getOfflineDb().outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].table).toBe("schedules");
-    expect(entries[0].action).toBe("shift");
-    expect(entries[0].payload.days).toBe(1);
+    expect(entries[0]!.table).toBe("schedules");
+    expect(entries[0]!.action).toBe("shift");
+    expect(entries[0]!.payload.days).toBe(1);
   });
 
   it("pushOutbox menggeser tanggal dari nilai server", async () => {
@@ -160,7 +160,7 @@ describe("queueScheduleDelete", () => {
 
     const entries = await getOfflineDb().outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].action).toBe("delete");
+    expect(entries[0]!.action).toBe("delete");
   });
 
   it("pushOutbox melakukan soft delete", async () => {
@@ -189,8 +189,8 @@ describe("queuePanenSave", () => {
 
     const entries = await getOfflineDb().outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].payload.tgl_panen).toBe("2026-08-15");
-    expect(entries[0].payload).not.toHaveProperty("_auto_complete");
+    expect(entries[0]!.payload.tgl_panen).toBe("2026-08-15");
+    expect(entries[0]!.payload).not.toHaveProperty("_auto_complete");
   });
 
   it("qc: tgl_panen otomatis completed (lokal + payload)", async () => {
@@ -199,7 +199,7 @@ describe("queuePanenSave", () => {
     expect(local?.status).toBe("completed");
 
     const entries = await getOfflineDb().outbox.toArray();
-    expect(entries[0].payload._auto_complete).toBe(true);
+    expect(entries[0]!.payload._auto_complete).toBe(true);
   });
 
   it("produksi: membersihkan panen tidak memicu completed (status re-derive)", async () => {
@@ -279,7 +279,7 @@ describe("queuePhotoUpload/queuePhotoDelete/queuePhotoCaptionUpdate", () => {
 
     const photos = await getOfflineDb().visitPhotos.toArray();
     expect(photos).toHaveLength(1);
-    expect(photos[0].blob).toBeInstanceOf(Blob);
+    expect(photos[0]!.blob).toBeInstanceOf(Blob);
 
     const { supabase, calls } = createFakeSupabase({});
     const result = await pushOutbox({ supabase, limit: 10 });
@@ -306,7 +306,7 @@ describe("queuePhotoUpload/queuePhotoDelete/queuePhotoCaptionUpdate", () => {
     await queuePhotoCaptionUpdate(photo.id, "s-1", "Caption final");
     const entries = await db.outbox.toArray();
     expect(entries).toHaveLength(1);
-    expect(entries[0].payload.caption).toBe("Caption final");
+    expect(entries[0]!.payload.caption).toBe("Caption final");
   });
 
   it("delete: hapus lokal + hapus storage & row saat push", async () => {

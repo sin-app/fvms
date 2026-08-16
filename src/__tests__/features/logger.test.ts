@@ -40,7 +40,7 @@ describe("logger", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     logger.info("test message", { extra: "data" });
     expect(spy).toHaveBeenCalledTimes(1);
-    const callArg = JSON.parse(spy.mock.calls[0][0]);
+    const callArg = JSON.parse(spy.mock.calls[0]![0]);
     expect(callArg.level).toBe("info");
     expect(callArg.msg).toBe("test message");
     expect(callArg.extra).toBe("data");
@@ -56,7 +56,7 @@ describe("logger", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     logger.error("error message", { err: "something" });
     expect(spy).toHaveBeenCalledTimes(1);
-    const callArg = JSON.parse(spy.mock.calls[0][0]);
+    const callArg = JSON.parse(spy.mock.calls[0]![0]);
     expect(callArg.level).toBe("error");
     expect(callArg.err).toBe("something");
   });
@@ -66,7 +66,7 @@ describe("logger", () => {
     withRequestId("req-xyz", () => {
       logger.info("with id");
     });
-    const callArg = JSON.parse(spy.mock.calls[0][0]);
+    const callArg = JSON.parse(spy.mock.calls[0]![0]);
     expect(callArg.request_id).toBe("req-xyz");
   });
 });

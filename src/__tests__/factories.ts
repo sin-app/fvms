@@ -77,7 +77,7 @@ export function createSchedule(overrides: Partial<Schedule> = {}): Schedule {
     kabupaten_id: faker.string.uuid(),
     kecamatan_id: faker.string.uuid(),
     desa_id: faker.string.uuid(),
-    visit_date: faker.date.future().toISOString().split("T")[0],
+    visit_date: faker.date.future().toISOString().split("T")[0]!,
     status: faker.helpers.arrayElement(["pending", "in_progress", "completed", "gagal_total"]),
     latitude: null,
     longitude: null,

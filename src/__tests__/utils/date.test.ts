@@ -63,7 +63,7 @@ describe("isLate", () => {
   it("returns false for future date", () => {
     const future = new Date();
     future.setFullYear(future.getFullYear() + 1);
-    const dateStr = future.toISOString().split("T")[0];
+    const dateStr = future.toISOString().split("T")[0]!;
     expect(isLate(dateStr, "pending")).toBe(false);
   });
 });

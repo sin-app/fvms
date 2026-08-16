@@ -9,6 +9,6 @@ export function getVarietasFromDocumentNo(
   if (!documentNo) return null;
   const parts = documentNo.split("/");
   if (parts.length < 2) return null;
-  const segmen = parts[1].trim();
+  const segmen = parts[1]?.trim() ?? "";
   return segmen || null;
 }

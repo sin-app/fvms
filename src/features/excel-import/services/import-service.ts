@@ -103,7 +103,7 @@ export async function parseExcelFile(file: Buffer): Promise<ImportPreview> {
     throw new Error("File Excel kosong atau tidak memiliki data");
   }
 
-  const columns = Object.keys(data[0]);
+  const columns = Object.keys(data[0] ?? {});
 
   return {
     columns,
@@ -193,16 +193,15 @@ export async function bulkImportSchedules(
     visit_time?: string;
     notes?: string;
   }
-  const valid: ValidRow[] = [];
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
+   const valid: ValidRow[] = [];
+  for (const [i, row] of data.entries()) {
     const rowNum = i + 2;
 
-    const userName = row[mapping.user_name]?.trim();
-    const kabName = row[mapping.kabupaten_name]?.trim();
-    const kecName = row[mapping.kecamatan_name]?.trim();
-    const desaName = row[mapping.desa_name]?.trim();
-    const visitDate = row[mapping.visit_date]?.trim();
+    const userName = cell(row, mapping.user_name)?.trim();
+    const kabName = cell(row, mapping.kabupaten_name)?.trim();
+    const kecName = cell(row, mapping.kecamatan_name)?.trim();
+    const desaName = cell(row, mapping.desa_name)?.trim();
+    const visitDate = cell(row, mapping.visit_date)?.trim();
 
     if (!userName || !kabName || !kecName || !desaName || !visitDate) {
       errors.push({ row: rowNum, message: "Data tidak lengkap" });
@@ -448,9 +447,8 @@ export async function bulkImportSchedules(
     const toUpdate: Array<{ id: string; data: Record<string, unknown> }> = [];
     const seenKeys = new Set<string>();
 
-    for (let i = 0; i < unique.length; i++) {
-      const r = unique[i];
-      const k = makeKey(r);
+  for (const r of unique) {
+    const k = makeKey(r);
 
       // Skip jika key ini sudah diproses (file-level dedup via makeKey)
       if (seenKeys.has(k)) continue;
@@ -645,6 +643,10 @@ function isValidDate(value: string): boolean {
   return d.getUTCFullYear() === y && d.getUTCMonth() + 1 === m && d.getUTCDate() === day;
 }
 
+function cell(row: ExcelRow, key: string | undefined): string | undefined {
+  return key === undefined ? undefined : row[key];
+}
+
 function parseNumber(value: unknown): number | null {
   if (value === undefined || value === null || value === "") return null;
   const n = Number(String(value).replace(",", "."));
@@ -656,7 +658,7 @@ function parseVisitTime(date: string, value: unknown): string | null {
   const raw = String(value).trim();
   const timeMatch = raw.match(/(\d{1,2})[:.\s]?(\d{2})?/);
   if (!timeMatch) return null;
-  const hh = timeMatch[1].padStart(2, "0");
+  const hh = (timeMatch[1] ?? "00").padStart(2, "0");
   const mm = (timeMatch[2] ?? "00").padStart(2, "0");
   const iso = `${date}T${hh}:${mm}:00+00:00`;
   return Number.isNaN(new Date(iso).getTime()) ? null : iso;

@@ -147,7 +147,7 @@ describe("notification-service", () => {
 
     await notifyImportCompleted("u1", 10, 0, 2);
 
-    const payload = insert.mock.calls[0][0];
+    const payload = insert.mock.calls[0]![0];
     expect(payload.title).toBe("Impor selesai");
     expect(payload.message).toContain("10 jadwal baru");
     expect(payload.message).toContain("2 diperbarui");
@@ -159,7 +159,7 @@ describe("notification-service", () => {
     mockAdmin({ insert });
 
     await notifyImportCompleted("u1", 5, 3, 0);
-    expect(insert.mock.calls[0][0].type).toBe("warning");
+    expect(insert.mock.calls[0]![0].type).toBe("warning");
   });
 
   function mockDueQueries(dueRows: unknown[], existingLinks: unknown[]) {

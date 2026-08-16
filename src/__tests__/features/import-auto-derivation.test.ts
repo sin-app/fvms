@@ -20,10 +20,10 @@ describe("applyAutoDerivation", () => {
 
     applyAutoDerivation(schedules);
 
-    expect(schedules[0].status).toBe("gagal_total");
-    expect(schedules[0].panen_keterangan).toBe("Bongkar Total");
-    expect(schedules[1].status).toBe("gagal_total");
-    expect(schedules[1].panen_keterangan).toBe("Bongkar Total");
+    expect(schedules[0]!.status).toBe("gagal_total");
+    expect(schedules[0]!.panen_keterangan).toBe("Bongkar Total");
+    expect(schedules[1]!.status).toBe("gagal_total");
+    expect(schedules[1]!.panen_keterangan).toBe("Bongkar Total");
   });
 
   it("does not force Bongkar Total when sisa_di_lahan_ha=0 but real/gagal mismatched", () => {
@@ -33,8 +33,8 @@ describe("applyAutoDerivation", () => {
 
     applyAutoDerivation(schedules);
 
-    expect(schedules[0].panen_keterangan).toBeUndefined();
-    expect(schedules[0].status).toBe("pending");
+    expect(schedules[0]!.panen_keterangan).toBeUndefined();
+    expect(schedules[0]!.status).toBe("pending");
   });
 
   it("sets completed when sisa_di_lahan_ha=0 and no gagal_tanam", () => {
@@ -44,7 +44,7 @@ describe("applyAutoDerivation", () => {
 
     applyAutoDerivation(schedules);
 
-    expect(schedules[0].status).toBe("completed");
+    expect(schedules[0]!.status).toBe("completed");
   });
 
   it("sets gagal_partial when real - gagal equals sisa", () => {
@@ -54,7 +54,7 @@ describe("applyAutoDerivation", () => {
 
     applyAutoDerivation(schedules);
 
-    expect(schedules[0].status).toBe("gagal_partial");
+    expect(schedules[0]!.status).toBe("gagal_partial");
   });
 
   it("handles missing numeric fields gracefully", () => {
