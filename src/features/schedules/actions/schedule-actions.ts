@@ -29,7 +29,7 @@ export async function createScheduleAction(
 
   const derived = deriveScheduleStatus({ ...parsed.data, hasActivity: false });
   if (derived && !(derived.status === "completed" && ctx.role === "produksi")) {
-    parsed.data.status = derived.status;
+    parsed.data.status = derived.status as VisitStatus;
     if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
   }
 
@@ -101,7 +101,7 @@ export async function updateScheduleAction(
     // Produksi tidak boleh memicu status completed (verifikasi hanya QC/admin).
     const produksiCompleted = derived.status === "completed" && ctx.role === "produksi";
     if (!(existingIsExplicit && derivedIsFallback) && !produksiCompleted) {
-      parsed.data.status = derived.status;
+      parsed.data.status = derived.status as VisitStatus;
       if (derived.panen_keterangan) parsed.data.panen_keterangan = derived.panen_keterangan;
     }
   }

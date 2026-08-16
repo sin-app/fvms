@@ -7,6 +7,8 @@ PWA live di **https://fvms-eight.vercel.app** secara fullscreen. Artinya:
 - Setiap perubahan web (fitur, fix, dsb) **otomatis tampil di aplikasi** karena TWA
   memuat URL Vercel secara langsung — tidak perlu rebuild tiap ada update web.
 - Yang di-build hanyalah "cangkang" native (ikon, splash, trust) yang jarang berubah.
+- Akses data programatik dari luar (mis. sistem pihak ketiga) dilakukan via REST API
+  `/api/v1` (Bearer API key, role-scoped, CORS diaktifkan) — bukan dari dalam TWA.
 
 | Item | Nilai |
 |------|-------|

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { SCHEDULE_STATUSES } from "@/lib/constants/status";
+import type { VisitStatus } from "@/types";
 
 export const scheduleSchema = z.object({
   user_id: z.string().min(1, "Produksi wajib dipilih"),
@@ -40,7 +42,7 @@ export const scheduleSchema = z.object({
   real_panen: z.string().optional(),
   tgl_panen: z.string().optional(),
   panen_keterangan: z.string().optional(),
-  status: z.string().optional(),
+  status: z.enum(SCHEDULE_STATUSES as [VisitStatus, ...VisitStatus[]]).optional(),
 });
 
 export type ScheduleInput = z.infer<typeof scheduleSchema>;
@@ -49,7 +51,7 @@ export const scheduleBulkSchema = z.array(scheduleSchema);
 
 export const scheduleFilterSchema = z.object({
   search: z.string().optional(),
-  status: z.string().optional(),
+  status: z.enum(SCHEDULE_STATUSES as [VisitStatus, ...VisitStatus[]]).optional(),
   kabupaten_id: z.string().optional(),
   kecamatan_id: z.string().optional(),
   date_from: z.string().optional(),

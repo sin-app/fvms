@@ -152,6 +152,7 @@ export async function bulkImportSchedules(
   if (createError) throw createError;
   result.id = importRecord.id;
 
+  try {
   // Get all users for lookup (master data and officers are auto-created on demand)
   const upsert = createMasterUpserter();
   const userUpsert = createUserUpserter();
@@ -592,6 +593,17 @@ export async function bulkImportSchedules(
   await notifyImportCompleted(userId, result.success, result.errors, result.replaced ?? 0);
 
   return result;
+  } catch (err: unknown) {
+    await admin
+      .from("excel_imports")
+      .update({
+        status: "failed",
+        error_rows: result.errorRows.length,
+        error_log: [{ message: err instanceof Error ? err.message : "Import gagal" }],
+      })
+      .eq("id", importRecord.id);
+    throw err;
+  }
 }
 
 export function applyAutoDerivation(
