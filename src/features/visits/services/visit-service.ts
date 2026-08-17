@@ -99,7 +99,7 @@ export async function saveVisitNotes(data: {
 export async function uploadVisitPhoto(
   scheduleId: string,
   file: File,
-): Promise<{ url: string; file_size: number; mime_type: string }> {
+): Promise<{ id: string; url: string; file_size: number; mime_type: string }> {
   const config = getConfig();
   const filePath = `visits/${scheduleId}/${crypto.randomUUID()}.webp`;
 
@@ -184,16 +184,21 @@ export async function uploadVisitPhoto(
     );
   }
 
-  let inserted: { url: string; file_size: number; mime_type: string };
+  let inserted: { id?: string; url: string; file_size: number; mime_type: string };
   try {
     const rows = JSON.parse(insertBodyText);
     inserted = Array.isArray(rows) ? rows[0] : rows;
   } catch {
     // Storage succeeded; return what we know.
-    inserted = { url: objectPath, file_size: buffer.length, mime_type: contentType };
+    inserted = { id: crypto.randomUUID(), url: objectPath, file_size: buffer.length, mime_type: contentType };
   }
 
-  return inserted;
+  return {
+    id: inserted.id ?? crypto.randomUUID(),
+    url: inserted.url,
+    file_size: inserted.file_size,
+    mime_type: inserted.mime_type,
+  };
 }
 
 export async function getOwnedPhoto(photoId: string, scheduleId: string) {

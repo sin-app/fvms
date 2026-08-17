@@ -53,7 +53,7 @@ export async function saveVisitNotesAction(
   }
 }
 
-export async function uploadPhotoAction(formData: FormData): Promise<ActionResponse<{ url: string; file_size: number; mime_type: string }>> {
+export async function uploadPhotoAction(formData: FormData): Promise<ActionResponse<{ id: string; url: string; file_size: number; mime_type: string }>> {
   const ctx = await getAuthContext();
   if (!ctx) return { success: false, error: "Unauthorized" };
 
