@@ -50,3 +50,6 @@ e2e/.auth/
 # generated service worker
 public/sw.js
 public/swe-worker.*.js
+
+# generated proposal artifact (source lives in slides/)
+/proposal/
