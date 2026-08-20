@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.github
+.env
+.env.*
+!.env.example
+proposal
+slides
+android
+e2e
+coverage
+*.log
+npm-debug.log*
+.DS_Store
+.vercel
+.well-known

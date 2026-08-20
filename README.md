@@ -132,18 +132,46 @@ Deployed on Vercel as the **fvms** project → https://fvms-eight.vercel.app.
 - **Build:** `vercel deploy --prod` (or connect the GitHub repo; push to `main` triggers auto-deploy). Supabase project ref: `nzpjoxndqhcvphydiyaq`.
 - **Middleware:** `src/proxy.ts` (Next.js 16), not `middleware.ts`.
 - **Cron:** `vercel.json` → `GET /api/cron/notifications` daily at `07:00 UTC` (protected by `CRON_SECRET`).
-- **CI:** `.github/workflows/ci.yml` runs typecheck, lint, unit tests, production build, and Playwright E2E on every push/PR to `main`.
+ - **CI:** `.github/workflows/ci.yml` runs typecheck, lint, unit tests, production build, and Playwright E2E on every push/PR to `main`.
 
-### Verify a deploy
+ ### Self-hosting with Docker (standalone)
 
-```bash
-curl https://fvms-eight.vercel.app/health   # {"status":"ok"}
-curl https://fvms-eight.vercel.app/ready    # {"status":"ok","checks":{"database":"ok"}}
-```
+ The app builds to a **standalone** Next.js server (`output: "standalone"` in `next.config.ts`) that runs without Vercel. `Dockerfile` (multi-stage, `node:20-bookworm-slim`) and `docker-compose.yml` are provided.
 
-## Android App (TWA)
+ ```bash
+ # 1. Provide runtime + build-time env (copy .env.example -> .env and fill in)
+ cp .env.example .env
+ # 2. Build & run the container
+ docker compose up -d --build
+ # 3. Verify
+ curl http://localhost:3000/health   # {"status":"ok"}
+ curl http://localhost:3000/ready    # {"status":"ok","checks":{"database":"ok"}}
+ ```
 
-FVMS is also packaged as a native Android app via **Trusted Web Activity** (folder `android/`) that opens the live PWA on Vercel fullscreen. Build & distribution **without Play Store** is done through GitHub Actions — see **[`android/README.md`](android/README.md)** for the full guide (keystore secret, sideload APK, `assetlinks.json` trust).
+ Notes for self-hosting:
+ - Build-time public env (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL`) is passed via compose `args`; runtime env (incl. `SUPABASE_SERVICE_ROLE_KEY`) via `env_file: .env`.
+ - `sharp` is externalized (`serverExternalPackages`) so the standalone image is buildable without tracing its native binaries.
+ - **Cron does not run inside the container** — Vercel's daily cron is bypassed. Schedule it on the host, e.g. daily `curl -H "Authorization: Bearer $CRON_SECRET" https://your-host/api/cron/notifications`.
+
+ ### Verify a deploy
+
+ ```bash
+ curl https://fvms-eight.vercel.app/health   # {"status":"ok"}
+ curl https://fvms-eight.vercel.app/ready    # {"status":"ok","checks":{"database":"ok"}}
+ ```
+
+ ## Android App (TWA)
+
+ FVMS is also packaged as a native Android app via **Trusted Web Activity** (folder `android/`) that opens the live PWA on Vercel fullscreen. Build & distribution **without Play Store** is done through GitHub Actions — see **[`android/README.md`](android/README.md)** for the full guide (keystore secret, sideload APK, `assetlinks.json` trust).
+
+ ### Build the APK via GitHub Actions (one click)
+
+ 1. Go to **Actions → Android TWA Release** in the GitHub repo.
+ 2. Click **Run workflow** (manual `workflow_dispatch`, or push a `v*` tag).
+ 3. The workflow runs `./gradlew :app:assembleRelease :app:bundleRelease`, uploads **APK + AAB** as artifacts, and commits `public/.well-known/assetlinks.json` + deploys to Vercel to establish TWA trust.
+ 4. Download the `fvms-release-apk` artifact and sideload it (`adb install` / file manager). Requires the repo secret `TWA_KEYSTORE_B64` (and `TWA_KEYSTORE_PASSWORD` / `TWA_KEY_ALIAS`).
+
+ The app wraps `https://fvms-eight.vercel.app/` (`namespace`/`applicationId` = `id.sinapp.fvms`).
 
 ## Project Structure
 
