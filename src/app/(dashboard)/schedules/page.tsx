@@ -11,6 +11,8 @@ import { createScheduleAction } from "@/features/schedules/actions/schedule-acti
 import { useDebounce } from "@/hooks/use-debounce";
 import { exportPdf } from "@/lib/export/pdf";
 import { useAuth } from "@/features/auth/components/auth-context";
+import { dateString } from "@/lib/utils/date";
+import { addDays } from "date-fns";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
   loadPersistedFilters,
@@ -70,6 +72,44 @@ export default function SchedulesPage() {
     setLabel(p.label ?? "all");
     setFiltersReady(true);
   }, [user?.id]);
+
+  // Terapkan cakupan yang sama persis dengan kartu dashboard ("Lihat semua")
+  // → ?range=today|upcoming + ?kabupaten=&kecamatan=, dan reset filter lain
+  // agar daftar menampilkan data real yang identik dengan dashboard.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const range = params.get("range");
+    if (range !== "today" && range !== "upcoming") return;
+
+    setMemberName("");
+    setUserId("");
+    setBlockNo([]);
+    setNoPlot("");
+    setNis("");
+    setDocumentNo("");
+    setStatus("all");
+    setCgr("");
+    setDesaId("");
+    setVarietas("");
+    setPanenStatus("all");
+    setLabel("all");
+    setKabupatenId(params.get("kabupaten") ?? "");
+    setKecamatanId(params.get("kecamatan") ?? "");
+
+    if (range === "today") {
+      const t = dateString(new Date());
+      setDateRange("today");
+      setDateFrom(t);
+      setDateTo(t);
+    } else {
+      const tmr = dateString(addDays(new Date(), 1));
+      setDateRange("custom");
+      setDateFrom(tmr);
+      setDateTo("");
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!user?.id) return;

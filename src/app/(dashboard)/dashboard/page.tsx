@@ -75,8 +75,8 @@ export default function DashboardPage() {
       {data && <StatsCards stats={data.stats} />}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {data && <TodaySchedule schedules={data.todaySchedules} />}
-        {data && <UpcomingSchedule schedules={data.upcomingSchedules} />}
+        {data && <TodaySchedule schedules={data.todaySchedules} kabupatenId={kabupatenId} kecamatanId={kecamatanId} />}
+        {data && <UpcomingSchedule schedules={data.upcomingSchedules} kabupatenId={kabupatenId} kecamatanId={kecamatanId} />}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

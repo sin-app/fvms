@@ -9,9 +9,11 @@ import type { Schedule } from "@/types";
 
 interface UpcomingScheduleProps {
   schedules: Schedule[];
+  kabupatenId?: string;
+  kecamatanId?: string;
 }
 
-export function UpcomingSchedule({ schedules }: UpcomingScheduleProps) {
+export function UpcomingSchedule({ schedules, kabupatenId, kecamatanId }: UpcomingScheduleProps) {
   if (schedules.length === 0) {
     return (
       <div className="rounded-xl border bg-card">
@@ -55,7 +57,7 @@ export function UpcomingSchedule({ schedules }: UpcomingScheduleProps) {
       </div>
       {schedules.length >= 5 && (
         <Link
-          href="/schedules"
+          href={`/schedules?range=upcoming${kabupatenId ? `&kabupaten=${kabupatenId}` : ""}${kecamatanId ? `&kecamatan=${kecamatanId}` : ""}`}
           className="flex items-center justify-center gap-1 p-3 text-sm text-muted-foreground hover:text-primary border-t"
         >
           Lihat semua

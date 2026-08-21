@@ -8,9 +8,11 @@ import type { Schedule } from "@/types";
 
 interface TodayScheduleProps {
   schedules: Schedule[];
+  kabupatenId?: string;
+  kecamatanId?: string;
 }
 
-export function TodaySchedule({ schedules }: TodayScheduleProps) {
+export function TodaySchedule({ schedules, kabupatenId, kecamatanId }: TodayScheduleProps) {
   if (schedules.length === 0) {
     return (
       <div className="rounded-xl border bg-card">
@@ -56,7 +58,7 @@ export function TodaySchedule({ schedules }: TodayScheduleProps) {
       </div>
       {schedules.length > 5 && (
         <Link
-          href="/schedules"
+          href={`/schedules?range=today${kabupatenId ? `&kabupaten=${kabupatenId}` : ""}${kecamatanId ? `&kecamatan=${kecamatanId}` : ""}`}
           className="flex items-center justify-center gap-1 p-3 text-sm text-muted-foreground hover:text-primary border-t"
         >
           Lihat semua
