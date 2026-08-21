@@ -124,13 +124,27 @@ jobs:
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: fvms-release-aab
+          name: fvms-release-aab-v${{ steps.version.outputs.name }}
           path: android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
 
       - name: Upload APK release
         uses: actions/upload-artifact@v4
         with:
-          name: fvms-release-apk
+          name: fvms-release-apk-v${{ steps.version.outputs.name }}
           path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      - name: Publish latest GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: FVMS Android v${{ steps.version.outputs.name }}
+          body: |
+            Otomatis dari ${{ github.ref_name }} — versi ${{ steps.version.outputs.name }} (code ${{ steps.version.outputs.code }})
+            Unduh APK di bawah (selalu versi terbaru).
+          artifacts: "android/app/build/outputs/apk/release/*.apk,android/app/build/outputs/bundle/release/*.aab"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          removeArtifacts: true
+          makeLatest: true
