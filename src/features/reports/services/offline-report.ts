@@ -1,5 +1,5 @@
 import { getOfflineDb } from "@/lib/offline/db";
-import { deriveScheduleStatus, getPanenStatus } from "@/features/panen/services/panen-logic";
+import { getPanenStatus } from "@/features/panen/services/panen-logic";
 import { todayString } from "@/lib/utils/date";
 import { getVarietasFromDocumentNo } from "@/lib/utils/varietas";
 import type { ReportFilters, ReportData } from "../types";
@@ -46,14 +46,7 @@ export async function loadOfflineReportRows(filters: ReportFilters): Promise<Rep
         tgl_tanam: s.tgl_tanam,
         cgr: s.cgr,
       });
-      const hasActivity = s.visit_time != null || s.notes != null || s.latitude != null;
-      const derived = deriveScheduleStatus({
-        real_tanam_ha: toNumberOrNull(s.real_tanam_ha),
-        gagal_tanam: toNumberOrNull(s.gagal_tanam),
-        sisa_di_lahan_ha: toNumberOrNull(s.sisa_di_lahan_ha),
-        hasActivity,
-      });
-      const status = derived ? derived.status : s.status;
+      const status = s.status;
       return {
         id: s.id,
         visit_date: s.visit_date,

@@ -5,7 +5,7 @@ import { getVarietasFromDocumentNo } from "@/lib/utils/varietas";
 import type { ReportFilters, ReportData } from "../types";
 import type { ReportRow } from "../types/report-data";
 import ExcelJS from "exceljs";
-import { deriveScheduleStatus, getPanenStatus } from "@/features/panen/services/panen-logic";
+import { getPanenStatus } from "@/features/panen/services/panen-logic";
 
 // Escape LIKE wildcards so user input can't alter the match pattern.
 function escapeLike(value: string): string {
@@ -83,20 +83,9 @@ if (filters.member_name) {
     };
   }
 
-  // Derive actual status and panen_status from data, not just stored DB values
+  // Gunakan status tersimpan (DB) secara langsung agar laporan cocok dengan database.
   const rawSchedulesWithStatus = rawSchedules.map((s) => {
     const row = s as unknown as ReportRowRelation;
-    const hasActivity = row.visit_time != null || row.notes != null || row.latitude != null;
-    const derived = deriveScheduleStatus({
-      real_tanam_ha: row.real_tanam_ha,
-      gagal_tanam: row.gagal_tanam,
-      sisa_di_lahan_ha: row.sisa_di_lahan_ha,
-      hasActivity,
-    });
-    // Jangan timpa status terminal eksplisit (hasil tindakan) dengan fallback
-    // pending/in_progress — konsisten dengan guard pada updateScheduleAction.
-    const isExplicit = s.status === "completed" || s.status === "gagal_total" || s.status === "gagal_partial";
-    const derivedIsFallback = derived?.status === "pending" || derived?.status === "in_progress";
     const ps = getPanenStatus({
       tgl_panen: row.tgl_panen,
       real_panen: row.real_panen,
@@ -106,7 +95,7 @@ if (filters.member_name) {
     });
     return {
       ...s,
-      actualStatus: isExplicit && derivedIsFallback ? s.status : (derived ? derived.status : s.status),
+      actualStatus: s.status,
       actualPanenStatus: ps,
     };
   });
@@ -344,14 +333,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
       tgl_tanam: s.tgl_tanam,
       cgr: s.cgr,
     });
-    const hasActivity = s.visit_time != null || s.notes != null || s.latitude != null;
-    const derived = deriveScheduleStatus({
-      real_tanam_ha: s.real_tanam_ha,
-      gagal_tanam: s.gagal_tanam,
-      sisa_di_lahan_ha: s.sisa_di_lahan_ha,
-      hasActivity,
-    });
-    const actualStatus = derived ? derived.status : s.status;
+    const actualStatus = s.status;
     return {
       id: s.id,
       visit_date: s.visit_date,
