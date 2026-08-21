@@ -152,6 +152,7 @@ Deployed on Vercel as the **fvms** project → https://fvms-eight.vercel.app.
  - Build-time public env (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL`) is passed via compose `args`; runtime env (incl. `SUPABASE_SERVICE_ROLE_KEY`) via `env_file: .env`.
  - `sharp` is externalized (`serverExternalPackages`) so the standalone image is buildable without tracing its native binaries.
  - **Cron does not run inside the container** — Vercel's daily cron is bypassed. Schedule it on the host, e.g. daily `curl -H "Authorization: Bearer $CRON_SECRET" https://your-host/api/cron/notifications`.
+ - **Automated image build:** `.github/workflows/docker.yml` builds & pushes the image to GitHub Container Registry (`ghcr.io/<repo>/fvms`) on every push to `main` and on `v*` tags (override public build args via repo **Variables**). Pull with `docker pull ghcr.io/<repo>/fvms:main`.
 
  ### Verify a deploy
 
@@ -172,6 +173,10 @@ Deployed on Vercel as the **fvms** project → https://fvms-eight.vercel.app.
  4. Download the `fvms-release-apk` artifact and sideload it (`adb install` / file manager). Requires the repo secret `TWA_KEYSTORE_B64` (and `TWA_KEYSTORE_PASSWORD` / `TWA_KEY_ALIAS`).
 
  The app wraps `https://fvms-eight.vercel.app/` (`namespace`/`applicationId` = `id.sinapp.fvms`).
+
+ ### Local APK build (alternative)
+
+ If you have the Android SDK + JDK 17 locally, run `./scripts/build-android.sh` (it generates a debug keystore if none is provided via `TWA_KEYSTORE_PATH`). Output: `android/app/build/outputs/apk/release/*.apk`.
 
 ## Project Structure
 
