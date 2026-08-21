@@ -21,8 +21,16 @@ export TWA_KEYSTORE_PATH="$KEYSTORE"
 export TWA_KEYSTORE_PASSWORD="$PASSWORD"
 export TWA_KEY_ALIAS="$ALIAS"
 
+# Versi otomatis: code = jumlah commit, name = tag android-* terbaru
+CODE=$(git rev-list --count HEAD)
+TAG=$(git describe --tags --match 'android-*' --abbrev=0 2>/dev/null | sed 's/^android-//' || true)
+NAME="${TAG:-1.0.0}"
+echo "Building Android app version $NAME (code $CODE)"
+
 cd android
-./gradlew --no-daemon --console=plain :app:assembleRelease :app:bundleRelease
+./gradlew --no-daemon --console=plain :app:assembleRelease :app:bundleRelease \
+  -PappVersionCode="$CODE" \
+  -PappVersionName="$NAME"
 
 echo ""
 echo "APK -> android/app/build/outputs/apk/release/"

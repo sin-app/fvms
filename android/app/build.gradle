@@ -10,8 +10,8 @@ android {
         applicationId 'id.sinapp.fvms'
         minSdk 21
         targetSdk 36
-        versionCode 3
-        versionName '1.0.4'
+        versionCode project.hasProperty('appVersionCode') ? appVersionCode.toInteger() : 3
+        versionName project.hasProperty('appVersionName') ? appVersionName : '1.0.4'
     }
 
     signingConfigs {
