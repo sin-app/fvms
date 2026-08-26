@@ -120,8 +120,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (!isOfflineDbAvailable()) return;
-    if (hydratedFor.current === user.id) return;
-    hydratedFor.current = user.id;
+    // Guard pakai signature scope (id + role + kabupaten), bukan sekadar id.
+    // AuthProvider mengisi `user` dari cache session dulu (assigned_kabupaten_ids
+    // kosong), lalu menimpanya dengan data DB via refreshUser(). Tanpa scope
+    // key, hidrasi otomatis login hanya berjalan dengan scope kosong sehingga
+    // user QC melihat data kosong hingga sinkron manual. Dengan scope key,
+    // saat user diperbarui (kabupaten terisi) efek ini menjalankan hidrasi
+    // ulang otomatis — tidak perlu aksi manual.
+    const scopeKey = `${user.id}|${user.role}|${(user.assigned_kabupaten_ids ?? []).join(",")}`;
+    if (hydratedFor.current === scopeKey) return;
+    hydratedFor.current = scopeKey;
     void refreshPending();
     void syncNow();
 
