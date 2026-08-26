@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getAuthContext, qcKabupatenScope } from "@/lib/auth/authorization";
 import { todayString } from "@/lib/utils/date";
@@ -116,17 +117,17 @@ if (filters.member_name) {
   }
 
   const total = schedules.length;
-  const completed = schedules.filter((s) => s.actualStatus === "completed").length;
-  const pending = schedules.filter((s) => s.actualStatus === "pending").length;
-  const in_progress = schedules.filter((s) => s.actualStatus === "in_progress").length;
-  const gagal_partial = schedules.filter((s) => s.actualStatus === "gagal_partial").length;
-  const gagal_total = schedules.filter((s) => s.actualStatus === "gagal_total").length;
+  const completed = schedules.filter((s) => s.actualStatus === STATUS_VALUES.completed).length;
+  const pending = schedules.filter((s) => s.actualStatus === STATUS_VALUES.pending).length;
+  const in_progress = schedules.filter((s) => s.actualStatus === STATUS_VALUES.in_progress).length;
+  const gagal_partial = schedules.filter((s) => s.actualStatus === STATUS_VALUES.gagal_partial).length;
+  const gagal_total = schedules.filter((s) => s.actualStatus === STATUS_VALUES.gagal_total).length;
 
   const today = todayString();
   // Konsisten dengan daftar jadwal & dashboard: yang dianggap "terlambat"
   // hanyalah status yang belum tuntas (pending/in_progress/gagal_partial).
   const late_count = schedules.filter(
-    (s) => s.visit_date < today && !["completed", "gagal_total", "gagal_partial"].includes(s.actualStatus),
+    (s) => s.visit_date < today && ![STATUS_VALUES.completed, STATUS_VALUES.gagal_total, STATUS_VALUES.gagal_partial].includes(s.actualStatus),
   ).length;
 
   // By officer
@@ -139,7 +140,7 @@ if (filters.member_name) {
     const uname = (s as unknown as ReportRowRelation).users?.name ?? "Unknown";
     const existing = officerMap.get(uid) ?? { name: uname, total: 0, completed: 0 };
     existing.total++;
-    if (s.actualStatus === "completed") existing.completed++;
+    if (s.actualStatus === STATUS_VALUES.completed) existing.completed++;
     officerMap.set(uid, existing);
   });
 
@@ -161,7 +162,7 @@ if (filters.member_name) {
     const kname = (s as unknown as ReportRowRelation).kabupaten?.name ?? "Unknown";
     const existing = kabMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
     existing.total++;
-    if (s.actualStatus === "completed") existing.completed++;
+    if (s.actualStatus === STATUS_VALUES.completed) existing.completed++;
     kabMap.set(kid, existing);
   });
 
@@ -183,7 +184,7 @@ if (filters.member_name) {
     const kname = (s as unknown as ReportRowRelation).kecamatan?.name ?? "Unknown";
     const existing = kecMap.get(kid) ?? { name: kname, total: 0, completed: 0 };
     existing.total++;
-    if (s.actualStatus === "completed") existing.completed++;
+    if (s.actualStatus === STATUS_VALUES.completed) existing.completed++;
     kecMap.set(kid, existing);
   });
 
@@ -200,7 +201,7 @@ if (filters.member_name) {
     const date = s.visit_date;
     const existing = dayMap.get(date) ?? { total: 0, completed: 0 };
     existing.total++;
-    if (s.actualStatus === "completed") existing.completed++;
+    if (s.actualStatus === STATUS_VALUES.completed) existing.completed++;
     dayMap.set(date, existing);
   });
 

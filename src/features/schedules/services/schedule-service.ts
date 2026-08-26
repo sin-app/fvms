@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { qcKabupatenScope } from "@/lib/auth/authorization";
 import { todayString } from "@/lib/utils/date";
@@ -255,7 +256,7 @@ export async function createSchedule(data: {
   const admin = createAdminClient();
   const { data: result, error } = await admin
     .from("schedules")
-    .insert({ ...data, created_by: data.user_id, status: data.status || "pending" })
+    .insert({ ...data, created_by: data.user_id, status: data.status || STATUS_VALUES.pending })
     .select()
     .single();
 

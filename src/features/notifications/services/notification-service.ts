@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { logger } from "@/lib/logger";
 import type { NotificationType } from "@/types";
@@ -70,7 +71,7 @@ export async function generateDueSoonNotifications(): Promise<number> {
     .select("id, user_id, visit_date, document_no, member_name")
     .gte("visit_date", startDate)
     .lte("visit_date", endDate)
-    .neq("status", "completed")
+    .neq("status", STATUS_VALUES.completed)
     .is("deleted_at", null);
 
   if (!due || due.length === 0) return 0;

@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { useState } from "react";
 import { MapPin, Crosshair, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,10 +55,10 @@ export function VisitGps({
         setLocation(loc);
         setCapturing(false);
 
-        const newStatus = currentStatus === "pending" ? "in_progress" : currentStatus;
+        const newStatus = currentStatus === STATUS_VALUES.pending ? "in_progress" : currentStatus;
         await updateStatus.mutateAsync({
           id: scheduleId,
-          status: newStatus ?? "in_progress",
+          status: newStatus ?? STATUS_VALUES.in_progress,
           latitude: loc.latitude,
           longitude: loc.longitude,
         });

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { STATUS_LABELS, STATUS_TRANSITIONS, STATUS_COLORS } from "@/lib/constants/status";
+import { STATUS_VALUES,  STATUS_LABELS, STATUS_TRANSITIONS, STATUS_COLORS } from "@/lib/constants/status";
 import { useUpdateVisitStatus } from "@/features/schedules/hooks/use-schedules";
 import type { VisitStatus } from "@/types";
 
@@ -33,7 +33,7 @@ export function VisitStatusSelector({
   const [showOptions, setShowOptions] = useState(false);
   const updateStatus = useUpdateVisitStatus();
   const transitions = (STATUS_TRANSITIONS[currentStatus] ?? []).filter(
-    (s) => !(s === "completed" && role === "produksi"),
+    (s) => !(s === STATUS_VALUES.completed && role === "produksi"),
   );
 
   async function handleStatusChange(status: VisitStatus) {

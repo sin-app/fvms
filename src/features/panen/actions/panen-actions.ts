@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 "use server";
 
 import { revalidateSchedulePaths } from "@/lib/revalidate";
@@ -43,7 +44,7 @@ export async function savePanenAction(
     };
     if (parsed.data.tgl_panen) {
       update.tgl_panen = parsed.data.tgl_panen;
-      if (!produksi) update.status = "completed";
+      if (!produksi) update.status = STATUS_VALUES.completed;
     } else {
       update.tgl_panen = null;
       // When panen is cleared, re-derive status from real_tanam_ha/gagal_tanam
@@ -62,7 +63,7 @@ export async function savePanenAction(
           hasActivity,
         });
         const derivedStatus = derived?.status;
-        if (derivedStatus && (!produksi || derivedStatus !== "completed")) {
+        if (derivedStatus && (!produksi || derivedStatus !== STATUS_VALUES.completed)) {
           update.status = derivedStatus;
           if (derived.panen_keterangan) update.panen_keterangan = derived.panen_keterangan;
         }

@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { getOfflineDb, isOfflineDbAvailable, type OfflineLandProposal } from "@/lib/offline/db";
 import { queueMutation } from "@/lib/offline/engine";
 import { landProposalSchema } from "../schema/land-proposal-schema";
@@ -63,7 +64,7 @@ export async function saveLandProposalOffline(
 
   const db = getOfflineDb();
   const existing = isEditing ? await db.landProposals.get(id) : undefined;
-  const status: string = isEditing ? existing?.status ?? "pending" : "pending";
+  const status: string = isEditing ? existing?.status ?? "pending" : STATUS_VALUES.pending;
 
   const row: OfflineLandProposal = {
     id,
@@ -119,7 +120,7 @@ export async function saveLandProposalOffline(
     longitude: data.longitude ?? null,
     accuracy: data.accuracy ?? null,
   };
-  if (!isEditing) payload.status = "pending";
+  if (!isEditing) payload.status = STATUS_VALUES.pending;
 
   await db.landProposals.put(row);
   await queueMutation({

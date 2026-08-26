@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import {
   startOfWeek,
@@ -64,15 +65,15 @@ export async function getDashboardData(
     .lt("visit_date", today)
     .not("status", "in", "(completed,gagal_partial,gagal_total)");
   const completedQuery = applyFilters(baseQuery())
-    .eq("status", "completed")
+    .eq("status", STATUS_VALUES.completed)
     .gte("visit_date", monthStart)
     .lte("visit_date", monthEnd);
   const pendingQuery = applyFilters(baseQuery())
-    .eq("status", "pending")
+    .eq("status", STATUS_VALUES.pending)
     .gte("visit_date", today)
     .lte("visit_date", monthEnd);
   const gagalPartialQuery = applyFilters(baseQuery())
-    .eq("status", "gagal_partial")
+    .eq("status", STATUS_VALUES.gagal_partial)
     .gte("visit_date", monthStart)
     .lte("visit_date", monthEnd);
   const monthQuery = applyFilters(baseQuery())

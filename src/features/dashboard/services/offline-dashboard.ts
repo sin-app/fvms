@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { getOfflineDb } from "@/lib/offline/db";
 import { offlineRowToSchedule } from "@/features/schedules/services/offline-read";
 import {
@@ -56,18 +57,18 @@ export async function loadOfflineDashboard(
     lateCount: count(
       (s) =>
         s.visit_date < today &&
-        s.status !== "completed" &&
-        s.status !== "gagal_partial" &&
-        s.status !== "gagal_total",
+        s.status !== STATUS_VALUES.completed &&
+        s.status !== STATUS_VALUES.gagal_partial &&
+        s.status !== STATUS_VALUES.gagal_total,
     ),
     completedCount: count(
-      (s) => s.status === "completed" && s.visit_date >= monthStart && s.visit_date <= monthEnd,
+      (s) => s.status === STATUS_VALUES.completed && s.visit_date >= monthStart && s.visit_date <= monthEnd,
     ),
     pendingCount: count(
-      (s) => s.status === "pending" && s.visit_date >= today && s.visit_date <= monthEnd,
+      (s) => s.status === STATUS_VALUES.pending && s.visit_date >= today && s.visit_date <= monthEnd,
     ),
     gagalPartialCount: count(
-      (s) => s.status === "gagal_partial" && s.visit_date >= monthStart && s.visit_date <= monthEnd,
+      (s) => s.status === STATUS_VALUES.gagal_partial && s.visit_date >= monthStart && s.visit_date <= monthEnd,
     ),
     totalThisMonth: count((s) => s.visit_date >= monthStart && s.visit_date <= monthEnd),
     sudahPanenCount: count((s) => s.real_panen != null || s.tgl_panen != null),
@@ -76,9 +77,9 @@ export async function loadOfflineDashboard(
         s.real_panen == null &&
         s.tgl_panen == null &&
         (s.rencana_panen ?? "") < today &&
-        s.status !== "completed" &&
-        s.status !== "gagal_partial" &&
-        s.status !== "gagal_total",
+        s.status !== STATUS_VALUES.completed &&
+        s.status !== STATUS_VALUES.gagal_partial &&
+        s.status !== STATUS_VALUES.gagal_total,
     ),
     belumPanenCount: count(
       (s) =>

@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -57,7 +58,7 @@ export function OfflineVisitView({ detail, editable = false }: OfflineVisitViewP
   }
 
   const region = (v: string | null | undefined) => v ?? "—";
-  const hasFinalStatus = schedule.status === "completed" || schedule.status === "gagal_total";
+  const hasFinalStatus = schedule.status === STATUS_VALUES.completed || schedule.status === STATUS_VALUES.gagal_total;
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -123,12 +124,12 @@ export function OfflineVisitView({ detail, editable = false }: OfflineVisitViewP
         <div className="flex items-center gap-2">
           {editable ? (
             <>
-              <VisitStatusSelector scheduleId={schedule.id} currentStatus={(schedule.status ?? "pending") as VisitStatus} />
+              <VisitStatusSelector scheduleId={schedule.id} currentStatus={(schedule.status ?? STATUS_VALUES.pending) as VisitStatus} />
               <LabelBadge label={schedule.label} />
             </>
           ) : (
             <>
-              <StatusBadge status={(schedule.status ?? "pending") as VisitStatus} />
+              <StatusBadge status={(schedule.status ?? STATUS_VALUES.pending) as VisitStatus} />
               <LabelBadge label={schedule.label} />
             </>
           )}

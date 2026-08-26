@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import {
   getOfflineDb,
   type OfflineVisitNote,
@@ -185,10 +186,10 @@ export async function queueScheduleUpdate(payload: QueueSchedulePayload): Promis
   const role = payload.role ?? (await currentRole());
 
   if (payload.status) {
-    if (payload.status === "gagal_total") {
+    if (payload.status === STATUS_VALUES.gagal_total) {
       throw new Error("Status gagal_total hanya bisa diubah saat online");
     }
-    if (payload.status === "completed" && !canSetCompleted(role)) {
+    if (payload.status === STATUS_VALUES.completed && !canSetCompleted(role)) {
       throw new Error("Hanya QC yang dapat menandai selesai (completed)");
     }
   }
@@ -312,7 +313,7 @@ export async function queuePanenSave(payload: QueuePanenPayload): Promise<void> 
   const privileged = canSetCompleted(role);
 
   if (tglPanen && privileged) {
-    patch.status = "completed";
+    patch.status = STATUS_VALUES.completed;
     entryPayload._auto_complete = true;
   } else if (tglPanen === null) {
     const hasActivity = !!(row.visit_time || row.notes || row.latitude);
@@ -323,7 +324,7 @@ export async function queuePanenSave(payload: QueuePanenPayload): Promise<void> 
       hasActivity,
     });
     const derivedStatus = derived?.status;
-    if (derivedStatus && (privileged || derivedStatus !== "completed")) {
+    if (derivedStatus && (privileged || derivedStatus !== STATUS_VALUES.completed)) {
       patch.status = derivedStatus;
       entryPayload.status = derivedStatus;
     }

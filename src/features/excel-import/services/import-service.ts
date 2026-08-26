@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { createMasterUpserter } from "./master-upsert";
@@ -462,7 +463,7 @@ export async function bulkImportSchedules(
           // Kunci pencocokan tidak lagi menyertakan visit_date, jadi tanggal
           // revisi dari file terbaru harus diterapkan — kecuali pada jadwal
           // yang sudah completed (kunjungan sudah terjadi).
-          if (currentStatus !== "completed" && r.visit_date) updateData.visit_date = r.visit_date;
+          if (currentStatus !== STATUS_VALUES.completed && r.visit_date) updateData.visit_date = r.visit_date;
           if (r.tgl_tanam !== undefined) updateData.tgl_tanam = r.tgl_tanam;
           if (r.cgr !== undefined) updateData.cgr = r.cgr;
           if (r.cgr_code !== undefined) updateData.cgr_code = r.cgr_code;
@@ -490,7 +491,7 @@ export async function bulkImportSchedules(
           if (r.notes !== undefined) updateData.notes = r.notes;
           if (r.panen_keterangan !== undefined) updateData.panen_keterangan = r.panen_keterangan;
           // Derive status from merged data (existing + new) instead of blindly resetting
-          if (currentStatus === "completed") {
+          if (currentStatus === STATUS_VALUES.completed) {
             // preserve completed status
           } else {
             const hasActivity = !!(
@@ -583,7 +584,7 @@ export async function bulkImportSchedules(
     .update({
       success_rows: result.success,
       error_rows: result.errors,
-      status: "completed",
+      status: STATUS_VALUES.completed,
       error_log: errors,
     })
     .eq("id", importRecord.id);

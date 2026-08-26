@@ -143,3 +143,39 @@ async function deleteKey(key: string): Promise<void> {
     logger.warn("rate-limit delete failed", { key, error: String(err) });
   }
 }
+
+// --- API key rate limiting (terdistribusi via tabel `rate_limits`) ---
+// Menggantikan bucket in-memory per-instance di api-auth agar limit konsisten
+// lintas instance serverless (Vercel). Fallback in-memory per instance bila DB
+// sedang gagal (melalui readRow/writeRow).
+const API_KEY_MAX = 300;
+const API_KEY_WINDOW_MS = 60_000;
+
+export async function isApiKeyRateLimited(keyHash: string): Promise<boolean> {
+  const key = `apikey:${keyHash}`;
+  const row = await readRow(key);
+  if (!row) return false;
+  if (Date.now() - new Date(row.first_at).getTime() > API_KEY_WINDOW_MS) return false;
+  return row.count >= API_KEY_MAX;
+}
+
+export async function registerApiKeyHit(keyHash: string): Promise<void> {
+  const key = `apikey:${keyHash}`;
+  const now = Date.now();
+  const existing = await readRow(key);
+  if (!existing || now - new Date(existing.first_at).getTime() > API_KEY_WINDOW_MS) {
+    await writeRow({
+      key,
+      count: 1,
+      first_at: new Date(now).toISOString(),
+      blocked_until: new Date(0).toISOString(),
+    });
+    return;
+  }
+  await writeRow({
+    key,
+    count: existing.count + 1,
+    first_at: existing.first_at,
+    blocked_until: existing.blocked_until,
+  });
+}

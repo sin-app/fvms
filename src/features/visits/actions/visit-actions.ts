@@ -93,7 +93,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<ActionRespo
         action: "photo_uploaded",
         entity_type: "schedules",
         entity_id: scheduleId,
-        metadata: { url: result.url },
+        metadata: { photo_id: result.id },
       });
     } catch (logErr) {
       logger.warn("uploadPhotoAction: activity_log insert skipped", {

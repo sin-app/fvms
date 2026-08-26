@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { useState, Fragment, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Trash2, CheckCheck, XCircle, CalendarPlus, CalendarMinus, Loader2, Sprout, CloudOff, RotateCcw } from "lucide-react";
@@ -205,7 +206,7 @@ export function ScheduleTable({ filters }: ScheduleTableProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleBulk("in_progress")}
+                onClick={() => handleBulk(STATUS_VALUES.in_progress)}
                 disabled={bulkAction.isPending}
                 className="h-8 text-xs"
               >

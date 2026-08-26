@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { dateString, todayString } from "@/lib/utils/date";
 
 const PANEN_AGE: Record<string, number> = {
@@ -38,10 +39,10 @@ export function deriveScheduleStatus(input: {
 
   if (sisa_di_lahan_ha != null && sisa_di_lahan_ha === 0) {
     if (gagal_tanam == null || gagal_tanam <= 0) {
-      return { status: "completed" };
+      return { status: STATUS_VALUES.completed };
     }
     if (real_tanam_ha != null && real_tanam_ha - gagal_tanam === 0) {
-      return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
+      return { status: STATUS_VALUES.gagal_total, panen_keterangan: "Bongkar Total" };
     }
     // sisa=0 tetapi real-gagal != 0 (atau real_tanam tidak ada): data tidak konsisten,
     // jangan otomatis completed karena bisa menutupi kegagalan → jatuh ke fallback di bawah.
@@ -51,18 +52,18 @@ export function deriveScheduleStatus(input: {
     real_tanam_ha != null &&
     real_tanam_ha - gagal_tanam === sisa_di_lahan_ha
   ) {
-    return { status: "gagal_partial" };
+    return { status: STATUS_VALUES.gagal_partial };
   }
 
   if (real_tanam_ha != null && gagal_tanam != null && gagal_tanam > 0) {
     const sisa = real_tanam_ha - gagal_tanam;
     if (sisa <= 0) {
-      return { status: "gagal_total", panen_keterangan: "Bongkar Total" };
+      return { status: STATUS_VALUES.gagal_total, panen_keterangan: "Bongkar Total" };
     }
   }
 
   if (hasActivity != null) {
-    return { status: hasActivity ? "in_progress" : "pending" };
+    return { status: hasActivity ? "in_progress" : STATUS_VALUES.pending };
   }
 
   return null;

@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { format, formatDistanceToNow, isBefore, isToday, parseISO, startOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { id } from "date-fns/locale";
 import type { VisitStatus } from "@/types";
@@ -39,7 +40,7 @@ export function timeAgo(date: string | Date | null | undefined): string {
 }
 
 export function isLate(visitDate: string, status: VisitStatus): boolean {
-  if (status === "completed" || status === "gagal_total") return false;
+  if (status === STATUS_VALUES.completed || status === STATUS_VALUES.gagal_total) return false;
   return isBefore(startOfDay(parseISO(visitDate)), startOfDay(new Date()));
 }
 

@@ -32,6 +32,14 @@ export const STATUS_COLORS: Record<VisitStatus, string> = {
   gagal_total: "text-red-500 bg-red-50 border-red-200",
 };
 
+export const STATUS_VALUES = {
+  pending: "pending",
+  in_progress: "in_progress",
+  gagal_partial: "gagal_partial",
+  completed: "completed",
+  gagal_total: "gagal_total",
+} as const;
+
 export const STATUS_DOT_COLORS: Record<VisitStatus, string> = {
   pending: "bg-amber-500",
   in_progress: "bg-yellow-500",

@@ -34,21 +34,6 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(self), geolocation=(self), microphone=()" },
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
           { key: "Cross-Origin-Resource-Policy", value: "same-site" },
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://*.supabase.co https://*.openstreetmap.org",
-              "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co",
-              "frame-src 'self'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "object-src 'none'",
-            ].join("; "),
-          },
         ],
       },
       {

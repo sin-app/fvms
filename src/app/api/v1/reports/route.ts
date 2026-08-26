@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { NextResponse } from "next/server";
 import { authenticateApiKey } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin-client";
@@ -72,16 +73,16 @@ export async function GET(request: Request) {
     }
 
     const total = count ?? 0;
-    const completed = data?.filter((s) => s.status === "completed").length ?? 0;
-    const gagal_total = data?.filter((s) => s.status === "gagal_total").length ?? 0;
-    const pending = data?.filter((s) => s.status === "pending").length ?? 0;
-    const in_progress = data?.filter((s) => s.status === "in_progress").length ?? 0;
+    const completed = data?.filter((s) => s.status === STATUS_VALUES.completed).length ?? 0;
+    const gagal_total = data?.filter((s) => s.status === STATUS_VALUES.gagal_total).length ?? 0;
+    const pending = data?.filter((s) => s.status === STATUS_VALUES.pending).length ?? 0;
+    const in_progress = data?.filter((s) => s.status === STATUS_VALUES.in_progress).length ?? 0;
     const today = todayString();
     const late_count =
       data?.filter(
         (s) =>
           s.visit_date < today &&
-          !["completed", "gagal_partial", "gagal_total"].includes(s.status),
+          ![STATUS_VALUES.completed, STATUS_VALUES.gagal_partial, STATUS_VALUES.gagal_total].includes(s.status),
       ).length ?? 0;
 
     return withCors(

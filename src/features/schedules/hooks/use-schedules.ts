@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { deleteScheduleAction, updateVisitStatusAction, bulkActionSchedules, shiftScheduleDateAction, restoreScheduleAction } from "../actions/schedule-actions";
@@ -115,7 +116,7 @@ export function useShiftScheduleDate() {
 
 const OFFLINE_BULK_ACTIONS = new Set([
   "approve", "delete", "shift_forward", "shift_backward",
-  "pending", "in_progress", "gagal_partial", "completed",
+  STATUS_VALUES.pending, STATUS_VALUES.in_progress, STATUS_VALUES.gagal_partial, STATUS_VALUES.completed,
 ]);
 
 export function useBulkAction() {

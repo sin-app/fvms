@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import crypto from "crypto";
+import { isApiKeyRateLimited, registerApiKeyHit } from "@/lib/auth/rate-limit";
 
 interface ApiAuthResult {
   authenticated: boolean;
@@ -13,26 +14,9 @@ export function hashApiKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
 }
 
-// Rate limit best-effort per API key (in-memory; reset per instance fetch).
-// Serverless = tidak persisten lintas warm instance, tapi mencegah abuse
-// satu instance. Batas lunak: 300 permintaan / menit / key.
-const API_RATE_LIMIT_PER_MINUTE = 300;
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(keyHash: string): boolean {
-  const now = Date.now();
-  const bucket = rateBuckets.get(keyHash);
-  if (!bucket || now >= bucket.resetAt) {
-    rateBuckets.set(keyHash, { count: 1, resetAt: now + 60_000 });
-    return false;
-  }
-  bucket.count += 1;
-  if (bucket.count > API_RATE_LIMIT_PER_MINUTE) {
-    return true;
-  }
-  rateBuckets.set(keyHash, bucket);
-  return false;
-}
+// Rate limit per API key — terdistribusi via tabel `rate_limits` (lihat
+// isApiKeyRateLimited/registerApiKeyHit di @/lib/auth/rate-limit). Batas:
+// 300 permintaan / menit / key, konsisten lintas instance serverless.
 
 export async function authenticateApiKey(request: Request): Promise<ApiAuthResult> {
   const authHeader = request.headers.get("authorization");
@@ -48,9 +32,10 @@ export async function authenticateApiKey(request: Request): Promise<ApiAuthResul
   const keyHash = hashApiKey(apiKey);
 
   // Cek rate limit sebelum query (nama key tidak perlu diungkap).
-  if (isRateLimited(keyHash)) {
+  if (await isApiKeyRateLimited(keyHash)) {
     return { authenticated: false, error: "Too many requests", status: 429 };
   }
+  await registerApiKeyHit(keyHash);
 
   const admin = createAdminClient();
   const { data, error } = await admin

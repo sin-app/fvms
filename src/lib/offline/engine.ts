@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dateString } from "@/lib/utils/date";
 import { getVarietasFromDocumentNo } from "@/lib/utils/varietas";
@@ -448,13 +449,13 @@ async function applyOutboxEntry(
   if (table === "schedules" && action === "upsert") {
     const p = payload as Record<string, unknown>;
     if (p._auto_complete === true && user && user.role !== "produksi") {
-      p.status = "completed";
+      p.status = STATUS_VALUES.completed;
     }
     const targetStatus = typeof p.status === "string" ? p.status : undefined;
-    if (targetStatus === "gagal_total") {
+    if (targetStatus === STATUS_VALUES.gagal_total) {
       throw new Error("schedules: status final hanya lewat koneksi online");
     }
-    if (targetStatus === "completed" && user && user.role === "produksi") {
+    if (targetStatus === STATUS_VALUES.completed && user && user.role === "produksi") {
       throw new Error("schedules: completed hanya untuk QC/admin");
     }
     const allowed = [

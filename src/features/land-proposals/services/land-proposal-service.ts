@@ -1,3 +1,4 @@
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import type { AuthContext } from "@/lib/auth/authorization";
 import { qcKabupatenScope } from "@/lib/auth/authorization";
@@ -119,7 +120,7 @@ export async function createLandProposal(data: LandProposalData, ctx: AuthContex
   const admin = createAdminClient();
   const { data: result, error } = await admin
     .from("land_proposals")
-    .insert({ ...data, proposed_by: ctx.userId, status: "pending" })
+    .insert({ ...data, proposed_by: ctx.userId, status: STATUS_VALUES.pending })
     .select()
     .single();
 
@@ -138,10 +139,10 @@ export async function updateLandProposal(
   const isAdmin = ctx.role === "admin";
 
   if (!isOwner && !isAdmin) throw new Error("Hanya pengaju atau admin yang dapat mengubah pengajuan");
-  if (isOwner && proposal.status !== "pending") {
+  if (isOwner && proposal.status !== STATUS_VALUES.pending) {
     throw new Error("Hanya pengajuan pending yang dapat diubah");
   }
-  if (isAdmin && proposal.status !== "pending" && proposal.status !== "rejected") {
+  if (isAdmin && proposal.status !== STATUS_VALUES.pending && proposal.status !== "rejected") {
     throw new Error("Admin hanya dapat mengubah pengajuan pending atau ditolak");
   }
 
@@ -149,7 +150,7 @@ export async function updateLandProposal(
   const patch: Record<string, unknown> = { ...data };
   if (isAdmin && proposal.status === "rejected") {
     // Admin memperbaiki data pengajuan yang ditolak -> masuk antrean review lagi.
-    patch.status = "pending";
+    patch.status = STATUS_VALUES.pending;
     patch.review_note = null;
     patch.reviewed_by = null;
   }
@@ -167,7 +168,7 @@ export async function updateLandProposal(
 export async function cancelLandProposal(id: string, ctx: AuthContext): Promise<void> {
   const proposal = await getLandProposal(id, ctx);
   if (proposal.proposed_by !== ctx.userId) throw new Error("Hanya pengaju yang dapat membatalkan pengajuan");
-  if (proposal.status !== "pending") throw new Error("Hanya pengajuan pending yang dapat dibatalkan");
+  if (proposal.status !== STATUS_VALUES.pending) throw new Error("Hanya pengajuan pending yang dapat dibatalkan");
 
   const admin = createAdminClient();
   const { error } = await admin
@@ -183,7 +184,7 @@ export async function approveLandProposal(id: string, ctx: AuthContext): Promise
   if (!reviewAccess(ctx, proposal.kabupaten_id)) {
     throw new Error("Tidak memiliki akses untuk menyetujui pengajuan ini");
   }
-  if (proposal.status !== "pending") throw new Error("Hanya pengajuan pending yang dapat disetujui");
+  if (proposal.status !== STATUS_VALUES.pending) throw new Error("Hanya pengajuan pending yang dapat disetujui");
 
   let scheduleId: string;
   try {
@@ -208,7 +209,7 @@ export async function approveLandProposal(id: string, ctx: AuthContext): Promise
       detaseling: proposal.detaseling ?? undefined,
       tgl_tanam: proposal.tgl_tanam ?? undefined,
       rencana_panen: proposal.rencana_panen ?? undefined,
-      status: "pending",
+      status: STATUS_VALUES.pending,
     });
     scheduleId = schedule.id;
   } catch (err) {
@@ -242,7 +243,7 @@ export async function rejectLandProposal(id: string, reviewNote: string, ctx: Au
   if (!reviewAccess(ctx, proposal.kabupaten_id)) {
     throw new Error("Tidak memiliki akses untuk menolak pengajuan ini");
   }
-  if (proposal.status !== "pending") throw new Error("Hanya pengajuan pending yang dapat ditolak");
+  if (proposal.status !== STATUS_VALUES.pending) throw new Error("Hanya pengajuan pending yang dapat ditolak");
 
   const admin = createAdminClient();
   const { data: result, error } = await admin
@@ -296,7 +297,7 @@ export async function assignPetugas(
 
 function canManagePhotos(proposal: LandProposal, ctx: AuthContext): boolean {
   if (ctx.role === "admin") return true;
-  return proposal.proposed_by === ctx.userId && proposal.status === "pending";
+  return proposal.proposed_by === ctx.userId && proposal.status === STATUS_VALUES.pending;
 }
 
 export async function uploadLandProposalPhoto(

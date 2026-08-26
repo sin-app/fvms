@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_VALUES } from "@/lib/constants/status";
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, XCircle, CheckCircle2, UserCheck, Eye, MapPin } from "lucide-react";
@@ -91,10 +92,10 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
   const canEdit = isOwner
     ? proposal.status === "pending"
     : isAdmin
-      ? proposal.status === "pending" || proposal.status === "rejected"
+      ? proposal.status === STATUS_VALUES.pending || proposal.status === "rejected"
       : false;
 
-  const photoEditable = isAdmin || (isOwner && proposal.status === "pending");
+  const photoEditable = isAdmin || (isOwner && proposal.status === STATUS_VALUES.pending);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -163,7 +164,7 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
           <Eye className="mr-1 h-4 w-4" /> Detail
         </Button>
 
-        {isReviewer && proposal.status === "pending" && (
+        {isReviewer && proposal.status === STATUS_VALUES.pending && (
           <>
             <ApproveButton proposal={proposal} />
             <Button variant="outline" size="sm" onClick={() => setShowReject(true)}>
@@ -184,7 +185,7 @@ function ProposalCard({ proposal, currentUser }: { proposal: LandProposal; curre
           </Button>
         )}
 
-        {isOwner && proposal.status === "pending" && (
+        {isOwner && proposal.status === STATUS_VALUES.pending && (
           <Button variant="ghost" size="sm" onClick={() => setCancelTarget(true)}>
             <XCircle className="mr-1 h-4 w-4" /> Batalkan
           </Button>

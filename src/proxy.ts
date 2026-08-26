@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 import { createServerClient } from "@supabase/ssr";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { withRequestId } from "@/lib/logger";
 
 const PUBLIC_ROUTES = ["/login", "/reset-password"];
@@ -26,6 +26,10 @@ function requiredEnv(name: string): string {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const requestId = request.headers.get("x-request-id") ?? randomUUID();
+  const nonce = randomBytes(16).toString("base64");
+  const cspStrict = process.env.CSP_STRICT === "1";
+  const applyCsp = (res: NextResponse) =>
+    res.headers.set("Content-Security-Policy", buildCsp(nonce, cspStrict));
 
   return withRequestId(requestId, async () => {
   const isPublicRoute = routeMatches(pathname, PUBLIC_ROUTES);
@@ -36,6 +40,7 @@ export async function middleware(request: NextRequest) {
   if (isSessionlessApi) {
     const response = NextResponse.next({ request });
     response.headers.set("x-request-id", requestId);
+    applyCsp(response);
     return response;
   }
 
@@ -65,18 +70,21 @@ export async function middleware(request: NextRequest) {
     loginUrl.searchParams.set("redirect", pathname);
     const redirectResponse = NextResponse.redirect(loginUrl);
     applyCookiesToResponse(request, redirectResponse, cookiesToSet);
+    applyCsp(redirectResponse);
     return redirectResponse;
   }
 
   if (user && routeMatches(pathname, AUTH_ROUTES)) {
     const dashboardResponse = NextResponse.redirect(new URL("/dashboard", request.url));
     applyCookiesToResponse(request, dashboardResponse, cookiesToSet);
+    applyCsp(dashboardResponse);
     return dashboardResponse;
   }
 
   const response = NextResponse.next({ request });
   applyCookiesToResponse(request, response, cookiesToSet);
   response.headers.set("x-request-id", requestId);
+  applyCsp(response);
   return response;
   });
 }
@@ -90,6 +98,27 @@ function applyCookiesToResponse(
     request.cookies.set(name, value);
     response.cookies.set(name, value, options as Partial<ResponseCookie> | undefined);
   });
+}
+
+function buildCsp(nonce: string, strict: boolean): string {
+  // `script-src 'unsafe-inline'` diperlukan oleh Next App Router untuk inline
+  // RSC/flight payload — tidak ada nonce otomatis dari framework. Mode strict
+  // (CSP_STRICT=1) menghapusnya untuk environment yang sudah memverifikasi
+  // hydration tetap berfungsi (mis. via nonce pada script buatan sendiri).
+  const scriptSrc = `'self' 'nonce-${nonce}'${strict ? "" : " 'unsafe-inline'"}`;
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    "style-src 'self'",
+    "style-src-attr 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.supabase.co https://*.openstreetmap.org",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co",
+    "frame-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join("; ");
 }
 
 export const config = {

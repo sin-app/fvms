@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-const DEFAULT_ALLOWED = "*";
+// API keys are intended for server-to-server use. Default to NO wildcard so
+// browsers on arbitrary origins cannot call authenticated API routes via CORS.
+// Set CORS_ALLOWED_ORIGINS (comma-separated) to allow specific web origins.
+const DEFAULT_ALLOWED = "";
 
 export const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",

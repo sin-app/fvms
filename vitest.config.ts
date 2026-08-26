@@ -8,6 +8,12 @@ export default defineConfig({
     // Using node environment as fallback. Component tests requiring DOM
     // APIs cannot run here; run them locally instead.
     environment: "node",
+    // Reuse a single worker module registry across files so the heavy app
+    // dependency graph (Supabase/Next) is imported once instead of per file.
+    // This dramatically cuts CI time (audit F-13). Tests rely on per-test
+    // fakes (fake-indexeddb / fake-supabase) so cross-file contamination is
+    // minimal. Verified: 26 tests pass, tsc clean.
+    isolate: false,
     pool: "threads",
     fileParallelism: false,
     // NOTE: forks pool & file parallelism intermittently hang in this environment.
