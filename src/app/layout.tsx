@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/shared/providers";
+import { ErrorOverlay } from "@/components/shared/error-overlay";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -47,6 +48,7 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
+        <ErrorOverlay />
         <Providers>
           {children}
         </Providers>
