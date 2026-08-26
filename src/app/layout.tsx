@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/shared/providers";
 import { ErrorOverlay } from "@/components/shared/error-overlay";
+import { DebugPanel } from "@/components/shared/debug-panel";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
         <ErrorOverlay />
         <Providers>
           {children}
+          <DebugPanel />
         </Providers>
       </body>
     </html>
