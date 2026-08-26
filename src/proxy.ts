@@ -109,7 +109,11 @@ function buildCsp(nonce: string, strict: boolean): string {
   return [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
-    "style-src 'self'",
+    // Stylesheet di-load via <link> memakai nonce (sama dengan script). Tanpa
+    // nonce di style-src, browser memblokir CSS -> halaman tampil tanpa style
+    // (putih). unsafe-inline untuk <style> injeksi library (aman: tidak bisa
+    // mengeksekusi script).
+    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.supabase.co https://*.openstreetmap.org",
     "font-src 'self' data:",
