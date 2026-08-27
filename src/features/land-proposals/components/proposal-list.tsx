@@ -55,6 +55,20 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
   const showOnlyMine = true;
   const [onlyMine, setOnlyMine] = useState(false);
 
+  // Penjelas makna "Hanya milik saya" per role (supaya tidak membingungkan).
+  const onlyMineHint = isReviewer
+    ? "yang sudah Anda review"
+    : "yang Anda ajukan";
+
+  const resetFilters = () => {
+    setStatus("");
+    setKabupatenId("");
+    setKecamatanId("");
+    setDesaId("");
+    setSearch("");
+    setOnlyMine(false);
+  };
+
   // Opsi wilayah diturunkan dari data yang sudah dimuat (otomatis scoped).
   const { kabupatenOptions, kecamatanOptions, desaOptions } = useMemo(() => {
     const kab = new Map<string, RegionOption>();
@@ -152,6 +166,10 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
         showOnlyMine={showOnlyMine}
         onlyMine={onlyMine}
         onOnlyMineChange={setOnlyMine}
+        total={proposals.length}
+        resultCount={filtered.length}
+        onReset={resetFilters}
+        onlyMineHint={onlyMineHint}
       />
 
       {proposals.length === 0 ? (

@@ -1,7 +1,8 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export interface RegionOption {
   id: string;
@@ -25,6 +26,10 @@ interface ProposalFiltersProps {
   showOnlyMine: boolean;
   onlyMine: boolean;
   onOnlyMineChange: (value: boolean) => void;
+  total: number;
+  resultCount: number;
+  onReset: () => void;
+  onlyMineHint?: string;
 }
 
 const selectClass =
@@ -47,9 +52,39 @@ export function ProposalFilters({
   showOnlyMine,
   onlyMine,
   onOnlyMineChange,
+  total,
+  resultCount,
+  onReset,
+  onlyMineHint,
 }: ProposalFiltersProps) {
+  const hasActiveFilter =
+    status !== "" ||
+    kabupatenId !== "" ||
+    kecamatanId !== "" ||
+    desaId !== "" ||
+    search.trim() !== "" ||
+    onlyMine;
+
   return (
-    <div className="flex flex-col gap-2 rounded-xl border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-end">
+    <div className="rounded-xl border bg-card p-3">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          Menampilkan <span className="font-medium text-foreground">{resultCount}</span> dari{" "}
+          {total} pengajuan
+        </p>
+        {hasActiveFilter && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            className="h-7 gap-1 px-2 text-xs"
+          >
+            <X className="h-3.5 w-3.5" /> Reset filter
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
       <div className="flex-1 min-w-0">
         <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Cari
@@ -149,8 +184,14 @@ export function ProposalFilters({
             className="h-4 w-4 accent-[--brand]"
           />
           Hanya milik saya
+          {onlyMineHint && (
+            <span className="text-xs font-normal text-muted-foreground">
+              ({onlyMineHint})
+            </span>
+          )}
         </label>
       )}
+      </div>
     </div>
   );
 }
