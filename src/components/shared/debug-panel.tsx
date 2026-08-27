@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 export function DebugPanel() {
   const { user, isLoading } = useAuth();
   const path = usePathname();
-  const txt = `build=4a69870 | path=${path} | loading=${isLoading ? 1 : 0} | user=${user ? `${user.role}:${user.id.slice(0, 6)}` : "NULL"}`;
+  const txt = `build=seed-v1 | path=${path} | loading=${isLoading ? 1 : 0} | user=${user ? `${user.role}:${user.id.slice(0, 6)}` : "NULL"}`;
   return (
     <div
       style={{

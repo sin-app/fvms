@@ -10,9 +10,10 @@ import { SyncProvider } from "@/lib/offline/sync-context";
 
 interface ProvidersProps {
   children: ReactNode;
+  initialUser?: import("@/types").User | null;
 }
 
-export function Providers({ children }: ProvidersProps) {
+export function Providers({ children, initialUser = null }: ProvidersProps) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -30,7 +31,7 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+        <AuthProvider initialUser={initialUser}>
           <SyncProvider>
             <I18nProvider>{children}</I18nProvider>
           </SyncProvider>

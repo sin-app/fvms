@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { login, logout, resetPassword } from "../api/auth-client";
 import type { LoginInput, ResetPasswordInput } from "../schema/auth-schema";
 
 export function useAuth() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,8 +14,7 @@ export function useAuth() {
 
     try {
       await login(input);
-      router.push("/dashboard");
-      router.refresh();
+      window.location.assign("/dashboard");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Terjadi kesalahan";
@@ -29,8 +26,7 @@ export function useAuth() {
 
   async function handleLogout() {
     await logout();
-    router.push("/login");
-    router.refresh();
+    window.location.assign("/login");
   }
 
   async function handleResetPassword(input: ResetPasswordInput) {

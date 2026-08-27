@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { loginAction } from "@/features/auth/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +11,16 @@ import type { ActionResponse } from "@/types/common";
 const initialState: ActionResponse = { success: false };
 
 export function LoginForm() {
-  const router = useRouter();
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   useEffect(() => {
     if (state.success) {
-      router.replace("/dashboard");
+      // Full navigation (bukan router.replace) agar root layout merender ulang
+      // di server dan men-seed user dari cookie session — penting di TWA/
+      // WebView di mana client getSession() bisa menggantung.
+      window.location.assign("/dashboard");
     }
-  }, [state.success, router]);
+  }, [state.success]);
 
   return (
     <form action={formAction} className="space-y-4">

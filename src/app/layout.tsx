@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/shared/providers";
 import { ErrorOverlay } from "@/components/shared/error-overlay";
 import { DebugPanel } from "@/components/shared/debug-panel";
+import { getCurrentUserAction } from "@/features/auth/actions/user-actions";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -41,16 +42,27 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Baca user di server (cookie dibaca langsung dari request — andal di TWA/
+  // WebView, tidak bergantung pada client storage/Service Worker). Hasilnya
+  // di-seed ke AuthProvider agar dashboard langsung render tanpa menunggu
+  // client session yang bisa menggantung.
+  let initialUser = null;
+  try {
+    initialUser = await getCurrentUserAction();
+  } catch {
+    initialUser = null;
+  }
+
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <ErrorOverlay />
-        <Providers>
+        <Providers initialUser={initialUser}>
           {children}
           <DebugPanel />
         </Providers>

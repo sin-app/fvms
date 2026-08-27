@@ -49,77 +49,59 @@ function userFromSession(session: {
   };
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function AuthProvider({
+  children,
+  initialUser = null,
+}: {
+  children: ReactNode;
+  initialUser?: User | null;
+}) {
+  // User di-seed dari SERVER (root layout membaca session cookie di server).
+  // Ini andal di TWA/WebView tempat client getSession() bisa menggantung atau
+  // tidak bisa membaca cookie, sehingga pemanggilan server action untuk mengambil
+  // user di client berpotensi tidak pernah resolve (layar putih/loading).
+  // isLoading langsung false agar UI langsung render; pembaruan client-side
+  // bersifat best-effort di belakang layar dan tidak memblokir render.
+  const [user, setUser] = useState<User | null>(initialUser);
+  const [isLoading, setIsLoading] = useState(false);
 
   const refreshUser = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
     } catch {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
+      // pertahankan user dari seed server jika pemanggilan gagal/hang.
     }
   }, []);
 
   useEffect(() => {
     const supabase = createClient();
-    let cancelled = false;
-    let didSettle = false;
-    // Pastikan isLoading selalu false (tidak gantung di layar putih).
-    const settle = (after?: () => void) => {
-      if (cancelled || didSettle) return;
-      didSettle = true;
-      setIsLoading(false);
-      after?.();
-    };
+    let active = true;
 
-    // 1) Coba session dari client storage (cepat).
+    // Best-effort: sinkronkan dengan session client bila tersedia.
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => {
-        if (cancelled) return;
-        if (session) {
-          try {
-            setUser(userFromSession(session));
-          } catch {
-            // shape session tak terduga; fallback server akan ambil user.
-          }
-          settle(refreshUser);
+        if (!active || !session) return;
+        try {
+          setUser(userFromSession(session));
+        } catch {
+          // abaikan shape session tak terduga
         }
-        // tanpa session -> biarkan fallback timer mengambil dari server.
       })
-      .catch(() => {
-        /* fallback timer yang tangani */
-      });
-
-    // 2) Fallback (2.5s): baca user via server action yang membaca cookie
-    //    di server. Andal di TWA/WebView meski client storage getSession()
-    //    menggantung/tidak bisa membaca cookie.
-    const fallbackTimer = setTimeout(() => {
-      if (cancelled || didSettle) return;
-      getCurrentUser()
-        .then((u) => {
-          if (u) setUser(u);
-        })
-        .catch(() => {})
-        .finally(() => settle());
-    }, 2500);
+      .catch(() => {});
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
       startTransition(() => {
-        refreshUser();
+        void refreshUser();
       });
     });
 
     return () => {
-      cancelled = true;
+      active = false;
       subscription.unsubscribe();
-      clearTimeout(fallbackTimer);
     };
   }, [refreshUser]);
 
