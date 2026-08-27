@@ -66,18 +66,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
+    let cancelled = false;
+    let didSettle = false;
+    // Pastikan isLoading selalu false (tidak gantung di layar putih).
+    const settle = (after?: () => void) => {
+      if (cancelled || didSettle) return;
+      didSettle = true;
+      setIsLoading(false);
+      after?.();
+    };
 
-    // Fast init: baca session dari cache, tampilkan UI secepatnya
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUser(userFromSession(session));
-        setIsLoading(false);
-        // Background: fetch user detail dari DB
-        refreshUser();
-      } else {
-        setIsLoading(false);
-      }
-    });
+    // 1) Coba session dari client storage (cepat).
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (cancelled) return;
+        if (session) {
+          try {
+            setUser(userFromSession(session));
+          } catch {
+            // shape session tak terduga; fallback server akan ambil user.
+          }
+          settle(refreshUser);
+        }
+        // tanpa session -> biarkan fallback timer mengambil dari server.
+      })
+      .catch(() => {
+        /* fallback timer yang tangani */
+      });
+
+    // 2) Fallback (2.5s): baca user via server action yang membaca cookie
+    //    di server. Andal di TWA/WebView meski client storage getSession()
+    //    menggantung/tidak bisa membaca cookie.
+    const fallbackTimer = setTimeout(() => {
+      if (cancelled || didSettle) return;
+      getCurrentUser()
+        .then((u) => {
+          if (u) setUser(u);
+        })
+        .catch(() => {})
+        .finally(() => settle());
+    }, 2500);
 
     const {
       data: { subscription },
@@ -88,7 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
+      clearTimeout(fallbackTimer);
     };
   }, [refreshUser]);
 
