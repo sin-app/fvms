@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/shared/providers";
-import { ErrorOverlay } from "@/components/shared/error-overlay";
-import { DebugPanel } from "@/components/shared/debug-panel";
 import { getCurrentUserAction } from "@/features/auth/actions/user-actions";
 
 const inter = Inter({
@@ -61,10 +59,8 @@ export default async function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
-        <ErrorOverlay />
         <Providers initialUser={initialUser}>
           {children}
-          <DebugPanel />
         </Providers>
       </body>
     </html>
