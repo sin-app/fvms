@@ -38,12 +38,22 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center min-h-[300px] p-6">
-          <div className="rounded-xl border p-6 max-w-md w-full text-center space-y-4">
+          <div className="rounded-xl border p-6 max-w-2xl w-full text-center space-y-4">
             <div className="text-4xl">⚠️</div>
             <h2 className="text-lg font-semibold">Terjadi Kesalahan</h2>
-            <p className="text-sm text-muted-foreground">
-              Terjadi kesalahan tak terduga. Silakan coba lagi.
+            <p className="text-sm font-medium text-destructive break-words">
+              {this.state.error?.message ?? "Terjadi kesalahan tak terduga."}
             </p>
+            {this.state.error?.stack && (
+              <details className="text-left">
+                <summary className="cursor-pointer text-xs text-muted-foreground">
+                  Detail error (untuk dilaporkan)
+                </summary>
+                <pre className="mt-2 max-h-48 overflow-auto rounded bg-muted p-2 text-[10px] leading-snug text-muted-foreground whitespace-pre-wrap">
+                  {this.state.error.stack}
+                </pre>
+              </details>
+            )}
             <Button
               variant="outline"
               onClick={() => {
