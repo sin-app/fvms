@@ -51,7 +51,9 @@ export function UpcomingSchedule({ schedules, kabupatenId, kecamatanId }: Upcomi
                 <span>{(schedule as unknown as { kabupaten?: { name: string } }).kabupaten?.name ?? "—"}</span>
               </div>
             </div>
-            <StatusBadge status={schedule.status} size="sm" />
+            <span className="shrink-0">
+              <StatusBadge status={schedule.status} size="sm" />
+            </span>
           </Link>
         ))}
       </div>

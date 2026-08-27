@@ -52,7 +52,9 @@ export function TodaySchedule({ schedules, kabupatenId, kecamatanId }: TodaySche
                 Petugas: {(schedule as unknown as { users?: { name: string } }).users?.name ?? "—"}
               </p>
             </div>
-            <StatusBadge status={schedule.status} size="sm" />
+            <span className="shrink-0">
+              <StatusBadge status={schedule.status} size="sm" />
+            </span>
           </Link>
         ))}
       </div>

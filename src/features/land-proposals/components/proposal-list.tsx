@@ -1,7 +1,7 @@
 "use client";
 
 import { STATUS_VALUES } from "@/lib/constants/status";
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, XCircle, CheckCircle2, UserCheck, Eye, MapPin } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import { ProposalPhotos } from "./proposal-photos";
 import { RejectDialog } from "./reject-dialog";
 import { AssignPetugasDialog } from "./assign-petugas-dialog";
 import { ProposalDetailDialog } from "./proposal-detail-dialog";
+import { ProposalFilters, type RegionOption } from "./proposal-filters";
 import {
   createLandProposalAction,
   updateLandProposalAction,
@@ -45,6 +46,59 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
   const isReviewer = currentUser.role === "admin" || currentUser.role === "qc";
   const [showCreate, setShowCreate] = useState(false);
 
+  // State filter (client-side, karena seluruh proposal scope sudah di-load).
+  const [status, setStatus] = useState("");
+  const [kabupatenId, setKabupatenId] = useState("");
+  const [kecamatanId, setKecamatanId] = useState("");
+  const [desaId, setDesaId] = useState("");
+  const [search, setSearch] = useState("");
+  const showOnlyMine = isReviewer;
+  const [onlyMine, setOnlyMine] = useState(false);
+
+  // Opsi wilayah diturunkan dari data yang sudah dimuat (otomatis scoped).
+  const { kabupatenOptions, kecamatanOptions, desaOptions } = useMemo(() => {
+    const kab = new Map<string, RegionOption>();
+    const kec = new Map<string, RegionOption>();
+    const des = new Map<string, RegionOption>();
+    for (const p of proposals) {
+      if (p.kabupaten?.id && p.kabupaten?.name) kab.set(p.kabupaten.id, { id: p.kabupaten.id, name: p.kabupaten.name });
+      if (p.kecamatan?.id && p.kecamatan?.name) kec.set(p.kecamatan.id, { id: p.kecamatan.id, name: p.kecamatan.name });
+      if (p.desa?.id && p.desa?.name) des.set(p.desa.id, { id: p.desa.id, name: p.desa.name });
+    }
+    const sort = (m: Map<string, RegionOption>) =>
+      [...m.values()].sort((a, b) => a.name.localeCompare(b.name, "id"));
+    return {
+      kabupatenOptions: sort(kab),
+      kecamatanOptions: sort(kec),
+      desaOptions: sort(des),
+    };
+  }, [proposals]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return proposals.filter((p) => {
+      if (status && p.status !== status) return false;
+      if (kabupatenId && p.kabupaten_id !== kabupatenId) return false;
+      if (kecamatanId && p.kecamatan_id !== kecamatanId) return false;
+      if (desaId && p.desa_id !== desaId) return false;
+      if (showOnlyMine && onlyMine && p.proposed_by !== currentUser.userId) return false;
+      if (q) {
+        const hay = [
+          p.member_name,
+          p.block_no,
+          p.no_plot,
+          p.document_no,
+          p.nis,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [proposals, status, kabupatenId, kecamatanId, desaId, search, showOnlyMine, onlyMine, currentUser.userId]);
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -67,14 +121,45 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
         />
       )}
 
+      <ProposalFilters
+        status={status}
+        onStatusChange={setStatus}
+        kabupatenId={kabupatenId}
+        kecamatanId={kecamatanId}
+        desaId={desaId}
+        onKabupatenChange={(v) => {
+          setKabupatenId(v);
+          setKecamatanId("");
+          setDesaId("");
+        }}
+        onKecamatanChange={(v) => {
+          setKecamatanId(v);
+          setDesaId("");
+        }}
+        onDesaChange={setDesaId}
+        kabupatenOptions={kabupatenOptions}
+        kecamatanOptions={kecamatanOptions}
+        desaOptions={desaOptions}
+        search={search}
+        onSearchChange={setSearch}
+        showOnlyMine={showOnlyMine}
+        onlyMine={onlyMine}
+        onOnlyMineChange={setOnlyMine}
+      />
+
       {proposals.length === 0 ? (
         <EmptyState
           title="Belum ada pengajuan"
           description={isReviewer ? "Pengajuan lahan dari produksi akan muncul di sini." : "Ajukan lahan baru untuk mulai."}
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title="Tidak ada yang cocok"
+          description="Tidak ada pengajuan yang sesuai dengan filter yang dipilih."
+        />
       ) : (
         <div className="space-y-3">
-          {proposals.map((p) => (
+          {filtered.map((p) => (
             <ProposalCard key={p.id} proposal={p} currentUser={currentUser} />
           ))}
         </div>
