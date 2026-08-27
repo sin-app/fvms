@@ -52,7 +52,7 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
   const [kecamatanId, setKecamatanId] = useState("");
   const [desaId, setDesaId] = useState("");
   const [search, setSearch] = useState("");
-  const showOnlyMine = isReviewer;
+  const showOnlyMine = true;
   const [onlyMine, setOnlyMine] = useState(false);
 
   // Opsi wilayah diturunkan dari data yang sudah dimuat (otomatis scoped).
@@ -81,7 +81,14 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
       if (kabupatenId && p.kabupaten_id !== kabupatenId) return false;
       if (kecamatanId && p.kecamatan_id !== kecamatanId) return false;
       if (desaId && p.desa_id !== desaId) return false;
-      if (showOnlyMine && onlyMine && p.proposed_by !== currentUser.userId) return false;
+      if (showOnlyMine && onlyMine) {
+        // "Milik saya": untuk produksi = yang diajukan sendiri; untuk
+        // qc/admin = yang sudah direview sendiri (reviewer tidak mengajukan).
+        const isMine = isReviewer
+          ? p.reviewed_by === currentUser.userId
+          : p.proposed_by === currentUser.userId;
+        if (!isMine) return false;
+      }
       if (q) {
         const hay = [
           p.member_name,
