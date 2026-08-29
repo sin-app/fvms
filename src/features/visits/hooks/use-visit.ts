@@ -8,6 +8,11 @@ import { useSync } from "@/lib/offline/sync-context";
 import { useLocalQuery } from "@/lib/offline/use-local-query";
 import { offlineRowToSchedule } from "@/features/schedules/services/offline-read";
 import { getOfflineDb, type OfflineVisitPhoto } from "@/lib/offline/db";
+import {
+  cacheDeletePhoto,
+  cacheUpsertVisitNotes,
+  cacheUpdatePhotoCaption,
+} from "@/lib/offline/cache-aside";
 import type { Schedule, VisitNotes, VisitPhoto } from "@/types";
 import {
   queueVisitNotesUpdate,
@@ -125,6 +130,8 @@ export function useSaveVisitNotes() {
       if (data.additional) fd.set("additional", data.additional);
       const result = await saveVisitNotesAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      // Write-through agar list/detail (baca dari IDB) langsung update.
+      await cacheUpsertVisitNotes(data);
       return result.data;
     },
     onSuccess: (_data, variables) => {
@@ -198,6 +205,7 @@ export function useDeletePhoto() {
       fd.set("schedule_id", data.schedule_id);
       const result = await deletePhotoAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cacheDeletePhoto(data.photo_id);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });
@@ -226,6 +234,7 @@ export function useUpdatePhoto() {
       fd.set("caption", data.caption);
       const result = await updatePhotoAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cacheUpdatePhotoCaption(data.photo_id, data.caption);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["visit", variables.schedule_id] });

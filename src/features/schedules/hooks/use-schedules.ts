@@ -13,6 +13,13 @@ import { useSync } from "@/lib/offline/sync-context";
 import { useAuth } from "@/features/auth/components/auth-context";
 import { useLocalQuery } from "@/lib/offline/use-local-query";
 import { loadOfflineScheduleRows } from "../services/offline-read";
+import {
+  cacheApplyBulk,
+  cacheDeleteSchedule,
+  cachePatchSchedule,
+  cacheRestoreSchedule,
+  cacheShiftScheduleDate,
+} from "@/lib/offline/cache-aside";
 import type { ScheduleFilters, ScheduleListResult } from "../types";
 
 export function useSchedules(filters: ScheduleFilters) {
@@ -48,6 +55,7 @@ export function useDeleteSchedule() {
       fd.set("id", id);
       const result = await deleteScheduleAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cacheDeleteSchedule(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
@@ -73,6 +81,7 @@ export function useRestoreSchedule() {
       fd.set("id", id);
       const result = await restoreScheduleAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cacheRestoreSchedule(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
@@ -101,6 +110,7 @@ export function useShiftScheduleDate() {
       fd.set("days", String(days));
       const result = await shiftScheduleDateAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cacheShiftScheduleDate(id, days);
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
@@ -155,6 +165,7 @@ export function useBulkAction() {
       fd.set("bulkAction", data.action);
       const result = await bulkActionSchedules({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cacheApplyBulk(data.ids, data.action);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
@@ -192,6 +203,11 @@ export function useUpdateVisitStatus() {
       if (data.longitude) fd.set("longitude", String(data.longitude));
       const result = await updateVisitStatusAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      const patch: Parameters<typeof cachePatchSchedule>[1] = { status: data.status };
+      if (data.latitude !== undefined) patch.latitude = data.latitude;
+      if (data.longitude !== undefined) patch.longitude = data.longitude;
+      if (data.latitude !== undefined) patch.visit_time = new Date().toISOString();
+      await cachePatchSchedule(data.id, patch);
       return result.data;
     },
     onSuccess: (_data, vars) => {

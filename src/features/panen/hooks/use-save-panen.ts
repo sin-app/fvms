@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { savePanenAction } from "../actions/panen-actions";
 import { queuePanenSave } from "@/features/visits/services/visit-client";
 import { useSync } from "@/lib/offline/sync-context";
+import { cachePatchSchedule } from "@/lib/offline/cache-aside";
 
 export interface SavePanenInput {
   scheduleId: string;
@@ -37,6 +38,10 @@ export function useSavePanen() {
       if (data.panen_keterangan) fd.set("panen_keterangan", data.panen_keterangan);
       const result = await savePanenAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cachePatchSchedule(data.scheduleId, {
+        tgl_panen: data.tgl_panen ?? null,
+        panen_keterangan: data.panen_keterangan ?? null,
+      });
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["visit", vars.scheduleId] });

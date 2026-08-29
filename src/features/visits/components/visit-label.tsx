@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateLabelAction } from "@/features/schedules/actions/schedule-actions";
 import { queueScheduleUpdate } from "@/features/visits/services/visit-client";
 import { useSync } from "@/lib/offline/sync-context";
+import { cachePatchSchedule } from "@/lib/offline/cache-aside";
 import { toast } from "sonner";
 
 interface VisitLabelProps {
@@ -37,6 +38,7 @@ export function VisitLabel({ scheduleId, currentLabel, editable }: VisitLabelPro
       fd.set("label", label ?? "");
       const result = await updateLabelAction({ success: false }, fd);
       if (!result.success) throw new Error(result.error);
+      await cachePatchSchedule(scheduleId, { label: label ?? null });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["visit", scheduleId] });
