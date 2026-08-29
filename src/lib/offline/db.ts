@@ -32,7 +32,7 @@ export interface OfflineScheduleRow {
   accuracy: number | null;
   visit_time: string | null;
   notes: string | null;
-  deleted_at: string | null;
+  deleted_at?: string | null;
   updated_at: string;
   kabupaten_name?: string | null;
   kecamatan_name?: string | null;
