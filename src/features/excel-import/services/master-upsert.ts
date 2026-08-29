@@ -20,7 +20,7 @@ function shortCode(prefix: string): string {
 // Nama dari file Excel tidak selalu konsisten ("KARANGANYAR." vs
 // "KARANGANYAR", spasi ganda, dll). Normalisasi mencegah terciptanya
 // record master data ganda yang kemudian memicu duplikat jadwal.
-function normalizeName(name: string): string {
+export function normalizeName(name: string): string {
   return name
     .trim()
     .replace(/[.,;:]+$/g, "")

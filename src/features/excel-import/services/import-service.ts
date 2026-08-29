@@ -1,7 +1,7 @@
 import { STATUS_VALUES } from "@/lib/constants/status";
 import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin-client";
-import { createMasterUpserter } from "./master-upsert";
+import { createMasterUpserter, normalizeName } from "./master-upsert";
 import { createUserUpserter } from "./user-upsert";
 import { calcRencanaPanen, deriveScheduleStatus } from "@/features/panen/services/panen-logic";
 import type { ExcelRow, ImportPreview, ImportResult, ColumnMapping } from "../types";
@@ -295,7 +295,7 @@ export async function bulkImportSchedules(
   // Collect assigned kabupaten per user from the import rows.
   const userKabMap = new Map<string, Set<string>>();
   for (const r of valid) {
-    const kabId = master.kabupaten.get(r.kab.toLowerCase());
+    const kabId = master.kabupaten.get(normalizeName(r.kab).toLowerCase());
     const uId = userOut.map.get(r.user.toLowerCase());
     if (kabId && uId) {
       const set = userKabMap.get(uId) ?? new Set();
@@ -344,9 +344,9 @@ export async function bulkImportSchedules(
   }> = [];
 
   for (const r of valid) {
-    const kabupaten_id = master.kabupaten.get(r.kab.toLowerCase());
-    const kecamatan_id = master.kecamatan.get(r.kec.toLowerCase());
-    const desa_id = master.desa.get(r.desa.toLowerCase());
+    const kabupaten_id = master.kabupaten.get(normalizeName(r.kab).toLowerCase());
+    const kecamatan_id = master.kecamatan.get(normalizeName(r.kec).toLowerCase());
+    const desa_id = master.desa.get(normalizeName(r.desa).toLowerCase());
     const user_id = userOut.map.get(r.user.toLowerCase());
 
     if (!kabupaten_id || !kecamatan_id || !desa_id || !user_id) {
