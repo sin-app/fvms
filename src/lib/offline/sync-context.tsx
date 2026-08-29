@@ -75,8 +75,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const syncingRef = useRef(false);
   const syncNow = useCallback(async (): Promise<HydrateResult | null> => {
     if (!user || !isOfflineDbAvailable()) return null;
+    // Hindari tumpang tindih sinkron (event online/visibility/focus bisa
+    // saling memicu beruntun saat koneksi kembali).
+    if (syncingRef.current) return null;
+    syncingRef.current = true;
     setState((prev) => ({ ...prev, syncing: true, lastError: null }));
     try {
       const supabase = createClient();
@@ -108,6 +113,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }));
       return null;
     } finally {
+      syncingRef.current = false;
       void refreshPending();
     }
   }, [user, refreshPending]);
@@ -120,6 +126,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (!isOfflineDbAvailable()) return;
+
+    // Sinkronkan status online dari navigator (bukan asumsi true).
+    setState((prev) => ({
+      ...prev,
+      online: typeof navigator !== "undefined" ? navigator.onLine : prev.online,
+    }));
+
     // Guard pakai signature scope (id + role + kabupaten), bukan sekadar id.
     // AuthProvider mengisi `user` dari cache session dulu (assigned_kabupaten_ids
     // kosong), lalu menimpanya dengan data DB via refreshUser(). Tanpa scope
@@ -128,16 +141,29 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     // saat user diperbarui (kabupaten terisi) efek ini menjalankan hidrasi
     // ulang otomatis — tidak perlu aksi manual.
     const scopeKey = `${user.id}|${user.role}|${(user.assigned_kabupaten_ids ?? []).join(",")}`;
-    if (hydratedFor.current === scopeKey) return;
-    hydratedFor.current = scopeKey;
-    void refreshPending();
-    void syncNow();
+    if (hydratedFor.current !== scopeKey) {
+      hydratedFor.current = scopeKey;
+      void refreshPending();
+      void syncNow();
+    }
 
+    const triggerSyncIfOnline = () => {
+      if (typeof navigator === "undefined" || navigator.onLine) void syncNow();
+    };
     const onOnline = () => {
       setState((prev) => ({ ...prev, online: true, lastError: null }));
       void syncNow();
     };
     const onOffline = () => setState((prev) => ({ ...prev, online: false }));
+    // Di PWA/TWA, koneksi bisa kembali saat app di-background; event `online`
+    // tidak selalu terpicu. Sinkron otomatis saat halaman kembali terlihat
+    // atau mendapat fokus DAN terhubung.
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        triggerSyncIfOnline();
+      }
+    };
+    const onFocus = () => triggerSyncIfOnline();
     const onOutbox = (event: Event) => {
       const detail = (event as CustomEvent<{ count: number }>).detail;
       setState((prev) => ({ ...prev, pending: detail?.count ?? 0 }));
@@ -145,11 +171,15 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
+    window.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
     window.addEventListener(OUTBOX_CHANGE_EVENT, onOutbox);
 
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
+      window.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
       window.removeEventListener(OUTBOX_CHANGE_EVENT, onOutbox);
     };
   }, [user, refreshPending, syncNow]);
