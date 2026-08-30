@@ -10,7 +10,7 @@ import {
   getScheduleOwnerIds,
 } from "../services/schedule-service";
 import type { ActionResponse } from "@/types/common";
-import { STATUS_TRANSITIONS, SCHEDULE_STATUSES } from "@/lib/constants/status";
+import { STATUS_TRANSITIONS, SCHEDULE_STATUSES, STATUS_VALUES } from "@/lib/constants/status";
 import type { VisitStatus } from "@/types";
 import { dateString } from "@/lib/utils/date";
 import { getAuthContext, isPrivileged, canAccessSchedule, qcKabupatenScope } from "@/lib/auth/authorization";
@@ -372,11 +372,15 @@ export async function bulkActionSchedules(
         prev.setDate(prev.getDate() - 1);
         await admin.from("schedules").update({ visit_date: dateString(prev) }).eq("id", s.id);
       }
-    } else if (["pending", "in_progress", "gagal_partial", "completed"].includes(action)) {
+    } else if (
+      Object.values(STATUS_VALUES)
+        .filter((s) => s !== STATUS_VALUES.gagal_total)
+        .includes(action as VisitStatus)
+    ) {
       const target = action as VisitStatus;
 
       // Status completed (verifikasi selesai) hanya boleh ditetapkan QC/admin.
-      if (target === "completed" && ctx.role === "produksi") {
+      if (target === STATUS_VALUES.completed && ctx.role === "produksi") {
         return { success: false, error: "Hanya QC yang dapat menandai selesai (completed)" };
       }
 
@@ -390,7 +394,7 @@ export async function bulkActionSchedules(
       const invalid = (currentRows ?? []).filter((row) => {
         const from = SCHEDULE_STATUSES.includes(row.status as VisitStatus)
           ? (row.status as VisitStatus)
-          : "pending";
+          : STATUS_VALUES.pending;
         if (from === target) return false;
         return !(STATUS_TRANSITIONS[from] ?? []).includes(target);
       });
@@ -468,7 +472,7 @@ export async function updateVisitStatusAction(
     .maybeSingle();
   const currentStatus: VisitStatus = current && SCHEDULE_STATUSES.includes(current.status as VisitStatus)
     ? (current.status as VisitStatus)
-    : "pending";
+    : STATUS_VALUES.pending;
   if (currentStatus !== status) {
     const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
     if (!allowed.includes(status as VisitStatus)) {

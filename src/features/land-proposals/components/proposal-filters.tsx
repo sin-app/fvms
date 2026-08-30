@@ -3,11 +3,19 @@
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import type { LandProposalStatus } from "@/types";
 
 export interface RegionOption {
   id: string;
   name: string;
 }
+
+const PROPOSAL_STATUS_OPTIONS: { value: LandProposalStatus; label: string }[] = [
+  { value: "pending", label: "Menunggu" },
+  { value: "approved", label: "Disetujui" },
+  { value: "rejected", label: "Ditolak" },
+  { value: "cancelled", label: "Dibatalkan" },
+];
 
 interface ProposalFiltersProps {
   status: string;
@@ -110,10 +118,11 @@ export function ProposalFilters({
           className={selectClass}
         >
           <option value="">Semua</option>
-          <option value="pending">Menunggu</option>
-          <option value="approved">Disetujui</option>
-          <option value="rejected">Ditolak</option>
-          <option value="cancelled">Dibatalkan</option>
+          {PROPOSAL_STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
         </select>
       </div>
 
