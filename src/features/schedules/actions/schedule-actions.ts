@@ -373,9 +373,8 @@ export async function bulkActionSchedules(
         await admin.from("schedules").update({ visit_date: dateString(prev) }).eq("id", s.id);
       }
     } else if (
-      Object.values(STATUS_VALUES)
-        .filter((s) => s !== STATUS_VALUES.gagal_total)
-        .includes(action as VisitStatus)
+      action !== STATUS_VALUES.gagal_total &&
+      SCHEDULE_STATUSES.includes(action as VisitStatus)
     ) {
       const target = action as VisitStatus;
 
