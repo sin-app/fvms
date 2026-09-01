@@ -1,0 +1,126 @@
+name: Deploy Monitor
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  monitor:
+    name: Monitor Vercel Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get current SHA
+        id: sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Wait for Vercel deployment to finish
+        id: wait
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          SHA="${{ steps.sha.outputs.sha }}"
+          MAX_WAIT=900
+          INTERVAL=30
+          ELAPSED=0
+
+          echo "⏳ Menunggu deploy Vercel untuk SHA $SHA..."
+
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            RESPONSE=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?limit=1&target=production&gitCommitSha=$SHA")
+
+            if [ -z "$RESPONSE" ]; then
+              echo "Belum ada deploy untuk SHA $SHA, menunggu ${INTERVAL}s..."
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED + INTERVAL))
+              continue
+            fi
+
+            STATE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['state'])" 2>/dev/null || echo "PARSE_ERROR")
+            URL=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['url'])" 2>/dev/null || echo "unknown")
+            DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['id'])" 2>/dev/null || echo "unknown")
+            CREATED=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['created'])" 2>/dev/null || echo "unknown")
+
+            echo "📋 Deploy #$DEPLOY_ID — State: $STATE — URL: $URL"
+
+            if [ "$STATE" = "READY" ]; then
+              echo "✅ Deploy BERHASIL"
+              echo "state=READY" >> $GITHUB_OUTPUT
+              echo "url=$URL" >> $GITHUB_OUTPUT
+              echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+              exit 0
+            elif [ "$STATE" = "ERROR" ] || [ "$STATE" = "CANCELED" ]; then
+              echo "❌ Deploy GAGAL (state: $STATE)"
+              echo "state=$STATE" >> $GITHUB_OUTPUT
+              echo "url=$URL" >> $GITHUB_OUTPUT
+              echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+              echo "created=$CREATED" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+
+            echo "⏳ State saat ini: $STATE, menunggu ${INTERVAL}s..."
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "⏰ Timeout menunggu deploy setelah ${MAX_WAIT}s"
+          echo "state=TIMEOUT" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Report success
+        if: success()
+        run: |
+          echo "## ✅ Deploy Berhasil" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: ${{ steps.wait.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deploy ID**: ${{ steps.wait.outputs.deploy_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA**: ${{ steps.sha.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create issue on failure
+        if: failure() && steps.wait.outputs.state != 'TIMEOUT'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STATE="${{ steps.wait.outputs.state }}"
+          URL="${{ steps.wait.outputs.url }}"
+          DEPLOY_ID="${{ steps.wait.outputs.deploy_id }}"
+          SHA="${{ steps.sha.outputs.sha }}"
+          CREATED="${{ steps.wait.outputs.created }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          TITLE="🚨 Deploy Gagal: $DEPLOY_ID ($STATE)"
+          BODY="### Deploy Vercel Gagal
+
+          - **State**: $STATE
+          - **Deploy ID**: $DEPLOY_ID
+          - **URL**: $URL
+          - **SHA**: $SHA
+          - **Dibuat**: $CREATED
+          - **Ditetapkan**: $TIMESTAMP
+
+          ---
+          *Di-generate oleh \`deploy-monitor.yml\` workflow."
+
+          curl -sf -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d "$(python3 -c "import json,sys; print(json.dumps({'title':'$TITLE','body':'$BODY','labels':['deploy-failure','bug']}))")"
+
+      - name: Report timeout
+        if: failure() && steps.wait.outputs.state == 'TIMEOUT'
+        run: |
+          echo "## ⏰ Timeout Monitoring" >> $GITHUB_STEP_SUMMARY
+          echo "Deploy belum selesai setelah 15 menit. Cek manually di https://vercel.com/dashboard" >> $GITHUB_STEP_SUMMARY

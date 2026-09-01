@@ -26,6 +26,13 @@
 - Setelah setiap commit + push ke `main`, **WAJIB** cek status deploy Vercel via API.
 - Gunakan `$VERCEL_TOKEN` + `https://api.vercel.com/v6/deployments?limit=3&target=production` untuk verifikasi.
 - Laporkan status (SHA, state, timestamp) ke user. Jika ERROR, segera investigasi.
+- **Monitoring otomatis**: workflow `.github/workflows/deploy-monitor.yml` dipicu setelah `push` ke `main` dan `workflow_dispatch`. Workflow ini:
+  - Menunggu deploy Vercel selesai (poll API setiap 30s, timeout 15 menit)
+  - Jika **BERHASIL**: catat URL, Deploy ID, SHA di step summary
+  - Jika **GAGAL** (`ERROR`/`CANCELED`): buat GitHub Issue otomatis dengan label `deploy-failure`, `bug`
+  - Jika **TIMEOUT**: laporkan di step summary, check manual di https://vercel.com/dashboard
+- Secrets yang dibutuhkan: `VERCEL_TOKEN`, `VERCEL_TEAM_ID` (di GitHub repo settings).
+- CI (`ci.yml`) dan deploy Vercel berjalan parallel; monitoring berjalan independent.
 
 ## Android TWA & PWA
 - Distro Android via **TWA** — proyek Gradle statis di `android/` (`settings.gradle`, `app/build.gradle` signingConfig baca env `TWA_KEYSTORE_*`; manifest pakai `com.google.androidbrowserhelper.trusted.LauncherActivity`; `asset_statements` → `fvms-eight.vercel.app`). Bukan lagi Bubblewrap CLI (prompt interaktif tidak bisa dipakai di CI).
