@@ -31,7 +31,7 @@
   - Jika **BERHASIL**: catat URL, Deploy ID, SHA di step summary
   - Jika **GAGAL** (`ERROR`/`CANCELED`): buat GitHub Issue otomatis dengan label `deploy-failure`, `bug`
   - Jika **TIMEOUT**: laporkan di step summary, check manual di https://vercel.com/dashboard
-- Secrets yang dibutuhkan: `VERCEL_TOKEN`, `VERCEL_TEAM_ID` (di GitHub repo settings).
+- Secrets yang dibutuhkan: `VERCEL_TOKEN` (di GitHub repo settings).
 - CI (`ci.yml`) dan deploy Vercel berjalan parallel; monitoring berjalan independent.
 
 ## Android TWA & PWA
