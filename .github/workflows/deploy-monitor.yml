@@ -50,7 +50,7 @@ jobs:
 
             STATE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['state'])" 2>/dev/null || echo "PARSE_ERROR")
             URL=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['url'])" 2>/dev/null || echo "unknown")
-            DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['id'])" 2>/dev/null || echo "unknown")
+            DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['uid'])" 2>/dev/null || echo "unknown")
             CREATED=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['deployments'][0]['created'])" 2>/dev/null || echo "unknown")
 
             echo "📋 Deploy #$DEPLOY_ID — State: $STATE — URL: $URL"
