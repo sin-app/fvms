@@ -42,19 +42,26 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final today = todayString();
         // fetch today schedules (simplified, full filter in F2)
         final rows = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no').eq('visit_date', today).limit(10);
-        final todayList = (rows as List).map((r) => ScheduleLite(id: r['id'], visitDate: r['visit_date'], status: r['status'], memberName: r['member_name'], blockNo: r['block_no'])).toList();
+        final todayList = (rows as List).map((r) {
+          final m = r as Map<String, dynamic>;
+          return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
+        }).toList();
 
         // upcoming
         final up = await supabase.from('schedules').select('id, visit_date, status, member_name').gt('visit_date', today).order('visit_date').limit(5);
-        final upList = (up as List).map((r) => ScheduleLite(id: r['id'], visitDate: r['visit_date'], status: r['status'], memberName: r['member_name'])).toList();
+        final upList = (up as List).map((r) {
+          final m = r as Map<String, dynamic>;
+          return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?);
+        }).toList();
 
         // stats simple
         final all = await supabase.from('schedules').select('status, visit_date');
         int late = 0, completed = 0, pending = 0;
-        for (final r in (all as List)) {
-          if (r['status'] == VisitStatus.completed.value) completed++;
-          if (r['status'] == VisitStatus.pending.value) pending++;
-          if (r['visit_date'] < today && ![VisitStatus.completed.value, VisitStatus.gagalTotal.value].contains(r['status'])) late++;
+        for (final rm in (all as List)) {
+          final r = rm as Map<String, dynamic>;
+          if (r['status'] as String == VisitStatus.completed.value) completed++;
+          if (r['status'] as String == VisitStatus.pending.value) pending++;
+          if ((r['visit_date'] as String).compareTo(today) < 0 && ![VisitStatus.completed.value, VisitStatus.gagalTotal.value].contains(r['status'] as String)) late++;
         }
 
         emit(DashboardLoaded(DashboardData(

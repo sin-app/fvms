@@ -68,7 +68,7 @@ class VisitPhotos extends Table {
   IntColumn get fileSize => integer().nullable()();
   TextColumn get mimeType => text().nullable()();
   TextColumn get createdAt => text()();
-  BlobColumn get blob => blob().nullable()();
+  BlobColumn get blobData => blob().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -87,7 +87,7 @@ class Regions extends Table {
 
 class Outbox extends Table {
   TextColumn get id => text()();
-  TextColumn get tableName => text()();
+  TextColumn get tblName => text()();
   TextColumn get action => text()(); // upsert|delete|insert|shift
   TextColumn get entityId => text()();
   TextColumn get payload => text()(); // json
@@ -132,9 +132,12 @@ class AppDatabase extends _$AppDatabase {
   // Helpers
   Future<void> clearAll() async {
     await batch((b) {
-      for (final t in [schedules, visitNotes, visitPhotos, regions, outbox, meta]) {
-        b.deleteAll(t);
-      }
+      b.deleteAll(schedules);
+      b.deleteAll(visitNotes);
+      b.deleteAll(visitPhotos);
+      b.deleteAll(regions);
+      b.deleteAll(outbox);
+      b.deleteAll(meta);
     });
   }
 }

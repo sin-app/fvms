@@ -19,7 +19,10 @@ class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
       emit(LandProposalsLoading());
       try {
         final rows = await supabase.from('land_proposals').select('id, status, member_name, block_no').order('created_at', ascending: false).limit(50);
-        final items = (rows as List).map((r) => LandProposalLite(id: r['id'], status: r['status'], memberName: r['member_name'], blockNo: r['block_no'])).toList();
+        final items = (rows as List).map((r) {
+          final m = r as Map<String, dynamic>;
+          return LandProposalLite(id: m['id'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
+        }).toList();
         emit(LandProposalsLoaded(items));
       } catch (err) { emit(LandProposalsError(err.toString())); }
     });

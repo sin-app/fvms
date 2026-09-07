@@ -81,7 +81,7 @@ class OfflineEngine {
 
   Future<void> _applyOutboxEntry(OutboxData e) async {
     final payload = jsonDecode(e.payload) as Map<String, dynamic>;
-    if (e.tableName == 'schedules') {
+    if (e.tblName == 'schedules') {
       // Guard final status offline-only = reject
       if (finalStatuses.contains(payload['status'])) {
         throw Exception('Status final hanya bisa online');
@@ -89,9 +89,9 @@ class OfflineEngine {
       // whitelist
       final filtered = {for (final k in scheduleWhitelist) if (payload.containsKey(k)) k: payload[k]};
       await supabase.from('schedules').update(filtered).eq('id', e.entityId);
-    } else if (e.tableName == 'visit_notes') {
+    } else if (e.tblName == 'visit_notes') {
       await supabase.from('visit_notes').upsert({...payload, 'schedule_id': e.entityId});
-    } else if (e.tableName == 'visit_photos') {
+    } else if (e.tblName == 'visit_photos') {
       // Simplified: payload contains url etc; blob upload handled before queue in real F3
       if (e.action == 'delete') {
         await supabase.from('visit_photos').delete().eq('id', e.entityId);
@@ -116,7 +116,7 @@ class OfflineEngine {
     await db.into(db.outbox).insert(
           OutboxCompanion(
             id: Value(DateTime.now().millisecondsSinceEpoch.toString()),
-            tableName: const Value('schedules'),
+            tblName: const Value('schedules'),
             action: const Value('upsert'),
             entityId: Value(scheduleId),
             payload: Value(jsonEncode(filtered)),

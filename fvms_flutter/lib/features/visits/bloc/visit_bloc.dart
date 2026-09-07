@@ -39,14 +39,20 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
     try {
       final row = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, visit_photos(id, url, caption), visit_notes(observation, problem, recommend)').eq('id', scheduleId).maybeSingle();
       if (row == null) throw Exception('Jadwal tidak ditemukan');
-      final photos = (row['visit_photos'] as List? ?? []).map((p) => VisitPhotoLite(id: p['id'], url: p['url'] ?? '', caption: p['caption'])).toList();
-      final vn = (row['visit_notes'] as List? ?? []).isNotEmpty ? (row['visit_notes'] as List).first : null;
+      final rowMap = row as Map<String, dynamic>;
+      final photosRaw = rowMap['visit_photos'] as List? ?? [];
+      final photos = photosRaw.map((p) {
+        final m = p as Map<String, dynamic>;
+        return VisitPhotoLite(id: m['id'] as String, url: (m['url'] as String?) ?? '', caption: m['caption'] as String?);
+      }).toList();
+      final notesRaw = rowMap['visit_notes'] as List? ?? [];
+      final vn = notesRaw.isNotEmpty ? notesRaw.first as Map<String, dynamic> : null;
       emit(VisitLoaded(VisitDetail(
-        id: row['id'], visitDate: row['visit_date'], status: row['status'],
-        memberName: row['member_name'], blockNo: row['block_no'], nis: row['nis'], cgr: row['cgr'],
-        latitude: (row['latitude'] as num?)?.toDouble(), longitude: (row['longitude'] as num?)?.toDouble(),
+        id: rowMap['id'] as String, visitDate: rowMap['visit_date'] as String, status: rowMap['status'] as String,
+        memberName: rowMap['member_name'] as String?, blockNo: rowMap['block_no'] as String?, nis: rowMap['nis'] as String?, cgr: rowMap['cgr'] as String?,
+        latitude: (rowMap['latitude'] as num?)?.toDouble(), longitude: (rowMap['longitude'] as num?)?.toDouble(),
         photos: photos,
-        notesField: {'observation': vn?['observation'], 'problem': vn?['problem'], 'recommend': vn?['recommend']},
+        notesField: {'observation': vn?['observation'] as String?, 'problem': vn?['problem'] as String?, 'recommend': vn?['recommend'] as String?},
       )));
     } catch (err) { emit(VisitError(err.toString())); }
   }

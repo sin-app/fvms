@@ -21,7 +21,10 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
         final user = supabase.auth.currentUser;
         if (user == null) throw Exception('Belum login');
         final rows = await supabase.from('notifications').select('id, title, message, is_read').eq('user_id', user.id).order('created_at', ascending: false).limit(50);
-        final items = (rows as List).map((r) => NotifLite(id: r['id'], title: r['title'], message: r['message'], isRead: r['is_read'] ?? false)).toList();
+        final items = (rows as List).map((r) {
+          final m = r as Map<String, dynamic>;
+          return NotifLite(id: m['id'] as String, title: m['title'] as String, message: m['message'] as String, isRead: (m['is_read'] as bool?) ?? false);
+        }).toList();
         emit(NotificationsLoaded(items));
       } catch (err) { emit(NotificationsError(err.toString())); }
     });

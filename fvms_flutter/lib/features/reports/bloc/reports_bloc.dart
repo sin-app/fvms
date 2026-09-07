@@ -31,15 +31,18 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         final today = todayString();
         final Map<String,int> daily = {};
         final Map<String, OfficerLite> off = {};
-        for (final r in (rows as List)) {
+        for (final rm in (rows as List)) {
+          final r = rm as Map<String, dynamic>;
           total++;
-          if (r['status'] == 'completed') completed++;
-          if (r['status'] == 'pending') pending++;
-          if (r['visit_date'] < today && !['completed','gagal_total'].contains(r['status'])) late++;
-          daily[r['visit_date']] = (daily[r['visit_date']] ?? 0) + 1;
-          final name = r['users']?['name'] ?? 'Unknown';
+          if (r['status'] as String == 'completed') completed++;
+          if (r['status'] as String == 'pending') pending++;
+          if ((r['visit_date'] as String).compareTo(today) < 0 && !['completed','gagal_total'].contains(r['status'] as String)) late++;
+          final visitDate = r['visit_date'] as String;
+          daily[visitDate] = (daily[visitDate] ?? 0) + 1;
+          final users = r['users'] as Map<String, dynamic>?;
+          final name = (users?['name'] as String?) ?? 'Unknown';
           final ex = off[name] ?? OfficerLite(name,0,0);
-          off[name] = OfficerLite(name, ex.total+1, ex.completed + (r['status']=='completed'?1:0));
+          off[name] = OfficerLite(name, ex.total+1, ex.completed + ((r['status'] as String)=='completed'?1:0));
         }
         emit(ReportsLoaded(ReportDataLite(total: total, completed: completed, pending: pending, late: late, daily: daily, byOfficer: off.values.toList())));
       } catch (err) { emit(ReportsError(err.toString())); }
