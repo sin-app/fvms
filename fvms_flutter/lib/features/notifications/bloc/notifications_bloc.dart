@@ -1,0 +1,29 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:equatable/equatable.dart';
+import '../../../core/supabase/client.dart';
+
+class NotifLite { final String id, title, message; final bool isRead; NotifLite({required this.id, required this.title, required this.message, required this.isRead}); }
+
+abstract class NotificationsEvent extends Equatable { @override List<Object?> get props => []; }
+class NotificationsLoad extends NotificationsEvent {}
+
+abstract class NotificationsState extends Equatable { @override List<Object?> get props => []; }
+class NotificationsInitial extends NotificationsState {}
+class NotificationsLoading extends NotificationsState {}
+class NotificationsLoaded extends NotificationsState { final List<NotifLite> items; NotificationsLoaded(this.items); @override List<Object?> get props => [items]; }
+class NotificationsError extends NotificationsState { final String message; NotificationsError(this.message); @override List<Object?> get props => [message]; }
+
+class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
+  NotificationsBloc() : super(NotificationsInitial()) {
+    on<NotificationsLoad>((e, emit) async {
+      emit(NotificationsLoading());
+      try {
+        final user = supabase.auth.currentUser;
+        if (user == null) throw Exception('Belum login');
+        final rows = await supabase.from('notifications').select('id, title, message, is_read').eq('user_id', user.id).order('created_at', ascending: false).limit(50);
+        final items = (rows as List).map((r) => NotifLite(id: r['id'], title: r['title'], message: r['message'], isRead: r['is_read'] ?? false)).toList();
+        emit(NotificationsLoaded(items));
+      } catch (err) { emit(NotificationsError(err.toString())); }
+    });
+  }
+}

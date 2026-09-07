@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../features/auth/bloc/auth_bloc.dart';
+import '../features/auth/presentation/login_page.dart';
+import '../features/auth/presentation/reset_page.dart';
+import '../features/auth/presentation/profile_page.dart';
+import '../features/dashboard/presentation/dashboard_page.dart';
+import '../features/schedules/presentation/schedules_page.dart';
+import '../features/schedules/presentation/calendar_page.dart';
+import '../features/reports/presentation/reports_page.dart';
+import '../features/visits/presentation/visit_page.dart';
+import '../features/land_proposals/presentation/land_proposals_page.dart';
+import '../features/notifications/presentation/notifications_page.dart';
 import 'shell.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
@@ -28,6 +38,8 @@ GoRouter buildRouter(AuthBloc authBloc) {
           GoRoute(path: '/laporan', builder: (c, s) => const ReportsPage()),
           GoRoute(path: '/profil', builder: (c, s) => const ProfilePage()),
           GoRoute(path: '/visit/:id', builder: (c, s) => VisitPage(id: s.pathParameters['id']!)),
+          GoRoute(path: '/pengajuan-lahan', builder: (c, s) => const LandProposalsPage()),
+          GoRoute(path: '/notifikasi', builder: (c, s) => const NotificationsPage()),
         ],
       ),
     ],
@@ -42,12 +54,4 @@ class _BlocListenable extends ChangeNotifier {
   void dispose() { sub.cancel(); super.dispose(); }
 }
 
-// Stubs - akan diisi F1-F4
-class LoginPage extends StatelessWidget { const LoginPage({super.key}); @override Widget build(BuildContext c) => const Scaffold(body: Center(child: Text('Login - F1')));}
-class ResetPage extends StatelessWidget { const ResetPage({super.key}); @override Widget build(BuildContext c) => const Scaffold(body: Center(child: Text('Reset')));}
-class DashboardPage extends StatelessWidget { const DashboardPage({super.key}); @override Widget build(BuildContext c) => const Scaffold(body: Center(child: Text('Dashboard')));}
-class SchedulesPage extends StatelessWidget { const SchedulesPage({super.key}); @override Widget build(BuildContext c) => const Scaffold(body: Center(child: Text('Jadwal')));}
-class CalendarPage extends StatelessWidget { const CalendarPage({super.key}); @override Widget build(BuildContext c) => const Scaffold(body: Center(child: Text('Kalender')));}
-class ReportsPage extends StatelessWidget { const ReportsPage({super.key}); @override Widget build(BuildContext c) => const Scaffold(body: Center(child: Text('Laporan')));}
-class ProfilePage extends StatelessWidget { const ProfilePage({super.key}); @override Widget build(BuildContext c) => const Scaffold(body: Center(child: Text('Profil')));}
-class VisitPage extends StatelessWidget { final String id; const VisitPage({super.key, required this.id}); @override Widget build(BuildContext c) => Scaffold(body: Center(child: Text('Visit $id')));}
+
