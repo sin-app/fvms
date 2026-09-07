@@ -1,0 +1,77 @@
+name: fvms_flutter
+description: FVMS Field Visit Management System - Flutter Android (coexist web)
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # State
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+  bloc_concurrency: ^0.2.5
+  hydrated_bloc: ^9.1.5
+  # Navigation
+  go_router: ^14.6.2
+  # Supabase
+  supabase_flutter: ^2.8.1
+  # Local DB
+  drift: ^2.20.1
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.4
+  path: ^1.9.0
+  # Network & utils
+  connectivity_plus: ^6.0.5
+  intl: ^0.20.1
+  logger: ^2.5.0
+  flutter_dotenv: ^5.2.1
+  # Maps OSM
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
+  # Media
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.4.0
+  cached_network_image: ^3.4.1
+  # Files
+  file_picker: ^10.1.9
+  share_plus: ^10.1.4
+  excel: ^4.0.6
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  # Charts
+  fl_chart: ^0.69.2
+  table_calendar: ^3.1.2
+  # Push FCM
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.6
+  flutter_local_notifications: ^18.0.1
+  # UI
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  very_good_analysis: ^7.0.0
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
+  drift_dev: ^2.20.1
+  build_runner: ^2.4.13
+  fake_async: ^1.3.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
+    - .env.example
