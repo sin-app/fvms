@@ -14,10 +14,10 @@ build/
 .env
 .env.local
 
-# Firebase
+# Firebase (generated - keep stub, overwrite via flutterfire configure)
 android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
-lib/firebase_options.dart
+# lib/firebase_options.dart is stub, will be overwritten by `flutterfire configure`
+# ios/Runner/GoogleService-Info.plist
 
 # IDE
 .idea/
