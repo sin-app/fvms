@@ -13,6 +13,37 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyReportFilters<T extends { eq: (...args: any[]) => any; in: (...args: any[]) => any; ilike: (...args: any[]) => any; like: (...args: any[]) => any; not: (...args: any[]) => any }>(
+  query: T,
+  filters: ReportFilters,
+  scopeUserId: string | undefined,
+  kabScope: string[] | null,
+): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = query;
+  if (scopeUserId) q = q.eq("user_id", scopeUserId);
+  if (kabScope !== null) {
+    q = q.in("kabupaten_id", kabScope.length > 0 ? kabScope : ["__none__"]);
+  } else if (filters.kabupaten_id) {
+    q = q.eq("kabupaten_id", filters.kabupaten_id);
+  }
+  if (filters.kecamatan_id) q = q.eq("kecamatan_id", filters.kecamatan_id);
+  if (filters.label) {
+    if (filters.label === "ada") q = q.not("label", "is", null);
+    else q = q.eq("label", filters.label);
+  }
+  if (filters.member_name) q = q.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
+  if (filters.block_no && filters.block_no.length > 0) q = q.in("block_no", filters.block_no.map((b) => b.trim()));
+  if (filters.no_plot) q = q.eq("no_plot", filters.no_plot);
+  if (filters.nis) q = q.eq("nis", filters.nis);
+  if (filters.document_no) q = q.eq("document_no", filters.document_no);
+  if (filters.cgr) q = q.eq("cgr", filters.cgr);
+  if (filters.desa_id) q = q.eq("desa_id", filters.desa_id);
+  if (filters.varietas) q = q.like("document_no", `%/${escapeLike(filters.varietas)}/%`);
+  return q as T;
+}
+
 export async function getReportData(filters: ReportFilters): Promise<ReportData> {
   const admin = createAdminClient();
 
@@ -31,48 +62,10 @@ export async function getReportData(filters: ReportFilters): Promise<ReportData>
     .select("id, status, visit_date, user_id, kabupaten_id, kecamatan_id, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, tgl_panen, real_panen, rencana_panen, tgl_tanam, cgr, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), visit_time, notes, latitude")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
-    .lte("visit_date", filters.date_to);
+    .lte("visit_date", filters.date_to)
+    .limit(MAX_REPORT_ROWS);
 
-  if (scopeUserId) query = query.eq("user_id", scopeUserId);
-  if (kabScope !== null) {
-    query = query.in("kabupaten_id", kabScope.length > 0 ? kabScope : ["__none__"]);
-  } else if (filters.kabupaten_id) {
-    query = query.eq("kabupaten_id", filters.kabupaten_id);
-  }
-  if (filters.kecamatan_id) {
-    query = query.eq("kecamatan_id", filters.kecamatan_id);
-  }
-  if (filters.label) {
-    if (filters.label === "ada") {
-      query = query.not("label", "is", null);
-    } else {
-      query = query.eq("label", filters.label);
-    }
-  }
-if (filters.member_name) {
-    query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
-  }
-  if (filters.block_no && filters.block_no.length > 0) {
-    query = query.in("block_no", filters.block_no.map((b) => b.trim()));
-  }
-  if (filters.no_plot) {
-    query = query.eq("no_plot", filters.no_plot);
-  }
-  if (filters.nis) {
-    query = query.eq("nis", filters.nis);
-  }
-  if (filters.document_no) {
-    query = query.eq("document_no", filters.document_no);
-  }
-  if (filters.cgr) {
-    query = query.eq("cgr", filters.cgr);
-  }
-  if (filters.desa_id) {
-    query = query.eq("desa_id", filters.desa_id);
-  }
-  if (filters.varietas) {
-    query = query.like("document_no", `%/${escapeLike(filters.varietas)}/%`);
-  }
+  query = applyReportFilters(query, filters, scopeUserId, kabScope);
 
   const { data: rawSchedules } = await query;
 
@@ -255,6 +248,7 @@ interface ReportRowRelation {
   kabupaten?: { name: string } | null;
   kecamatan?: { name: string } | null;
   desa?: { name: string } | null;
+  // user_id already above, ensure includes for ReportRow mapping
 }
 
 export const MAX_REPORT_ROWS = 10000;
@@ -273,54 +267,15 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
 
   let query = admin
     .from("schedules")
-    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, member_name, block_no, no_plot, nis, cgr, document_no, tgl_tanam, ph_tanah, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, notes, latitude, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), desa(name)")
+    .select("id, visit_date, status, visit_time, label, rencana_panen, real_panen, tgl_panen, member_name, block_no, no_plot, nis, cgr, document_no, tgl_tanam, ph_tanah, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, detaseling, notes, latitude, user_id, users!schedules_user_id_fkey(name), kabupaten(name), kecamatan(name), desa(name)")
     .is("deleted_at", null)
     .gte("visit_date", filters.date_from)
     .lte("visit_date", filters.date_to)
     .order("visit_date", { ascending: true })
     .limit(MAX_REPORT_ROWS);
 
-  if (scopeUserId) query = query.eq("user_id", scopeUserId);
-  if (kabScope !== null) {
-    query = query.in("kabupaten_id", kabScope.length > 0 ? kabScope : ["__none__"]);
-  } else if (filters.kabupaten_id) {
-    query = query.eq("kabupaten_id", filters.kabupaten_id);
-  }
-  if (filters.kecamatan_id) {
-    query = query.eq("kecamatan_id", filters.kecamatan_id);
-  }
-  if (filters.label) {
-    if (filters.label === "ada") {
-      query = query.not("label", "is", null);
-    } else {
-      query = query.eq("label", filters.label);
-    }
-  }
-  if (filters.member_name) {
-    query = query.ilike("member_name", `%${escapeLike(filters.member_name)}%`);
-  }
-  if (filters.block_no && filters.block_no.length > 0) {
-    query = query.in("block_no", filters.block_no.map((b) => b.trim()));
-  }
-  if (filters.no_plot) {
-    query = query.eq("no_plot", filters.no_plot);
-  }
-  if (filters.nis) {
-    query = query.eq("nis", filters.nis);
-  }
-  if (filters.document_no) {
-    query = query.eq("document_no", filters.document_no);
-  }
-  if (filters.cgr) {
-    query = query.eq("cgr", filters.cgr);
-  }
-  if (filters.desa_id) {
-    query = query.eq("desa_id", filters.desa_id);
-  }
-  if (filters.varietas) {
-    // document_no format: KJP/<VARIETAS>/<...>; match the 2nd segment (same as schedules).
-    query = query.like("document_no", `%/${escapeLike(filters.varietas)}/%`);
-  }
+  query = applyReportFilters(query, filters, scopeUserId, kabScope);
+
   const { data } = await query;
 
   if (!data) return [];
@@ -338,6 +293,7 @@ export async function getReportRows(filters: ReportFilters): Promise<ReportRow[]
     return {
       id: s.id,
       visit_date: s.visit_date,
+      user_id: s.user_id,
       user_name: s.users?.name ?? "—",
       kabupaten_name: s.kabupaten?.name ?? "—",
       kecamatan_name: s.kecamatan?.name ?? "—",

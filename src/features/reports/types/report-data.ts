@@ -1,6 +1,7 @@
 export interface ReportRow {
   id: string;
   visit_date: string;
+  user_id: string;
   user_name: string;
   kabupaten_name: string;
   kecamatan_name: string;

@@ -19,10 +19,14 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
   NotificationsBloc() : super(NotificationsInitial()) {
     on<NotificationsLoad>((e, emit) async {
       emit(NotificationsLoading());
+      if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+        emit(NotificationsError('Supabase belum siap'));
+        return;
+      }
       try {
         final user = supabase.auth.currentUser;
         if (user == null) throw Exception('Belum login');
-        final rows = await supabase.from('notifications').select('id, title, message, is_read').eq('user_id', user.id).order('created_at', ascending: false).limit(50);
+        final rows = await supabase.from('notifications').select('id, title, message, is_read').eq('user_id', user.id).order('created_at', ascending: false).limit(50).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return NotifLite(id: m['id'] as String, title: m['title'] as String, message: m['message'] as String, isRead: (m['is_read'] as bool?) ?? false);

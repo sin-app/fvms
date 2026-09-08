@@ -45,8 +45,12 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
 
   Future<void> _load(VisitLoad e, Emitter<VisitState> emit) async {
     emit(VisitLoading());
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(VisitError('Supabase belum siap'));
+      return;
+    }
     try {
-      final row = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, visit_photos(id, url, caption), visit_notes(observation, problem, recommend)').eq('id', scheduleId).maybeSingle();
+      final row = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, visit_photos(id, url, caption), visit_notes(observation, problem, recommend)').eq('id', scheduleId).maybeSingle().timeout(const Duration(seconds: 10));
       if (row == null) throw Exception('Jadwal tidak ditemukan');
       final rowMap = row;
       final photosRaw = rowMap['visit_photos'] as List? ?? [];
@@ -67,22 +71,34 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
   }
 
   Future<void> _saveNotes(VisitNotesSaved e, Emitter<VisitState> emit) async {
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(VisitError('Supabase belum siap'));
+      return;
+    }
     try {
-      await supabase.from('visit_notes').upsert({'schedule_id': scheduleId, ...e.payload});
+      await supabase.from('visit_notes').upsert({'schedule_id': scheduleId, ...e.payload}).timeout(const Duration(seconds: 10));
       add(VisitLoad());
     } catch (err) { emit(VisitError(err.toString())); }
   }
 
   Future<void> _gps(VisitGpsCaptured e, Emitter<VisitState> emit) async {
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(VisitError('Supabase belum siap'));
+      return;
+    }
     try {
-      await supabase.from('schedules').update({'latitude': e.lat, 'longitude': e.lng, 'accuracy': e.acc}).eq('id', scheduleId);
+      await supabase.from('schedules').update({'latitude': e.lat, 'longitude': e.lng, 'accuracy': e.acc}).eq('id', scheduleId).timeout(const Duration(seconds: 10));
       add(VisitLoad());
     } catch (err) { emit(VisitError(err.toString())); }
   }
 
   Future<void> _status(VisitStatusChanged e, Emitter<VisitState> emit) async {
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(VisitError('Supabase belum siap'));
+      return;
+    }
     try {
-      await supabase.from('schedules').update({'status': e.status}).eq('id', scheduleId);
+      await supabase.from('schedules').update({'status': e.status}).eq('id', scheduleId).timeout(const Duration(seconds: 10));
       add(VisitLoad());
     } catch (err) { emit(VisitError(err.toString())); }
   }

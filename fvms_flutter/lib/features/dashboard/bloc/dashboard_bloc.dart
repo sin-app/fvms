@@ -42,26 +42,42 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   DashboardBloc() : super(DashboardInitial()) {
     on<DashboardLoad>((e, emit) async {
       emit(DashboardLoading());
+      if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+        emit(DashboardError('Supabase belum siap'));
+        return;
+      }
       try {
         final ctx = await getAuthContext();
         final name = supabase.auth.currentUser?.email ?? ctx?.userId.substring(0, 8) ?? 'User';
         final today = todayString();
-        // fetch today schedules (simplified, full filter in F2)
-        final rows = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no').eq('visit_date', today).limit(10);
+        // fetch today schedules dengan timeout + RLS scope (qc: filter kabupaten, produksi: own)
+        // Untuk audit maksimal, semua query pakai timeout 10s agar tidak stuck loading
+        final rows = await supabase
+            .from('schedules')
+            .select('id, visit_date, status, member_name, block_no')
+            .eq('visit_date', today)
+            .limit(10)
+            .timeout(const Duration(seconds: 10));
         final todayList = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
         }).toList();
 
         // upcoming
-        final up = await supabase.from('schedules').select('id, visit_date, status, member_name').gt('visit_date', today).order('visit_date').limit(5);
+        final up = await supabase
+            .from('schedules')
+            .select('id, visit_date, status, member_name')
+            .gt('visit_date', today)
+            .order('visit_date')
+            .limit(5)
+            .timeout(const Duration(seconds: 10));
         final upList = (up as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?);
         }).toList();
 
-        // stats simple
-        final all = await supabase.from('schedules').select('status, visit_date');
+        // stats: jangan scan full table tanpa limit — pakai limit 200 + timeout
+        final all = await supabase.from('schedules').select('status, visit_date').limit(200).timeout(const Duration(seconds: 10));
         var late = 0;
         var completed = 0;
         var pending = 0;

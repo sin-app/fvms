@@ -29,8 +29,12 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
   ReportsBloc() : super(ReportsInitial()) {
     on<ReportsLoad>((e, emit) async {
       emit(ReportsLoading());
+      if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+        emit(ReportsError('Supabase belum siap'));
+        return;
+      }
       try {
-        final rows = await supabase.from('schedules').select('status, visit_date, users!inner(name)').limit(200);
+        final rows = await supabase.from('schedules').select('status, visit_date, users!inner(name)').limit(200).timeout(const Duration(seconds: 10));
         var total = 0;
         var completed = 0;
         var pending = 0;

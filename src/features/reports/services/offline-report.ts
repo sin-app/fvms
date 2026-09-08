@@ -50,6 +50,7 @@ export async function loadOfflineReportRows(filters: ReportFilters): Promise<Rep
       return {
         id: s.id,
         visit_date: s.visit_date,
+        user_id: s.user_id ?? "—",
         user_name: s.user_name ?? "—",
         kabupaten_name: s.kabupaten_name ?? "—",
         kecamatan_name: s.kecamatan_name ?? "—",
@@ -112,14 +113,15 @@ export function buildOfflineReportData(rows: ReportRow[]): ReportData {
 
   const officerMap = new Map<string, { name: string; total: number; completed: number }>();
   for (const r of rows) {
-    const existing = officerMap.get(r.user_name) ?? { name: r.user_name, total: 0, completed: 0 };
+    const key = r.user_id;
+    const existing = officerMap.get(key) ?? { name: r.user_name, total: 0, completed: 0 };
     existing.total++;
     if (r.status === "completed") existing.completed++;
-    officerMap.set(r.user_name, existing);
+    officerMap.set(key, existing);
   }
-  const by_officer = Array.from(officerMap.entries()).map(([user_name, d]) => ({
-    user_id: user_name,
-    user_name,
+  const by_officer = Array.from(officerMap.entries()).map(([user_id, d]) => ({
+    user_id,
+    user_name: d.name,
     total: d.total,
     completed: d.completed,
     completion_rate: d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0,

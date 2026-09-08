@@ -27,9 +27,13 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
   SchedulesBloc() : super(SchedulesInitial()) {
     on<SchedulesLoad>((e, emit) async {
       emit(SchedulesLoading());
+      if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+        emit(SchedulesError('Supabase belum siap'));
+        return;
+      }
       try {
         // Offline fallback: if supabase fails, try drift (simplified)
-        final rows = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date').limit(100);
+        final rows = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date').limit(100).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleItem(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?, nis: m['nis'] as String?, cgr: m['cgr'] as String?);
