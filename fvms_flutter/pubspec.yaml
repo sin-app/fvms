@@ -76,3 +76,6 @@ flutter:
     - assets/icons/
     - assets/images/
     - .env.example
+
+dependency_overrides:
+  geocoding_android: ^5.1.0
