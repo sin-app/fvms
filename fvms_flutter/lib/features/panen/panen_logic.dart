@@ -1,9 +1,10 @@
 /// Mirror src/features/panen/services/panen-logic.ts
+library;
 
 class PanenStatus {
+  PanenStatus(this.label, [this.date]);
   final String label;
   final String? date;
-  PanenStatus(this.label, [this.date]);
 }
 
 PanenStatus getPanenStatus({
@@ -68,7 +69,7 @@ String? deriveScheduleStatus({
       realTanamHa <= gagalTanam) {
     return 'gagal_total';
   }
-  if (hasActivity == true) return 'in_progress';
+  if (hasActivity ?? false) return 'in_progress';
   if (hasActivity == false) return 'pending';
   return null;
 }

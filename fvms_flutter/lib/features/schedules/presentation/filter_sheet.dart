@@ -9,7 +9,9 @@ class FilterSheet extends StatefulWidget {
 }
 
 class _FilterSheetState extends State<FilterSheet> {
-  String? status, cgr, kabupaten;
+  String? status;
+  String? cgr;
+  String? kabupaten;
   List<String> blocks = [];
   @override
   Widget build(BuildContext context) {

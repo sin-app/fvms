@@ -1,8 +1,8 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fl_chart/fl_chart.dart';
-import '../bloc/reports_bloc.dart';
-import '../../../widgets/shimmer.dart';
+import 'package:fvms_flutter/features/reports/bloc/reports_bloc.dart';
+import 'package:fvms_flutter/widgets/shimmer.dart';
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
@@ -29,7 +29,7 @@ class ReportsPage extends StatelessWidget {
                     _Kpi('Selesai', d.completed.toString(), Colors.green),
                     _Kpi('Pending', d.pending.toString(), Colors.amber),
                     _Kpi('Terlambat', d.late.toString(), Colors.red),
-                  ]),
+                  ],),
                   const SizedBox(height: 16),
                   const Text('Per Hari', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
@@ -49,8 +49,9 @@ class ReportsPage extends StatelessWidget {
 }
 
 class _Kpi extends StatelessWidget {
-  final String title, value; final Color color;
   const _Kpi(this.title, this.value, this.color);
+  final String title;
+  final String value; final Color color;
   @override
   Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)), Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color))])));
 

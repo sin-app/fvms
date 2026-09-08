@@ -1,8 +1,10 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../../core/supabase/client.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
 
-class NotifLite { final String id, title, message; final bool isRead; NotifLite({required this.id, required this.title, required this.message, required this.isRead}); }
+class NotifLite { NotifLite({required this.id, required this.title, required this.message, required this.isRead}); final String id;
+final String title;
+final String message; final bool isRead; }
 
 abstract class NotificationsEvent extends Equatable { @override List<Object?> get props => []; }
 class NotificationsLoad extends NotificationsEvent {}
@@ -10,8 +12,8 @@ class NotificationsLoad extends NotificationsEvent {}
 abstract class NotificationsState extends Equatable { @override List<Object?> get props => []; }
 class NotificationsInitial extends NotificationsState {}
 class NotificationsLoading extends NotificationsState {}
-class NotificationsLoaded extends NotificationsState { final List<NotifLite> items; NotificationsLoaded(this.items); @override List<Object?> get props => [items]; }
-class NotificationsError extends NotificationsState { final String message; NotificationsError(this.message); @override List<Object?> get props => [message]; }
+class NotificationsLoaded extends NotificationsState { NotificationsLoaded(this.items); final List<NotifLite> items; @override List<Object?> get props => [items]; }
+class NotificationsError extends NotificationsState { NotificationsError(this.message); final String message; @override List<Object?> get props => [message]; }
 
 class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
   NotificationsBloc() : super(NotificationsInitial()) {

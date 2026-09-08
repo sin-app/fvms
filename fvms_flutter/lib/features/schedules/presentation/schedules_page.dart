@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/features/schedules/bloc/schedules_bloc.dart';
+import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:go_router/go_router.dart';
-import '../../../widgets/shimmer.dart';
-import '../bloc/schedules_bloc.dart';
-import '../../../core/constants/status.dart';
 
 class SchedulesPage extends StatelessWidget {
   const SchedulesPage({super.key});
@@ -38,8 +37,8 @@ class SchedulesPage extends StatelessWidget {
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () => context.go('/visit/${it.id}'),
                             ),
-                          )),
-                    ]);
+                          ),),
+                    ],);
                   }).toList(),
                 ),
               );

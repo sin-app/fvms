@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:fvms_flutter/app/app.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/firebase_options.dart'; // generated via flutterfire configure
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
-import 'core/supabase/client.dart';
-import 'app/app.dart';
-import 'firebase_options.dart'; // generated via flutterfire configure
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

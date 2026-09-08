@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../core/offline/sync_bloc.dart';
+import 'package:fvms_flutter/core/offline/sync_bloc.dart';
 
 class SyncIndicator extends StatelessWidget {
   const SyncIndicator({super.key});
@@ -14,10 +14,8 @@ class SyncIndicator extends StatelessWidget {
         switch (s.status) {
           case SyncStatus.syncing:
             icon = Icons.sync; color = Colors.blue; label = 'Sync...';
-            break;
           case SyncStatus.offline:
             icon = Icons.cloud_off; color = Colors.orange; label = 'Luring';
-            break;
           default:
             icon = Icons.cloud_done; color = Colors.green; label = s.pending > 0 ? '${s.pending} antri' : 'Online';
         }

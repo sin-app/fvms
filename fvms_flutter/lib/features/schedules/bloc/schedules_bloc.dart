@@ -1,22 +1,27 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../../core/supabase/client.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
 
 class ScheduleItem {
-  final String id, visitDate, status;
-  final String? memberName, blockNo, nis, cgr;
   ScheduleItem({required this.id, required this.visitDate, required this.status, this.memberName, this.blockNo, this.nis, this.cgr});
+  final String id;
+  final String visitDate;
+  final String status;
+  final String? memberName;
+  final String? blockNo;
+  final String? nis;
+  final String? cgr;
 }
 
 abstract class SchedulesEvent extends Equatable { @override List<Object?> get props => []; }
 class SchedulesLoad extends SchedulesEvent {}
-class SchedulesFilterChanged extends SchedulesEvent { final String? status; SchedulesFilterChanged(this.status); @override List<Object?> get props => [status]; }
+class SchedulesFilterChanged extends SchedulesEvent { SchedulesFilterChanged(this.status); final String? status; @override List<Object?> get props => [status]; }
 
 abstract class SchedulesState extends Equatable { @override List<Object?> get props => []; }
 class SchedulesInitial extends SchedulesState {}
 class SchedulesLoading extends SchedulesState {}
-class SchedulesLoaded extends SchedulesState { final List<ScheduleItem> items; SchedulesLoaded(this.items); @override List<Object?> get props => [items]; }
-class SchedulesError extends SchedulesState { final String message; SchedulesError(this.message); @override List<Object?> get props => [message]; }
+class SchedulesLoaded extends SchedulesState { SchedulesLoaded(this.items); final List<ScheduleItem> items; @override List<Object?> get props => [items]; }
+class SchedulesError extends SchedulesState { SchedulesError(this.message); final String message; @override List<Object?> get props => [message]; }
 
 class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
   SchedulesBloc() : super(SchedulesInitial()) {

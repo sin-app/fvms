@@ -63,7 +63,7 @@ export function AuthProvider({
   // isLoading langsung false agar UI langsung render; pembaruan client-side
   // bersifat best-effort di belakang layar dan tidak memblokir render.
   const [user, setUser] = useState<User | null>(initialUser);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   const refreshUser = useCallback(async () => {
     try {

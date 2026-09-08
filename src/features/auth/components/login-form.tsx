@@ -18,6 +18,7 @@ export function LoginForm() {
       // Full navigation (bukan router.replace) agar root layout merender ulang
       // di server dan men-seed user dari cookie session — penting di TWA/
       // WebView di mana client getSession() bisa menggantung.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/dashboard");
     }
   }, [state.success]);

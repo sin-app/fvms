@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
+import 'package:fvms_flutter/widgets/brand_widgets.dart';
 import 'package:go_router/go_router.dart';
-import '../../../widgets/brand_widgets.dart';
-import '../bloc/auth_bloc.dart';
 
 class ResetPage extends StatefulWidget {
   const ResetPage({super.key});

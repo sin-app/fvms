@@ -1,21 +1,22 @@
 import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ConnectivityState extends Equatable {
-  final bool online;
   const ConnectivityState(this.online);
+  final bool online;
   @override
   List<Object?> get props => [online];
 }
 
 class ConnectivityCubit extends Cubit<ConnectivityState> {
-  final Connectivity _conn = Connectivity();
-  StreamSubscription? _sub;
   ConnectivityCubit() : super(const ConnectivityState(true)) {
     _init();
   }
+  final Connectivity _conn = Connectivity();
+  StreamSubscription? _sub;
 
   Future<void> _init() async {
     final res = await _conn.checkConnectivity();

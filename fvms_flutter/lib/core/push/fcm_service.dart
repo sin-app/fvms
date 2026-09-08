@@ -6,7 +6,7 @@ class FcmService {
   final _local = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
+    await _messaging.requestPermission();
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     await _local.initialize(const InitializationSettings(android: android));
     FirebaseMessaging.onMessage.listen(_onMessage);

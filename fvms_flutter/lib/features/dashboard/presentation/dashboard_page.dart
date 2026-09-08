@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/app/theme/brand.dart';
+import 'package:fvms_flutter/features/dashboard/bloc/dashboard_bloc.dart';
+import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../app/theme/brand.dart';
-import '../../../core/supabase/client.dart';
-import '../../../widgets/shimmer.dart';
-import '../bloc/dashboard_bloc.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -52,8 +51,8 @@ class DashboardPage extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  final String name;
   const _Hero({required this.name});
+  final String name;
   @override
   Widget build(BuildContext context) {
     final now = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
@@ -63,14 +62,14 @@ class _Hero extends StatelessWidget {
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Halo, $name', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(height: 4), Text(now, style: const TextStyle(color: Colors.white70, fontSize: 12))])),
         const Icon(Icons.spa, color: Colors.white, size: 32),
-      ]),
+      ],),
     );
   }
 }
 
 class _StatsGrid extends StatelessWidget {
-  final DashboardStats stats;
   const _StatsGrid({required this.stats});
+  final DashboardStats stats;
   @override
   Widget build(BuildContext context) {
     final items = [
@@ -82,11 +81,12 @@ class _StatsGrid extends StatelessWidget {
     return GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 2.2, children: items.map((e) => Card(child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [Icon(e.icon, color: e.color), const SizedBox(width: 12), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(e.value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)), Text(e.title, style: const TextStyle(fontSize: 12, color: Colors.grey))])])))).toList());
   }
 }
-class _Stat { final String title, value; final IconData icon; final Color color; _Stat(this.title, this.value, this.icon, this.color); }
+class _Stat { _Stat(this.title, this.value, this.icon, this.color); final String title;
+final String value; final IconData icon; final Color color; }
 
 class _Section extends StatelessWidget {
-  final String title; final int count; final Widget child; final VoidCallback? onMore;
   const _Section({required this.title, required this.child, this.count = 0, this.onMore});
+  final String title; final int count; final Widget child; final VoidCallback? onMore;
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), const Spacer(), if (onMore != null) TextButton(onPressed: onMore, child: Text('Lihat $count'))]), child]);
 }

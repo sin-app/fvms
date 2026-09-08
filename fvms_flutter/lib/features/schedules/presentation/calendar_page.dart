@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/schedules_bloc.dart';
+import 'package:fvms_flutter/features/schedules/bloc/schedules_bloc.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -23,7 +23,7 @@ class _CalendarPageState extends State<CalendarPage> {
             final events = s is SchedulesLoaded ? s.items : <ScheduleItem>[];
             return Column(children: [
               TableCalendar(
-                firstDay: DateTime.utc(2020, 1, 1),
+                firstDay: DateTime.utc(2020),
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: _focused,
                 selectedDayPredicate: (d) => isSameDay(_selected, d),
@@ -42,9 +42,9 @@ class _CalendarPageState extends State<CalendarPage> {
                   final day = events.where((e) => e.visitDate == key).toList();
                   if (day.isEmpty) return const Center(child: Text('Tidak ada jadwal'));
                   return ListView(children: day.map((e) => ListTile(title: Text(e.memberName ?? '-'), subtitle: Text(e.status))).toList());
-                }),
+                },),
               ),
-            ]);
+            ],);
           },
         ),
       ),

@@ -118,7 +118,7 @@ export function ProposalList({ proposals, currentUser }: ProposalListProps) {
       }
       return true;
     });
-  }, [proposals, status, kabupatenId, kecamatanId, desaId, search, showOnlyMine, onlyMine, currentUser.userId]);
+  }, [proposals, status, kabupatenId, kecamatanId, desaId, search, showOnlyMine, onlyMine, currentUser.userId, isReviewer]);
 
   return (
     <div className="space-y-4">

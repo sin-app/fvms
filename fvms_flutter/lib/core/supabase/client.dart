@@ -12,7 +12,7 @@ class SupabaseConfig {
 
 Future<void> initSupabase() async {
   try {
-    await dotenv.load(fileName: '.env');
+    await dotenv.load();
   } catch (_) {}
   if (!SupabaseConfig.isConfigured) {
     throw Exception('Supabase belum dikonfigurasi: isi .env atau --dart-define SUPABASE_URL/ANON_KEY');
@@ -52,14 +52,14 @@ bool get isSupabaseInitialized {
 enum UserRole { admin, qc, produksi }
 
 class AuthContext {
-  final String userId;
-  final UserRole role;
-  final List<String> assignedKabupatenIds;
   AuthContext({
     required this.userId,
     required this.role,
     this.assignedKabupatenIds = const [],
   });
+  final String userId;
+  final UserRole role;
+  final List<String> assignedKabupatenIds;
 }
 
 Future<AuthContext?> getAuthContext() async {

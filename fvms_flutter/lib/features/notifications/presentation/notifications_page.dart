@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/notifications_bloc.dart';
-import '../../../widgets/shimmer.dart';
+import 'package:fvms_flutter/features/notifications/bloc/notifications_bloc.dart';
+import 'package:fvms_flutter/widgets/shimmer.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});

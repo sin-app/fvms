@@ -14,6 +14,7 @@ export function useAuth() {
 
     try {
       await login(input);
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/dashboard");
     } catch (err) {
       const message =
@@ -26,6 +27,7 @@ export function useAuth() {
 
   async function handleLogout() {
     await logout();
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/login");
   }
 

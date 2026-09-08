@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import '../../../app/theme/brand.dart';
-import '../bloc/auth_bloc.dart';
+import 'package:fvms_flutter/app/theme/brand.dart';
+import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});

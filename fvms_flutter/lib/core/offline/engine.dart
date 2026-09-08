@@ -1,7 +1,8 @@
 import 'dart:convert';
+
 import 'package:drift/drift.dart';
+import 'package:fvms_flutter/core/offline/db.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'db.dart';
 
 /// Mirror src/lib/offline/engine.ts
 /// hydrateOffline scoped by role, pushOutbox with whitelist + guard final status.
@@ -17,9 +18,9 @@ const scheduleWhitelist = {
 };
 
 class OfflineEngine {
+  OfflineEngine({required this.db, required this.supabase});
   final AppDatabase db;
   final SupabaseClient supabase;
-  OfflineEngine({required this.db, required this.supabase});
 
   Future<void> hydrateOffline() async {
     // Simplified F0: pull schedules, regions. Full watermark logic in F2/F3.

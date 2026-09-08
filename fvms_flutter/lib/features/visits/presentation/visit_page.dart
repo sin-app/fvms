@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:fvms_flutter/core/constants/status.dart';
+import 'package:fvms_flutter/features/visits/bloc/visit_bloc.dart';
+import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../../widgets/shimmer.dart';
-import '../bloc/visit_bloc.dart';
-import '../../../core/constants/status.dart';
+import 'package:latlong2/latlong.dart';
 
 class VisitPage extends StatelessWidget {
+  const VisitPage({required this.id, super.key});
   final String id;
-  const VisitPage({super.key, required this.id});
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -46,19 +46,19 @@ class VisitPage extends StatelessWidget {
 }
 
 class _StatusChip extends StatelessWidget {
-  final String status;
   const _StatusChip({required this.status});
+  final String status;
   @override
   Widget build(BuildContext context) {
     Color c;
-    switch (status) { case 'completed': c = Colors.green; break; case 'gagal_total': c = Colors.red; break; case 'gagal_partial': c = Colors.orange; break; case 'in_progress': c = Colors.purple; break; default: c = Colors.amber; }
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: c.withOpacity(0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: c)), child: Text(status, style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 12)));
+    switch (status) { case 'completed': c = Colors.green; case 'gagal_total': c = Colors.red; case 'gagal_partial': c = Colors.orange; case 'in_progress': c = Colors.purple; default: c = Colors.amber; }
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: c)), child: Text(status, style: TextStyle(color: c, fontWeight: FontWeight.w600, fontSize: 12)));
   }
 }
 
 class _NotesCard extends StatefulWidget {
-  final VisitBloc visitBloc; final Map<String, String?> notes;
   const _NotesCard({required this.visitBloc, required this.notes});
+  final VisitBloc visitBloc; final Map<String, String?> notes;
   @override
   State<_NotesCard> createState() => _NotesCardState();
 }
@@ -78,13 +78,14 @@ class _NotesCardState extends State<_NotesCard> {
       TextField(controller: rec, maxLines: 2, decoration: const InputDecoration(labelText: 'Rekomendasi', border: OutlineInputBorder())),
       const SizedBox(height: 12),
       SizedBox(width: double.infinity, child: FilledButton(onPressed: () => widget.visitBloc.add(VisitNotesSaved({'observation': obs.text, 'problem': prob.text, 'recommend': rec.text})), child: const Text('Simpan Catatan'))),
-    ])));
+    ],),),);
   }
 }
 
 class _GpsCard extends StatelessWidget {
-  final VisitBloc visitBloc; final double? lat, lng; final String status;
-  const _GpsCard({required this.visitBloc, this.lat, this.lng, required this.status});
+  const _GpsCard({required this.visitBloc, required this.status, this.lat, this.lng});
+  final VisitBloc visitBloc; final double? lat;
+  final double? lng; final String status;
   @override
   Widget build(BuildContext context) {
     final has = lat != null && lng != null;
@@ -100,22 +101,22 @@ class _GpsCard extends StatelessWidget {
           final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
           visitBloc.add(VisitGpsCaptured(pos.latitude, pos.longitude, pos.accuracy));
         } catch (e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('GPS gagal: $e'))); }
-      }),
-    ])));
+      },),
+    ],),),);
   }
 }
 
 class _PhotosCard extends StatelessWidget {
-  final List<VisitPhotoLite> photos;
   const _PhotosCard({required this.photos});
+  final List<VisitPhotoLite> photos;
   @override
   Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Foto', style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 8), if (photos.isEmpty) const Text('Belum ada foto', style: TextStyle(color: Colors.grey)) else GridView.count(crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), children: photos.map((p) => Card(child: p.url.isEmpty ? const Icon(Icons.image) : Image.network(p.url, fit: BoxFit.cover, errorBuilder: (_,__,___)=> const Icon(Icons.broken_image)))).toList()), const SizedBox(height: 8), OutlinedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text('Ambil Foto'), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload foto via image_picker - F3 implementasi storage'))))])));
 
 }
 
 class _StatusSelector extends StatelessWidget {
-  final String current; final ValueChanged<String> onChanged;
   const _StatusSelector({required this.current, required this.onChanged});
+  final String current; final ValueChanged<String> onChanged;
   @override
   Widget build(BuildContext context) {
     final opts = statusTransitions[VisitStatusX.fromString(current)] ?? [];

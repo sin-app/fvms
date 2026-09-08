@@ -1,8 +1,10 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../../core/supabase/client.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
 
-class LandProposalLite { final String id, status; final String? memberName, blockNo; LandProposalLite({required this.id, required this.status, this.memberName, this.blockNo}); }
+class LandProposalLite { LandProposalLite({required this.id, required this.status, this.memberName, this.blockNo}); final String id;
+final String status; final String? memberName;
+final String? blockNo; }
 
 abstract class LandProposalEvent extends Equatable { @override List<Object?> get props => []; }
 class LandProposalsLoad extends LandProposalEvent {}
@@ -10,8 +12,8 @@ class LandProposalsLoad extends LandProposalEvent {}
 abstract class LandProposalState extends Equatable { @override List<Object?> get props => []; }
 class LandProposalsInitial extends LandProposalState {}
 class LandProposalsLoading extends LandProposalState {}
-class LandProposalsLoaded extends LandProposalState { final List<LandProposalLite> items; LandProposalsLoaded(this.items); @override List<Object?> get props => [items]; }
-class LandProposalsError extends LandProposalState { final String message; LandProposalsError(this.message); @override List<Object?> get props => [message]; }
+class LandProposalsLoaded extends LandProposalState { LandProposalsLoaded(this.items); final List<LandProposalLite> items; @override List<Object?> get props => [items]; }
+class LandProposalsError extends LandProposalState { LandProposalsError(this.message); final String message; @override List<Object?> get props => [message]; }
 
 class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
   LandProposalBloc() : super(LandProposalsInitial()) {

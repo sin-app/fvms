@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/land_proposal_bloc.dart';
-import '../../../widgets/shimmer.dart';
+import 'package:fvms_flutter/features/land_proposals/bloc/land_proposal_bloc.dart';
+import 'package:fvms_flutter/widgets/shimmer.dart';
 
 class LandProposalsPage extends StatelessWidget {
   const LandProposalsPage({super.key});

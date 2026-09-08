@@ -1,26 +1,32 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../../core/supabase/client.dart';
-import '../../../core/utils/date.dart';
-import '../../../core/constants/status.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/core/constants/status.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/core/utils/date.dart';
 
 class DashboardStats {
-  final int today, late, completed, pending;
   DashboardStats({required this.today, required this.late, required this.completed, required this.pending});
+  final int today;
+  final int late;
+  final int completed;
+  final int pending;
 }
 
 class ScheduleLite {
-  final String id, visitDate, status;
-  final String? memberName, blockNo;
   ScheduleLite({required this.id, required this.visitDate, required this.status, this.memberName, this.blockNo});
+  final String id;
+  final String visitDate;
+  final String status;
+  final String? memberName;
+  final String? blockNo;
 }
 
 class DashboardData {
+  DashboardData({required this.userName, required this.stats, required this.todaySchedules, required this.upcoming});
   final String userName;
   final DashboardStats stats;
   final List<ScheduleLite> todaySchedules;
   final List<ScheduleLite> upcoming;
-  DashboardData({required this.userName, required this.stats, required this.todaySchedules, required this.upcoming});
 }
 
 abstract class DashboardEvent extends Equatable { @override List<Object?> get props => []; }
@@ -29,8 +35,8 @@ class DashboardLoad extends DashboardEvent {}
 abstract class DashboardState extends Equatable { @override List<Object?> get props => []; }
 class DashboardInitial extends DashboardState {}
 class DashboardLoading extends DashboardState {}
-class DashboardLoaded extends DashboardState { final DashboardData data; DashboardLoaded(this.data); @override List<Object?> get props => [data]; }
-class DashboardError extends DashboardState { final String message; DashboardError(this.message); @override List<Object?> get props => [message]; }
+class DashboardLoaded extends DashboardState { DashboardLoaded(this.data); final DashboardData data; @override List<Object?> get props => [data]; }
+class DashboardError extends DashboardState { DashboardError(this.message); final String message; @override List<Object?> get props => [message]; }
 
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   DashboardBloc() : super(DashboardInitial()) {
@@ -56,7 +62,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
         // stats simple
         final all = await supabase.from('schedules').select('status, visit_date');
-        int late = 0, completed = 0, pending = 0;
+        var late = 0;
+        var completed = 0;
+        var pending = 0;
         for (final rm in (all as List)) {
           final r = rm as Map<String, dynamic>;
           if (r['status'] as String == VisitStatus.completed.value) completed++;
@@ -69,7 +77,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           stats: DashboardStats(today: todayList.length, late: late, completed: completed, pending: pending),
           todaySchedules: todayList,
           upcoming: upList,
-        )));
+        ),),);
       } catch (err) {
         emit(DashboardError(err.toString()));
       }

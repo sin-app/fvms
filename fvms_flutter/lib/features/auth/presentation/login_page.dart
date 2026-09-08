@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/app/theme/brand.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
+import 'package:fvms_flutter/widgets/brand_widgets.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/theme/brand.dart';
-import '../../../core/supabase/client.dart';
-import '../../../widgets/brand_widgets.dart';
-import '../bloc/auth_bloc.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -60,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
                               const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
                               const SizedBox(width: 8),
                               Expanded(child: Text('Supabase belum dikonfigurasi. APK ini built tanpa --dart-define.', style: TextStyle(color: Colors.red.shade800, fontSize: 12))),
-                            ]),
+                            ],),
                           ),
                         const SizedBox(height: 32),
                         TextFormField(
@@ -106,8 +106,8 @@ class _LoginPageState extends State<LoginPage> {
                             child: Row(children: [
                               const Icon(Icons.error_outline, color: Colors.red, size: 18),
                               const SizedBox(width: 8),
-                              Expanded(child: Text((s as AuthFailure).message, style: TextStyle(color: Colors.red.shade800, fontSize: 13))),
-                            ]),
+                              Expanded(child: Text(s.message, style: TextStyle(color: Colors.red.shade800, fontSize: 13))),
+                            ],),
                           ),
                         if (s is AuthFailure && s.message.contains('Link reset'))
                           Padding(

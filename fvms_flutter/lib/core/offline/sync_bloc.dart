@@ -1,30 +1,28 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:equatable/equatable.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'db.dart';
-import 'engine.dart';
-import '../supabase/client.dart';
+import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/core/offline/db.dart';
+import 'package:fvms_flutter/core/offline/engine.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
 
 enum SyncStatus { online, offline, syncing }
 
 class SyncState extends Equatable {
+  const SyncState({required this.status, this.pending = 0, this.lastSyncAt, this.lastError});
   final SyncStatus status;
   final int pending;
   final String? lastSyncAt;
   final String? lastError;
-  const SyncState({required this.status, this.pending = 0, this.lastSyncAt, this.lastError});
   bool get online => status != SyncStatus.offline;
   @override List<Object?> get props => [status, pending, lastSyncAt, lastError];
 }
 
 abstract class SyncEvent extends Equatable { @override List<Object?> get props => []; }
 class SyncStarted extends SyncEvent {}
-class SyncConnectivityChanged extends SyncEvent { final bool online; SyncConnectivityChanged(this.online); @override List<Object?> get props => [online]; }
+class SyncConnectivityChanged extends SyncEvent { SyncConnectivityChanged(this.online); final bool online; @override List<Object?> get props => [online]; }
 class SyncRequested extends SyncEvent {}
 
 class SyncBloc extends Bloc<SyncEvent, SyncState> {
-  final AppDatabase db;
-  late final OfflineEngine _engine;
   SyncBloc({required this.db}) : super(const SyncState(status: SyncStatus.online)) {
     _engine = OfflineEngine(db: db, supabase: supabase);
     on<SyncStarted>(_onStarted);
@@ -32,6 +30,8 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     on<SyncRequested>(_onSync);
     add(SyncStarted());
   }
+  final AppDatabase db;
+  late final OfflineEngine _engine;
 
   Future<void> _onStarted(SyncStarted e, Emitter<SyncState> emit) async {
     final conn = await Connectivity().checkConnectivity();

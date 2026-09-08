@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ShimmerBox extends StatelessWidget {
-  final double width, height;
+  const ShimmerBox({required this.width, required this.height, super.key, this.radius = const BorderRadius.all(Radius.circular(12))});
+  final double width;
+  final double height;
   final BorderRadius radius;
-  const ShimmerBox({super.key, required this.width, required this.height, this.radius = const BorderRadius.all(Radius.circular(12))});
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
@@ -30,9 +31,9 @@ class LoadingState extends StatelessWidget {
 }
 
 class ErrorState extends StatelessWidget {
+  const ErrorState({required this.message, super.key, this.onRetry});
   final String message;
   final VoidCallback? onRetry;
-  const ErrorState({super.key, required this.message, this.onRetry});
   @override
   Widget build(BuildContext context) => Center(
         child: Semantics(
@@ -44,15 +45,15 @@ class ErrorState extends StatelessWidget {
             if (onRetry != null) ...[
               const SizedBox(height: 12),
               FilledButton(onPressed: onRetry, child: const Text('Coba lagi')),
-            ]
-          ]),
+            ],
+          ],),
         ),
       );
 }
 
 class EmptyState extends StatelessWidget {
-  final String message;
   const EmptyState({super.key, this.message = 'Tidak ada data'});
+  final String message;
   @override
   Widget build(BuildContext context) => Center(child: Text(message, style: Theme.of(context).textTheme.bodyLarge));
 }
