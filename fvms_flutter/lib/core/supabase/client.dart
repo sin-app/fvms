@@ -26,12 +26,15 @@ Future<void> initSupabase() async {
 SupabaseClient get supabase {
   try {
     return Supabase.instance.client;
-  } on LateInitializationError {
-    throw Exception(
-      SupabaseConfig.isConfigured
-          ? 'Supabase belum di-init: panggil initSupabase() dulu'
-          : 'Supabase belum dikonfigurasi: SUPABASE_URL/ANON_KEY kosong (isi .env atau --dart-define)',
-    );
+  } catch (e) {
+    if (e.toString().contains('LateInitializationError')) {
+      throw Exception(
+        SupabaseConfig.isConfigured
+            ? 'Supabase belum di-init: panggil initSupabase() dulu'
+            : 'Supabase belum dikonfigurasi: SUPABASE_URL/ANON_KEY kosong (isi .env atau --dart-define)',
+      );
+    }
+    rethrow;
   }
 }
 
