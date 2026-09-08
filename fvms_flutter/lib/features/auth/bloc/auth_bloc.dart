@@ -74,21 +74,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthFailure('Supabase belum dikonfigurasi. Rebuild APK dengan --dart-define SUPABASE_URL & ANON_KEY'));
       return;
     }
+    if (!isSupabaseInitialized) {
+      emit(AuthFailure('Supabase belum siap (client not init). Restart app.'));
+      return;
+    }
     try {
-      await supabase.auth.signInWithPassword(email: e.email, password: e.password);
-      final ctx = await getAuthContext();
+      await supabase.auth
+          .signInWithPassword(email: e.email, password: e.password)
+          .timeout(const Duration(seconds: 15));
+      final ctx = await getAuthContext().timeout(const Duration(seconds: 10));
       if (ctx == null) throw Exception('Gagal ambil profil: cek tabel public.users & RLS');
       emit(AuthAuthenticated(ctx));
     } on AuthException catch (err) {
-      // Pesan Supabase bahasa Inggris -> terjemahkan untuk user lapangan
       final msg = err.message.toLowerCase().contains('invalid login credentials')
           ? 'Email atau password salah'
           : err.message;
       emit(AuthFailure(msg));
+    } on Exception catch (err) {
+      if (err.toString().contains('TimeoutException')) {
+        emit(AuthFailure('Timeout: cek koneksi internet / Supabase URL'));
+        return;
+      }
+      rethrow;
     } catch (err) {
       final m = err.toString();
-      if (m.contains('LateInitializationError') || m.contains('client') && m.contains('not been initialized')) {
+      if (m.contains('LateInitializationError') || (m.contains('client') && m.contains('not been initialized'))) {
         emit(AuthFailure('Supabase belum siap (LateInit). Restart app & cek dart-define'));
+      } else if (m.contains('TimeoutException')) {
+        emit(AuthFailure('Timeout login. Cek internet.'));
       } else if (m.contains('Supabase not initialized') || m.contains('Supabase belum')) {
         emit(AuthFailure('Supabase belum siap. Coba restart app.'));
       } else {
