@@ -53,6 +53,8 @@ jobs:
           echo "$TWA_KEYSTORE_B64" | base64 -d > android/app/fvms.keystore || true
       - name: Build APK (split)
         run: flutter build apk --release --split-per-abi --dart-define=SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Build APK (universal)
+        run: flutter build apk --release --dart-define=SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       - name: Build AAB
         run: flutter build appbundle --release --dart-define=SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       - uses: actions/upload-artifact@v4
