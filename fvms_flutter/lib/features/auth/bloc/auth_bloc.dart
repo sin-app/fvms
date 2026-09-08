@@ -51,10 +51,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onStarted(AuthStarted e, Emitter<AuthState> emit) async {
-    final ctx = await getAuthContext();
-    if (ctx != null) {
-      emit(AuthAuthenticated(ctx));
-    } else {
+    if (!isSupabaseInitialized) {
+      emit(AuthFailure('Supabase belum siap: ${SupabaseConfig.isConfigured ? "init gagal" : "URL/ANON_KEY kosong"}'));
+      emit(AuthUnauthenticated());
+      return;
+    }
+    try {
+      final ctx = await getAuthContext();
+      if (ctx != null) {
+        emit(AuthAuthenticated(ctx));
+      } else {
+        emit(AuthUnauthenticated());
+      }
+    } catch (_) {
       emit(AuthUnauthenticated());
     }
   }
@@ -78,7 +87,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthFailure(msg));
     } catch (err) {
       final m = err.toString();
-      if (m.contains('Supabase not initialized') || m.contains('Supabase belum')) {
+      if (m.contains('LateInitializationError') || m.contains('client') && m.contains('not been initialized')) {
+        emit(AuthFailure('Supabase belum siap (LateInit). Restart app & cek dart-define'));
+      } else if (m.contains('Supabase not initialized') || m.contains('Supabase belum')) {
         emit(AuthFailure('Supabase belum siap. Coba restart app.'));
       } else {
         emit(AuthFailure(m.replaceFirst('Exception: ', '')));
@@ -87,11 +98,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogout(AuthLogoutRequested e, Emitter<AuthState> emit) async {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {}
     emit(AuthUnauthenticated());
   }
 
   Future<void> _onReset(AuthResetRequested e, Emitter<AuthState> emit) async {
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(AuthFailure('Supabase belum siap'));
+      return;
+    }
     try {
       await supabase.auth.resetPasswordForEmail(e.email);
       emit(AuthFailure('Link reset dikirim ke ${e.email}'));

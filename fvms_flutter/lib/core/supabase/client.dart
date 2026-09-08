@@ -23,7 +23,27 @@ Future<void> initSupabase() async {
   );
 }
 
-SupabaseClient get supabase => Supabase.instance.client;
+SupabaseClient get supabase {
+  try {
+    return Supabase.instance.client;
+  } on LateInitializationError {
+    throw Exception(
+      SupabaseConfig.isConfigured
+          ? 'Supabase belum di-init: panggil initSupabase() dulu'
+          : 'Supabase belum dikonfigurasi: SUPABASE_URL/ANON_KEY kosong (isi .env atau --dart-define)',
+    );
+  }
+}
+
+bool get isSupabaseInitialized {
+  try {
+    // ignore: unnecessary_statements
+    Supabase.instance.client;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 /// Mirror getAuthContext + qcKabupatenScope
 enum UserRole { admin, qc, produksi }
@@ -40,6 +60,7 @@ class AuthContext {
 }
 
 Future<AuthContext?> getAuthContext() async {
+  if (!isSupabaseInitialized) return null;
   final user = supabase.auth.currentUser;
   if (user == null) return null;
   final row = await supabase
