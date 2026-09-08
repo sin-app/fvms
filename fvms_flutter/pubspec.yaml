@@ -37,7 +37,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   geolocator: ^13.0.2
-  geocoding: ^3.0.0
+  geocoding: ^5.0.0
   # Media
   image_picker: ^1.1.2
   flutter_image_compress: ^2.4.0
@@ -76,6 +76,3 @@ flutter:
     - assets/icons/
     - assets/images/
     - .env.example
-
-dependency_overrides:
-  geocoding_android: ^5.1.0
