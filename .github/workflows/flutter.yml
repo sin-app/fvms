@@ -60,8 +60,10 @@ jobs:
           name: fvms-flutter-apk
           path: fvms_flutter/build/app/outputs/flutter-apk/*.apk
           retention-days: 7
+          overwrite: true
       - uses: actions/upload-artifact@v4
         with:
           name: fvms-flutter-aab
           path: fvms_flutter/build/app/outputs/bundle/release/*.aab
           retention-days: 7
+          overwrite: true
