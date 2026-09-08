@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/brand.dart';
+import '../../../core/supabase/client.dart';
 import '../../../widgets/brand_widgets.dart';
 import '../bloc/auth_bloc.dart';
 
@@ -50,6 +51,17 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 12),
                         Text('FVMS', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                         Text('Field Visit Management System', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                        if (!SupabaseConfig.isConfigured)
+                          Container(
+                            margin: const EdgeInsets.only(top: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
+                            child: Row(children: [
+                              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text('Supabase belum dikonfigurasi. APK ini built tanpa --dart-define.', style: TextStyle(color: Colors.red.shade800, fontSize: 12))),
+                            ]),
+                          ),
                         const SizedBox(height: 32),
                         TextFormField(
                           controller: _email,
@@ -86,6 +98,17 @@ class _LoginPageState extends State<LoginPage> {
                             context.read<AuthBloc>().add(AuthLoginRequested(_email.text.trim(), _pass.text));
                           },
                         ),
+                        if (s is AuthFailure)
+                          Container(
+                            margin: const EdgeInsets.only(top: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
+                            child: Row(children: [
+                              const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text((s as AuthFailure).message, style: TextStyle(color: Colors.red.shade800, fontSize: 13))),
+                            ]),
+                          ),
                         if (s is AuthFailure && s.message.contains('Link reset'))
                           Padding(
                             padding: const EdgeInsets.only(top: 12),

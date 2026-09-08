@@ -9,6 +9,8 @@ build/
 *.lock
 *.g.dart
 *.drift.dart
+# l10n generated
+lib/l10n/app_localizations*.dart
 
 # Env
 .env

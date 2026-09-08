@@ -2,15 +2,21 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseConfig {
-  static String get url =>
-      dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
-  static String get anonKey =>
-      dotenv.env['SUPABASE_ANON_KEY'] ??
-      const String.fromEnvironment('SUPABASE_ANON_KEY');
+  // dart-define (CI release) has priority, then .env (local dev), then empty
+  static const _envUrl = String.fromEnvironment('SUPABASE_URL');
+  static const _envAnon = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static String get url => _envUrl.isNotEmpty ? _envUrl : (dotenv.env['SUPABASE_URL'] ?? '');
+  static String get anonKey => _envAnon.isNotEmpty ? _envAnon : (dotenv.env['SUPABASE_ANON_KEY'] ?? '');
+  static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
 }
 
 Future<void> initSupabase() async {
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {}
+  if (!SupabaseConfig.isConfigured) {
+    throw Exception('Supabase belum dikonfigurasi: isi .env atau --dart-define SUPABASE_URL/ANON_KEY');
+  }
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,

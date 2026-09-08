@@ -11,11 +11,13 @@ Future<void> main() async {
   HydratedBloc.storage = await HydratedStorage.build(
     storageDirectory: await getApplicationDocumentsDirectory(),
   );
-  // Supabase
+  // Supabase - jangan silent, biar login bisa tampilkan error config
   try {
     await initSupabase();
-  } catch (_) {
-    // .env missing on first scaffold - app tetap jalan ke login dengan error state
+  } on Exception catch (e) {
+    debugPrint('Supabase init gagal: $e');
+  } catch (e) {
+    debugPrint('Supabase init error: $e');
   }
   // FCM
   try {

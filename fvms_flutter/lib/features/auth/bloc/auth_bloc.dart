@@ -61,15 +61,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogin(AuthLoginRequested e, Emitter<AuthState> emit) async {
     emit(AuthLoading());
+    if (!SupabaseConfig.isConfigured) {
+      emit(AuthFailure('Supabase belum dikonfigurasi. Rebuild APK dengan --dart-define SUPABASE_URL & ANON_KEY'));
+      return;
+    }
     try {
       await supabase.auth.signInWithPassword(email: e.email, password: e.password);
       final ctx = await getAuthContext();
-      if (ctx == null) throw Exception('Gagal ambil profil');
+      if (ctx == null) throw Exception('Gagal ambil profil: cek tabel public.users & RLS');
       emit(AuthAuthenticated(ctx));
     } on AuthException catch (err) {
-      emit(AuthFailure(err.message));
+      // Pesan Supabase bahasa Inggris -> terjemahkan untuk user lapangan
+      final msg = err.message.toLowerCase().contains('invalid login credentials')
+          ? 'Email atau password salah'
+          : err.message;
+      emit(AuthFailure(msg));
     } catch (err) {
-      emit(AuthFailure(err.toString()));
+      final m = err.toString();
+      if (m.contains('Supabase not initialized') || m.contains('Supabase belum')) {
+        emit(AuthFailure('Supabase belum siap. Coba restart app.'));
+      } else {
+        emit(AuthFailure(m.replaceFirst('Exception: ', '')));
+      }
     }
   }
 
