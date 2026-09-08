@@ -10,6 +10,9 @@ class SupabaseConfig {
   static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
 }
 
+bool _supabaseInitialized = false;
+bool get isSupabaseInitialized => _supabaseInitialized;
+
 Future<void> initSupabase() async {
   try {
     await dotenv.load();
@@ -21,31 +24,18 @@ Future<void> initSupabase() async {
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
+  _supabaseInitialized = true;
 }
 
 SupabaseClient get supabase {
-  try {
-    return Supabase.instance.client;
-  } catch (e) {
-    if (e.toString().contains('LateInitializationError')) {
-      throw Exception(
-        SupabaseConfig.isConfigured
-            ? 'Supabase belum di-init: panggil initSupabase() dulu'
-            : 'Supabase belum dikonfigurasi: SUPABASE_URL/ANON_KEY kosong (isi .env atau --dart-define)',
-      );
-    }
-    rethrow;
+  if (!_supabaseInitialized) {
+    throw Exception(
+      SupabaseConfig.isConfigured
+          ? 'Supabase belum di-init: panggil initSupabase() dulu'
+          : 'Supabase belum dikonfigurasi: SUPABASE_URL/ANON_KEY kosong (isi .env atau --dart-define)',
+    );
   }
-}
-
-bool get isSupabaseInitialized {
-  try {
-    // ignore: unnecessary_statements
-    Supabase.instance.client;
-    return true;
-  } catch (_) {
-    return false;
-  }
+  return Supabase.instance.client;
 }
 
 /// Mirror getAuthContext + qcKabupatenScope
