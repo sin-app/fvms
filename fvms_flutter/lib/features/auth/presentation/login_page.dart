@@ -31,7 +31,13 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (c, s) {
           if (s is AuthFailure) {
-            ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(s.message)));
+            ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(s.message), backgroundColor: Colors.red));
+          } else if (s is AuthAuthenticated) {
+            // Fallback jika go_router redirect tidak jalan (mis. stuck di loading)
+            if (ModalRoute.of(c)?.settings.name != '/') {
+              // ignore: use_build_context_synchronously
+              c.go('/');
+            }
           }
         },
         builder: (c, s) {

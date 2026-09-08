@@ -19,6 +19,8 @@ GoRouter buildRouter(AuthBloc authBloc) {
     refreshListenable: _BlocListenable(authBloc),
     redirect: (ctx, state) {
       final auth = authBloc.state;
+      // Selama loading, jangan redirect - biarkan di halaman login dengan spinner
+      if (auth is AuthLoading) return null;
       final logged = auth is AuthAuthenticated;
       final atLogin = state.matchedLocation == '/login' || state.matchedLocation == '/reset-password';
       if (!logged && !atLogin) return '/login';

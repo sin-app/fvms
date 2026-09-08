@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
@@ -80,10 +81,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
     try {
-      await supabase.auth
-          .signInWithPassword(email: e.email, password: e.password)
-          .timeout(const Duration(seconds: 15));
-      final ctx = await getAuthContext().timeout(const Duration(seconds: 10));
+      // Timeout pakai Future.any agar pasti 15s meski supabase hang di native
+      await Future.any([
+        supabase.auth.signInWithPassword(email: e.email, password: e.password),
+        Future.delayed(const Duration(seconds: 15), () => throw TimeoutException('Login timeout 15s')),
+      ]);
+      final ctx = await Future.any([
+        getAuthContext(),
+        Future.delayed(const Duration(seconds: 10), () => throw TimeoutException('getAuthContext timeout 10s')),
+      ]);
       if (ctx == null) throw Exception('Gagal ambil profil: cek tabel public.users & RLS');
       emit(AuthAuthenticated(ctx));
     } on AuthException catch (err) {
@@ -91,18 +97,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           ? 'Email atau password salah'
           : err.message;
       emit(AuthFailure(msg));
-    } on Exception catch (err) {
-      if (err.toString().contains('TimeoutException')) {
-        emit(AuthFailure('Timeout: cek koneksi internet / Supabase URL'));
-        return;
-      }
-      rethrow;
+    } on TimeoutException {
+      emit(AuthFailure('Timeout: cek koneksi internet / Supabase URL (15s)'));
     } catch (err) {
       final m = err.toString();
-      if (m.contains('LateInitializationError') || (m.contains('client') && m.contains('not been initialized'))) {
-        emit(AuthFailure('Supabase belum siap (LateInit). Restart app & cek dart-define'));
-      } else if (m.contains('TimeoutException')) {
+      if (m.contains('TimeoutException')) {
         emit(AuthFailure('Timeout login. Cek internet.'));
+      } else if (m.contains('LateInitializationError') || (m.contains('client') && m.contains('not been initialized'))) {
+        emit(AuthFailure('Supabase belum siap (LateInit). Restart app & cek dart-define'));
       } else if (m.contains('Supabase not initialized') || m.contains('Supabase belum')) {
         emit(AuthFailure('Supabase belum siap. Coba restart app.'));
       } else {
