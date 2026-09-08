@@ -24,7 +24,10 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Analyze (0 issues)
+        run: flutter analyze
+      - name: Check dart fix (no fixable issues)
+        run: dart fix --dry-run | tee /tmp/fix.txt && ! grep -q "issues found" /tmp/fix.txt || (echo "::error::dart fix found issues"; cat /tmp/fix.txt; exit 1)
       - run: flutter test --coverage
 
   build_android:
