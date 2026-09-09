@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/constants/status.dart';
@@ -47,7 +48,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         return;
       }
       try {
-        final ctx = await getAuthContext();
+        final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
         final name = supabase.auth.currentUser?.email ?? ctx?.userId.substring(0, 8) ?? 'User';
         final today = todayString();
         // fetch today schedules dengan timeout + RLS scope (qc: filter kabupaten, produksi: own)
@@ -94,8 +95,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           todaySchedules: todayList,
           upcoming: upList,
         ),),);
+      } on TimeoutException {
+        emit(DashboardError('Timeout dashboard: cek koneksi internet'));
       } catch (err) {
-        emit(DashboardError(err.toString()));
+        emit(DashboardError(err.toString().replaceFirst('Exception: ', '')));
       }
     });
   }

@@ -6,12 +6,30 @@ import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
   @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  late final DashboardBloc _bloc;
+  @override
+  void initState() {
+    super.initState();
+    _bloc = DashboardBloc()..add(DashboardLoad());
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => DashboardBloc()..add(DashboardLoad()),
+    return BlocProvider.value(
+      value: _bloc,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('FVMS'),
@@ -22,12 +40,12 @@ class DashboardPage extends StatelessWidget {
         ),
         body: BlocBuilder<DashboardBloc, DashboardState>(
           builder: (c, s) {
-            if (s is DashboardLoading) return const LoadingState();
-            if (s is DashboardError) return ErrorState(message: s.message, onRetry: () => c.read<DashboardBloc>().add(DashboardLoad()));
+            if (s is DashboardInitial || s is DashboardLoading) return const LoadingState();
+            if (s is DashboardError) return ErrorState(message: s.message, onRetry: () => _bloc.add(DashboardLoad()));
             if (s is DashboardLoaded) {
               final d = s.data;
               return RefreshIndicator(
-                onRefresh: () async => c.read<DashboardBloc>().add(DashboardLoad()),
+                onRefresh: () async => _bloc.add(DashboardLoad()),
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                   children: [
