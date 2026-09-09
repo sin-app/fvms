@@ -172,11 +172,24 @@ export async function hydrateOffline(opts: SyncOptions): Promise<HydrateResult> 
   if (user.role === "produksi") activityQuery.eq("user_id", user.id);
   else if (user.role === "qc") activityQuery.eq("id", "__none__");
 
+  // ---- visit_notes scoped via schedules ----
+  let notesQuery = supabase
+    .from("visit_notes")
+    .select("schedule_id, observation, problem, recommend, additional, updated_at")
+    .limit(limit);
+  if (user.role === "produksi") {
+    // hanya notes dari jadwal miliknya
+    const ids = (scheduleRows as { id: string }[]).map((r) => r.id);
+    notesQuery = notesQuery.in("schedule_id", ids.length > 0 ? ids : ["__none__"]);
+  } else if (user.role === "qc") {
+    const ids = (scheduleRows as { id: string; kabupaten_id?: string | null }[])
+      .filter((r) => r.kabupaten_id && user.assignedKabupatenIds.includes(r.kabupaten_id as string))
+      .map((r) => r.id);
+    notesQuery = notesQuery.in("schedule_id", ids.length > 0 ? ids : ["__none__"]);
+  }
+
   const [notesRes, regionsRes, activityRes, notifRes, usersRes, excelRes] = await Promise.all([
-    supabase
-      .from("visit_notes")
-      .select("schedule_id, observation, problem, recommend, additional, updated_at")
-      .limit(limit),
+    notesQuery,
     Promise.all([
       supabase.from("kabupaten").select("id, name").limit(limit),
       supabase.from("kecamatan").select("id, name, kabupaten_id").limit(limit),

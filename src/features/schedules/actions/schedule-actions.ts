@@ -355,11 +355,13 @@ export async function bulkActionSchedules(
         .in("id", ids)
         .is("deleted_at", null);
       if (fetchErr) throw fetchErr;
-      for (const s of toShift ?? []) {
-        const next = new Date(s.visit_date + "T00:00:00");
-        next.setDate(next.getDate() + 1);
-        await admin.from("schedules").update({ visit_date: dateString(next) }).eq("id", s.id);
-      }
+      await Promise.all(
+        (toShift ?? []).map((s) => {
+          const next = new Date(s.visit_date + "T00:00:00");
+          next.setDate(next.getDate() + 1);
+          return admin.from("schedules").update({ visit_date: dateString(next) }).eq("id", s.id);
+        }),
+      );
     } else if (action === "shift_backward") {
       const { data: toShift, error: fetchErr } = await admin
         .from("schedules")
@@ -367,11 +369,13 @@ export async function bulkActionSchedules(
         .in("id", ids)
         .is("deleted_at", null);
       if (fetchErr) throw fetchErr;
-      for (const s of toShift ?? []) {
-        const prev = new Date(s.visit_date + "T00:00:00");
-        prev.setDate(prev.getDate() - 1);
-        await admin.from("schedules").update({ visit_date: dateString(prev) }).eq("id", s.id);
-      }
+      await Promise.all(
+        (toShift ?? []).map((s) => {
+          const prev = new Date(s.visit_date + "T00:00:00");
+          prev.setDate(prev.getDate() - 1);
+          return admin.from("schedules").update({ visit_date: dateString(prev) }).eq("id", s.id);
+        }),
+      );
     } else if (
       action !== STATUS_VALUES.gagal_total &&
       SCHEDULE_STATUSES.includes(action as VisitStatus)

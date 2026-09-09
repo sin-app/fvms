@@ -7,12 +7,14 @@ import 'package:fvms_flutter/core/offline/db.dart';
 import 'package:fvms_flutter/core/offline/sync_bloc.dart';
 import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
 
+final _appDatabase = AppDatabase();
+
 class FvmsApp extends StatelessWidget {
   const FvmsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final db = AppDatabase();
+    final db = _appDatabase;
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => AuthBloc()..add(AuthStarted())),

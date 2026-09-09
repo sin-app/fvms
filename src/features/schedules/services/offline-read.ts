@@ -46,8 +46,10 @@ export function filterOfflineSchedules(rows: OfflineSchedule[], filters: Schedul
     if (filters.document_no && s.document_no !== filters.document_no) return false;
     if (filters.panen_status && filters.panen_status !== "all") {
       const panen = getPanenStatus(s);
-      const label = panen.harvested ? "panen" : panen.label === "Jatuh Tempo" ? "jatuh_tempo" : panen.label.startsWith("Renc") ? "rencana" : "none";
-      if (label !== filters.panen_status) return false;
+      const label = panen.label;
+      if (filters.panen_status === "sudah" && label !== "Panen") return false;
+      if (filters.panen_status === "jatuh_tempo" && label !== "Jatuh Tempo") return false;
+      if (filters.panen_status === "belum" && (label === "Panen" || label === "Jatuh Tempo")) return false;
     }
     return true;
   });

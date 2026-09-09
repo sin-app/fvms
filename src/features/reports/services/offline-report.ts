@@ -82,9 +82,9 @@ export async function loadOfflineReportRows(filters: ReportFilters): Promise<Rep
       if (filters.status && r.status !== filters.status) return false;
       if (filters.panen_status && filters.panen_status !== "all") {
         const p = filters.panen_status;
-        if (p === "sudah") return r.panen_status === "Panen";
-        if (p === "jatuh_tempo") return r.panen_status === "Jatuh Tempo";
-        if (p === "belum") return r.panen_status !== "Panen" && r.panen_status !== "Jatuh Tempo";
+        if (p === "sudah" && r.panen_status !== "Panen") return false;
+        if (p === "jatuh_tempo" && r.panen_status !== "Jatuh Tempo") return false;
+        if (p === "belum" && (r.panen_status === "Panen" || r.panen_status === "Jatuh Tempo")) return false;
       }
       return true;
     })
