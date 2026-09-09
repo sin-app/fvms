@@ -73,7 +73,12 @@ class _Hero extends StatelessWidget {
   final String name;
   @override
   Widget build(BuildContext context) {
-    final now = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
+    String now;
+    try {
+      now = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
+    } catch (_) {
+      now = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    }
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(gradient: brandGradient, borderRadius: BorderRadius.all(Radius.circular(20))),
