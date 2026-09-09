@@ -13,6 +13,14 @@ import type { AuthContext } from "@/lib/auth/authorization";
 import type { DashboardData, DashboardStats, DashboardFilters } from "../types";
 import type { Schedule, ActivityLog } from "@/types";
 
+const DASHBOARD_TIMEOUT_MS = 10000;
+function withTimeout<T>(p: Promise<T>, ms = DASHBOARD_TIMEOUT_MS): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout dashboard 10s")), ms)),
+  ]);
+}
+
 export async function getDashboardData(
   userId: string,
   ctx?: AuthContext,
@@ -91,7 +99,7 @@ export async function getDashboardData(
     .is("tgl_panen", null)
     .or(`rencana_panen.gte.${today},rencana_panen.is.null`);
 
-  const counts = await Promise.all([
+  const counts = await withTimeout(Promise.all([
     todayQuery,
     tomorrowQuery,
     weekQuery,
@@ -103,7 +111,7 @@ export async function getDashboardData(
     sudahPanenQuery,
     jatuhTempoQuery,
     belumPanenQuery,
-  ]);
+  ]));
 
   const stats: DashboardStats = {
     todayCount: counts[0].count ?? 0,
@@ -119,7 +127,7 @@ export async function getDashboardData(
     belumPanenCount: counts[10].count ?? 0,
   };
 
-  const [todaySchedulesRes, upcomingSchedulesRes, recentActivityRes] = await Promise.all([
+  const [todaySchedulesRes, upcomingSchedulesRes, recentActivityRes] = await withTimeout(Promise.all([
     applyFilters(
       admin
         .from("schedules")
@@ -148,7 +156,7 @@ export async function getDashboardData(
             .order("created_at", { ascending: false })
             .limit(10)
         : admin.from("activity_logs").select("*").eq("id", "__none__"),
-  ]);
+  ]));
 
   return {
     stats,
