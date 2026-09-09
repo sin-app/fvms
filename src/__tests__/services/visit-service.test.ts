@@ -4,6 +4,11 @@ vi.mock("@/lib/supabase/admin-client", () => ({
   createAdminClient: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/authorization", () => ({
+  getAuthContext: vi.fn(async () => ({ userId: "user-1", role: "admin", assignedKabupatenIds: [] })),
+  canAccessSchedule: vi.fn(async () => true),
+}));
+
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { saveVisitNotes } from "@/features/visits/services/visit-service";
 

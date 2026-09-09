@@ -93,7 +93,7 @@ describe("offline-read", () => {
     expect(filterOfflineSchedules(rows, { varietas: "jmp" }).map((r) => r.id)).toEqual(["4"]);
     expect(rows[3]!.varietas).toBe("JMP-18");
     expect(filterOfflineSchedules(rows, { block_no: ["B01"] }).map((r) => r.id)).toEqual(["1", "2"]);
-    expect(filterOfflineSchedules(rows, { panen_status: "panen" }).map((r) => r.id)).toEqual(["3"]);
+    expect(filterOfflineSchedules(rows, { panen_status: "sudah" }).map((r) => r.id)).toEqual(["3"]);
   });
 
   it("memuat baris offline tersortir per tanggal", async () => {

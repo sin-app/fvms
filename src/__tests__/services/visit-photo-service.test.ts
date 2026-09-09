@@ -4,6 +4,11 @@ vi.mock("@/lib/supabase/admin-client", () => ({
   createAdminClient: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/authorization", () => ({
+  getAuthContext: vi.fn(async () => ({ userId: "user-1", role: "admin", assignedKabupatenIds: [] })),
+  canAccessSchedule: vi.fn(async () => true),
+}));
+
 vi.mock("@/lib/config", () => ({
   getConfig: () => ({
     supabaseUrl: "http://localhost",
@@ -82,7 +87,13 @@ describe("visit-photo-service", () => {
         data: { url: "https://example.com/storage/visits/sched-1/photo-123.jpg" },
         error: null,
       });
-      const mockSelect = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single: mockSingle }) });
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: { schedule_id: "sched-1" },
+        error: null,
+      });
+      const mockSelect = vi.fn().mockImplementation(() => ({
+        eq: vi.fn().mockReturnValue({ single: mockSingle, maybeSingle: mockMaybeSingle }),
+      }));
       const mockEq = vi.fn().mockReturnThis();
 
       (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue({

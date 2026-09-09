@@ -3,7 +3,7 @@ import path from "path";
 
 export default defineConfig({
   test: {
-    exclude: ["e2e/**", "node_modules/**"],
+    exclude: ["e2e/**", "node_modules/**", ".opencode/**"],
     // NOTE: jsdom is installed but hangs in this environment.
     // Using node environment as fallback. Component tests requiring DOM
     // APIs cannot run here; run them locally instead.
