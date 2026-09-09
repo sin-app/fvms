@@ -11,11 +11,11 @@ class LandProposalsPage extends StatelessWidget {
       create: (_) => LandProposalBloc()..add(LandProposalsLoad()),
       child: Scaffold(
         appBar: AppBar(title: const Text('Pengajuan Lahan')),
-        floatingActionButton: FloatingActionButton.extended(icon: const Icon(Icons.add), label: const Text('Ajukan'), onPressed: () {}),
+        floatingActionButton: Builder(builder: (fabCtx) => FloatingActionButton.extended(icon: const Icon(Icons.add), label: const Text('Ajukan'), onPressed: () => ScaffoldMessenger.of(fabCtx).showSnackBar(const SnackBar(content: Text('Form pengajuan via web (coexist)'))))),
         body: BlocBuilder<LandProposalBloc, LandProposalState>(
           builder: (c, s) {
-            if (s is LandProposalsLoading) return const LoadingState();
-            if (s is LandProposalsError) return ErrorState(message: s.message);
+            if (s is LandProposalsInitial || s is LandProposalsLoading) return const LoadingState();
+            if (s is LandProposalsError) return ErrorState(message: s.message, onRetry: () => c.read<LandProposalBloc>().add(LandProposalsLoad()));
             if (s is LandProposalsLoaded) {
               if (s.items.isEmpty) return const EmptyState(message: 'Belum ada pengajuan');
               return ListView.separated(
@@ -28,7 +28,7 @@ class LandProposalsPage extends StatelessWidget {
                 },
               );
             }
-            return const SizedBox.shrink();
+            return const LoadingState();
           },
         ),
       ),

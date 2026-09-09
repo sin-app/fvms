@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/features/schedules/bloc/schedules_bloc.dart';
+import 'package:fvms_flutter/features/schedules/presentation/filter_sheet.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,10 +12,10 @@ class SchedulesPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => SchedulesBloc()..add(SchedulesLoad()),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Jadwal'), actions: [IconButton(icon: const Icon(Icons.filter_list), onPressed: () {})]),
+        appBar: AppBar(title: const Text('Jadwal'), actions: [IconButton(icon: const Icon(Icons.filter_list), onPressed: () => showFilterSheet(context))]),
         body: BlocBuilder<SchedulesBloc, SchedulesState>(
           builder: (c, s) {
-            if (s is SchedulesLoading) return const LoadingState();
+            if (s is SchedulesInitial || s is SchedulesLoading) return const LoadingState();
             if (s is SchedulesError) return ErrorState(message: s.message, onRetry: () => c.read<SchedulesBloc>().add(SchedulesLoad()));
             if (s is SchedulesLoaded) {
               if (s.items.isEmpty) return const EmptyState(message: 'Belum ada jadwal');
@@ -35,7 +36,7 @@ class SchedulesPage extends StatelessWidget {
                               title: Text(it.memberName ?? '-', style: const TextStyle(fontWeight: FontWeight.w600)),
                               subtitle: Text('${it.blockNo ?? '-'} • ${it.nis ?? '-'} • ${it.status}'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () => context.go('/visit/${it.id}'),
+                              onTap: () => GoRouter.of(c).go('/visit/${it.id}'),
                             ),
                           ),),
                     ],);
@@ -43,7 +44,7 @@ class SchedulesPage extends StatelessWidget {
                 ),
               );
             }
-            return const SizedBox.shrink();
+            return const LoadingState();
           },
         ),
       ),

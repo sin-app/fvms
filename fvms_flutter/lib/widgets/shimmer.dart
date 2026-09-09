@@ -55,5 +55,17 @@ class EmptyState extends StatelessWidget {
   const EmptyState({super.key, this.message = 'Tidak ada data'});
   final String message;
   @override
-  Widget build(BuildContext context) => Center(child: Text(message, style: Theme.of(context).textTheme.bodyLarge));
+  Widget build(BuildContext context) => Center(
+        child: Semantics(
+          label: message,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey)),
+            ]),
+          ),
+        ),
+      );
 }

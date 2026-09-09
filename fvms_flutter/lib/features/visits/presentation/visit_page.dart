@@ -18,8 +18,8 @@ class VisitPage extends StatelessWidget {
         appBar: AppBar(title: Text('Visit $id')),
         body: BlocBuilder<VisitBloc, VisitState>(
           builder: (c, s) {
-            if (s is VisitLoading) return const LoadingState();
-            if (s is VisitError) return ErrorState(message: s.message);
+            if (s is VisitInitial || s is VisitLoading) return const LoadingState();
+            if (s is VisitError) return ErrorState(message: s.message, onRetry: () => c.read<VisitBloc>().add(VisitLoad()));
             if (s is VisitLoaded) {
               final d = s.data;
               return ListView(
@@ -37,7 +37,7 @@ class VisitPage extends StatelessWidget {
                 ],
               );
             }
-            return const SizedBox.shrink();
+            return const LoadingState();
           },
         ),
       ),

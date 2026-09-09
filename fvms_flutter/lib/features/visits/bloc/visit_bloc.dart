@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
@@ -50,8 +52,24 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       return;
     }
     try {
-      final row = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, visit_photos(id, url, caption), visit_notes(observation, problem, recommend)').eq('id', scheduleId).maybeSingle().timeout(const Duration(seconds: 10));
+      // RLS scope: include user_id/kabupaten_id for client-side guard (defense in depth)
+      final row = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, user_id, kabupaten_id, visit_photos(id, url, caption), visit_notes(observation, problem, recommend)').eq('id', scheduleId).maybeSingle().timeout(const Duration(seconds: 10));
       if (row == null) throw Exception('Jadwal tidak ditemukan');
+      // client-side RLS check (server RLS bypass via service_role not used here, but guard still useful)
+      final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
+      if (ctx != null) {
+        final rowUserId = row['user_id'] as String?;
+        final rowKabId = row['kabupaten_id'] as String?;
+        if (ctx.role == UserRole.produksi && rowUserId != ctx.userId) {
+          throw Exception('Tidak memiliki akses ke jadwal ini');
+        }
+        if (ctx.role == UserRole.qc) {
+          final scope = qcKabupatenScope(ctx);
+          if (scope != null && (rowKabId == null || !scope.contains(rowKabId))) {
+            throw Exception('Tidak memiliki akses ke jadwal ini (QC scope)');
+          }
+        }
+      }
       final rowMap = row;
       final photosRaw = rowMap['visit_photos'] as List? ?? [];
       final photos = photosRaw.map((p) {
@@ -67,7 +85,16 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
         photos: photos,
         notesField: {'observation': vn?['observation'] as String?, 'problem': vn?['problem'] as String?, 'recommend': vn?['recommend'] as String?},
       ),),);
-    } catch (err) { emit(VisitError(err.toString())); }
+    } on TimeoutException {
+      emit(VisitError('Timeout memuat visit: cek koneksi (10s)'));
+    } catch (err) {
+      final m = err.toString();
+      if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+        emit(VisitError('Supabase belum siap (LateInit): restart app'));
+      } else {
+        emit(VisitError(m.replaceFirst('Exception: ', '')));
+      }
+    }
   }
 
   Future<void> _saveNotes(VisitNotesSaved e, Emitter<VisitState> emit) async {
@@ -78,7 +105,16 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
     try {
       await supabase.from('visit_notes').upsert({'schedule_id': scheduleId, ...e.payload}).timeout(const Duration(seconds: 10));
       add(VisitLoad());
-    } catch (err) { emit(VisitError(err.toString())); }
+    } on TimeoutException {
+      emit(VisitError('Timeout simpan catatan: cek koneksi (10s)'));
+    } catch (err) {
+      final m = err.toString();
+      if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+        emit(VisitError('Supabase belum siap (LateInit): restart app'));
+      } else {
+        emit(VisitError(m.replaceFirst('Exception: ', '')));
+      }
+    }
   }
 
   Future<void> _gps(VisitGpsCaptured e, Emitter<VisitState> emit) async {
@@ -89,7 +125,16 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
     try {
       await supabase.from('schedules').update({'latitude': e.lat, 'longitude': e.lng, 'accuracy': e.acc}).eq('id', scheduleId).timeout(const Duration(seconds: 10));
       add(VisitLoad());
-    } catch (err) { emit(VisitError(err.toString())); }
+    } on TimeoutException {
+      emit(VisitError('Timeout simpan GPS: cek koneksi (10s)'));
+    } catch (err) {
+      final m = err.toString();
+      if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+        emit(VisitError('Supabase belum siap (LateInit): restart app'));
+      } else {
+        emit(VisitError(m.replaceFirst('Exception: ', '')));
+      }
+    }
   }
 
   Future<void> _status(VisitStatusChanged e, Emitter<VisitState> emit) async {
@@ -100,6 +145,15 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
     try {
       await supabase.from('schedules').update({'status': e.status}).eq('id', scheduleId).timeout(const Duration(seconds: 10));
       add(VisitLoad());
-    } catch (err) { emit(VisitError(err.toString())); }
+    } on TimeoutException {
+      emit(VisitError('Timeout ubah status: cek koneksi (10s)'));
+    } catch (err) {
+      final m = err.toString();
+      if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+        emit(VisitError('Supabase belum siap (LateInit): restart app'));
+      } else {
+        emit(VisitError(m.replaceFirst('Exception: ', '')));
+      }
+    }
   }
 }

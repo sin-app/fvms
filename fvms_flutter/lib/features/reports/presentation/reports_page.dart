@@ -14,8 +14,8 @@ class ReportsPage extends StatelessWidget {
         appBar: AppBar(title: const Text('Laporan')),
         body: BlocBuilder<ReportsBloc, ReportsState>(
           builder: (c, s) {
-            if (s is ReportsLoading) return const LoadingState();
-            if (s is ReportsError) return ErrorState(message: s.message);
+            if (s is ReportsInitial || s is ReportsLoading) return const LoadingState();
+            if (s is ReportsError) return ErrorState(message: s.message, onRetry: () => c.read<ReportsBloc>().add(ReportsLoad()));
             if (s is ReportsLoaded) {
               final d = s.data;
               return ListView(
@@ -33,14 +33,20 @@ class ReportsPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('Per Hari', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  SizedBox(height: 180, child: BarChart(BarChartData(barGroups: d.daily.entries.map((e) => BarChartGroupData(x: e.key.hashCode % 100, barRods: [BarChartRodData(toY: e.value.toDouble(), color: const Color(0xFF10B981))])).toList()))),
+                  if (d.daily.isEmpty)
+                    const Padding(padding: EdgeInsets.all(12), child: Text('Belum ada data harian', style: TextStyle(color: Colors.grey)))
+                  else
+                    SizedBox(height: 180, child: BarChart(BarChartData(barGroups: d.daily.entries.map((e) => BarChartGroupData(x: e.key.hashCode % 100, barRods: [BarChartRodData(toY: e.value.toDouble(), color: const Color(0xFF10B981))])).toList()))),
                   const SizedBox(height: 16),
                   const Text('Per Petugas', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ...d.byOfficer.map((o) => Card(child: ListTile(title: Text(o.name), trailing: Text('${o.completed}/${o.total}')))),
+                  if (d.byOfficer.isEmpty)
+                    const Padding(padding: EdgeInsets.all(12), child: Text('Belum ada data petugas', style: TextStyle(color: Colors.grey)))
+                  else
+                    ...d.byOfficer.map((o) => Card(child: ListTile(title: Text(o.name), trailing: Text('${o.completed}/${o.total}')))),
                 ],
               );
             }
-            return const SizedBox.shrink();
+            return const LoadingState();
           },
         ),
       ),

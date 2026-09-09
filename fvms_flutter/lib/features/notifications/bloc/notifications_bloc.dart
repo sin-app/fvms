@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
@@ -32,7 +34,16 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
           return NotifLite(id: m['id'] as String, title: m['title'] as String, message: m['message'] as String, isRead: (m['is_read'] as bool?) ?? false);
         }).toList();
         emit(NotificationsLoaded(items));
-      } catch (err) { emit(NotificationsError(err.toString())); }
+      } on TimeoutException {
+        emit(NotificationsError('Timeout notifikasi: cek koneksi (10s)'));
+      } catch (err) {
+        final m = err.toString();
+        if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+          emit(NotificationsError('Supabase belum siap (LateInit): restart app'));
+        } else {
+          emit(NotificationsError(m.replaceFirst('Exception: ', '')));
+        }
+      }
     });
   }
 }

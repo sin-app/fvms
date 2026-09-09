@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
@@ -34,7 +36,24 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         return;
       }
       try {
-        final rows = await supabase.from('schedules').select('status, visit_date, users!inner(name)').limit(200).timeout(const Duration(seconds: 10));
+        final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
+        dynamic query = supabase.from('schedules').select('status, visit_date, users!inner(name), kabupaten_id, user_id');
+        // RLS scope: produksi own, qc kabupaten, admin all
+        if (ctx != null) {
+          if (ctx.role == UserRole.produksi) {
+            query = query.eq('user_id', ctx.userId);
+          } else if (ctx.role == UserRole.qc) {
+            final scope = qcKabupatenScope(ctx);
+            if (scope != null) {
+              if (scope.isEmpty) {
+                query = query.eq('kabupaten_id', '__none__');
+              } else {
+                query = query.inFilter('kabupaten_id', scope);
+              }
+            }
+          }
+        }
+        final rows = await query.limit(200).timeout(const Duration(seconds: 10));
         var total = 0;
         var completed = 0;
         var pending = 0;
@@ -56,7 +75,75 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
           off[name] = OfficerLite(name, ex.total+1, ex.completed + ((r['status'] as String)=='completed'?1:0));
         }
         emit(ReportsLoaded(ReportDataLite(total: total, completed: completed, pending: pending, late: late, daily: daily, byOfficer: off.values.toList())));
-      } catch (err) { emit(ReportsError(err.toString())); }
+      } on TimeoutException {
+        emit(ReportsError('Timeout laporan: cek koneksi (10s)'));
+      } catch (err) {
+        final m = err.toString();
+        if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+          emit(ReportsError('Supabase belum siap (LateInit): restart app'));
+        } else {
+          emit(ReportsError(m.replaceFirst('Exception: ', '')));
+        }
+      }
+    });
+    on<ReportsFilterChanged>((e, emit) async {
+      emit(ReportsLoading());
+      if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+        emit(ReportsError('Supabase belum siap'));
+        return;
+      }
+      try {
+        final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
+        dynamic query = supabase.from('schedules').select('status, visit_date, member_name, users!inner(name), kabupaten_id, user_id');
+        if (e.member != null && e.member!.trim().isNotEmpty) {
+          query = query.ilike('member_name', '%${e.member!.trim()}%');
+        }
+        if (ctx != null) {
+          if (ctx.role == UserRole.produksi) {
+            query = query.eq('user_id', ctx.userId);
+          } else if (ctx.role == UserRole.qc) {
+            final scope = qcKabupatenScope(ctx);
+            if (scope != null) {
+              if (scope.isEmpty) {
+                query = query.eq('kabupaten_id', '__none__');
+              } else {
+                query = query.inFilter('kabupaten_id', scope);
+              }
+            }
+          }
+        }
+        final rows = await query.limit(200).timeout(const Duration(seconds: 10));
+        var total = 0;
+        var completed = 0;
+        var pending = 0;
+        var late = 0;
+        final today = todayString();
+        final daily = <String, int>{};
+        final off = <String, OfficerLite>{};
+        for (final rm in (rows as List)) {
+          final r = rm as Map<String, dynamic>;
+          total++;
+          if (r['status'] as String == 'completed') completed++;
+          if (r['status'] as String == 'pending') pending++;
+          if ((r['visit_date'] as String).compareTo(today) < 0 && !['completed', 'gagal_total'].contains(r['status'] as String)) late++;
+          final visitDate = r['visit_date'] as String;
+          daily[visitDate] = (daily[visitDate] ?? 0) + 1;
+          final users = r['users'] as Map<String, dynamic>?;
+          final name = (users?['name'] as String?) ?? 'Unknown';
+          final ex = off[name] ?? OfficerLite(name, 0, 0);
+          off[name] = OfficerLite(name, ex.total + 1, ex.completed + ((r['status'] as String) == 'completed' ? 1 : 0));
+        }
+        emit(ReportsLoaded(ReportDataLite(total: total, completed: completed, pending: pending, late: late, daily: daily, byOfficer: off.values.toList())));
+      } on TimeoutException {
+        emit(ReportsError('Timeout filter laporan: cek koneksi (10s)'));
+      } catch (err) {
+        final m = err.toString();
+        if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+          emit(ReportsError('Supabase belum siap (LateInit): restart app'));
+        } else {
+          emit(ReportsError(m.replaceFirst('Exception: ', '')));
+        }
+      }
     });
   }
 }

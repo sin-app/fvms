@@ -24,14 +24,21 @@ class SyncRequested extends SyncEvent {}
 
 class SyncBloc extends Bloc<SyncEvent, SyncState> {
   SyncBloc({required this.db}) : super(const SyncState(status: SyncStatus.online)) {
-    _engine = OfflineEngine(db: db, supabase: supabase);
+    // Guard: supabase mungkin belum init (APK tanpa dart-define/.env) — jangan crash di konstruktor.
+    if (isSupabaseInitialized) {
+      try {
+        _engine = OfflineEngine(db: db, supabase: supabase);
+      } catch (_) {
+        _engine = null;
+      }
+    }
     on<SyncStarted>(_onStarted);
     on<SyncConnectivityChanged>(_onConn);
     on<SyncRequested>(_onSync);
     add(SyncStarted());
   }
   final AppDatabase db;
-  late final OfflineEngine _engine;
+  OfflineEngine? _engine;
 
   Future<void> _onStarted(SyncStarted e, Emitter<SyncState> emit) async {
     final conn = await Connectivity().checkConnectivity();
@@ -50,8 +57,11 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     if (state.status == SyncStatus.offline) return;
     emit(SyncState(status: SyncStatus.syncing, pending: state.pending, lastSyncAt: state.lastSyncAt));
     try {
-      await _engine.pushOutbox();
-      await _engine.hydrateOffline();
+      // Lazy-init engine jika belum siap (mis. supabase baru ready setelah main init)
+      _engine ??= isSupabaseInitialized ? OfflineEngine(db: db, supabase: supabase) : null;
+      if (_engine == null) throw Exception('Supabase belum siap — sync ditunda');
+      await _engine!.pushOutbox();
+      await _engine!.hydrateOffline();
       final pending = await db.select(db.outbox).get().then((v) => v.length);
       emit(SyncState(status: SyncStatus.online, pending: pending, lastSyncAt: DateTime.now().toIso8601String()));
     } catch (err) {

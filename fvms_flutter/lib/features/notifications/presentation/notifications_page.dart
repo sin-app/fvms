@@ -13,8 +13,8 @@ class NotificationsPage extends StatelessWidget {
         appBar: AppBar(title: const Text('Notifikasi')),
         body: BlocBuilder<NotificationsBloc, NotificationsState>(
           builder: (c, s) {
-            if (s is NotificationsLoading) return const LoadingState();
-            if (s is NotificationsError) return ErrorState(message: s.message);
+            if (s is NotificationsInitial || s is NotificationsLoading) return const LoadingState();
+            if (s is NotificationsError) return ErrorState(message: s.message, onRetry: () => c.read<NotificationsBloc>().add(NotificationsLoad()));
             if (s is NotificationsLoaded) {
               if (s.items.isEmpty) return const EmptyState(message: 'Tidak ada notifikasi');
               return ListView.separated(
@@ -24,7 +24,7 @@ class NotificationsPage extends StatelessWidget {
                 itemBuilder: (_, i) => Card(child: ListTile(leading: Icon(s.items[i].isRead ? Icons.notifications_none : Icons.notifications_active, color: s.items[i].isRead ? Colors.grey : const Color(0xFF10B981)), title: Text(s.items[i].title), subtitle: Text(s.items[i].message), trailing: s.items[i].isRead ? null : const CircleAvatar(radius: 4, backgroundColor: Color(0xFF10B981)))) ,
               );
             }
-            return const SizedBox.shrink();
+            return const LoadingState();
           },
         ),
       ),

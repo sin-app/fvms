@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
@@ -24,13 +26,38 @@ class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
         return;
       }
       try {
-        final rows = await supabase.from('land_proposals').select('id, status, member_name, block_no').order('created_at', ascending: false).limit(50).timeout(const Duration(seconds: 10));
+        final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
+        dynamic query = supabase.from('land_proposals').select('id, status, member_name, block_no, kabupaten_id, proposed_by').order('created_at', ascending: false);
+        if (ctx != null) {
+          if (ctx.role == UserRole.produksi) {
+            query = query.eq('proposed_by', ctx.userId);
+          } else if (ctx.role == UserRole.qc) {
+            final scope = qcKabupatenScope(ctx);
+            if (scope != null) {
+              if (scope.isEmpty) {
+                query = query.eq('kabupaten_id', '__none__');
+              } else {
+                query = query.inFilter('kabupaten_id', scope);
+              }
+            }
+          }
+        }
+        final rows = await query.limit(50).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return LandProposalLite(id: m['id'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
         }).toList();
         emit(LandProposalsLoaded(items));
-      } catch (err) { emit(LandProposalsError(err.toString())); }
+      } on TimeoutException {
+        emit(LandProposalsError('Timeout pengajuan lahan: cek koneksi (10s)'));
+      } catch (err) {
+        final m = err.toString();
+        if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+          emit(LandProposalsError('Supabase belum siap (LateInit): restart app'));
+        } else {
+          emit(LandProposalsError(m.replaceFirst('Exception: ', '')));
+        }
+      }
     });
   }
 }

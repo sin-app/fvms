@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
 import 'package:fvms_flutter/features/dashboard/bloc/dashboard_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
+import 'package:fvms_flutter/widgets/sync_indicator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -34,7 +35,11 @@ class _DashboardPageState extends State<DashboardPage> {
         appBar: AppBar(
           title: const Text('FVMS'),
           actions: [
-            IconButton(icon: const Icon(Icons.notifications_none), onPressed: () {}),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: SyncIndicator(),
+            ),
+            Builder(builder: (btnCtx) => IconButton(icon: const Icon(Icons.notifications_none), onPressed: () => GoRouter.of(btnCtx).go('/notifikasi'), tooltip: 'Notifikasi')),
             const SizedBox(width: 4),
           ],
         ),
@@ -53,14 +58,14 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 16),
                     _StatsGrid(stats: d.stats),
                     const SizedBox(height: 16),
-                    _Section(title: 'Jadwal Hari Ini', count: d.todaySchedules.length, onMore: () => context.go('/jadwal'), child: d.todaySchedules.isEmpty ? const EmptyState(message: 'Tidak ada jadwal hari ini') : Column(children: d.todaySchedules.take(3).map((e) => Card(child: ListTile(title: Text(e.memberName ?? '-'), subtitle: Text('${e.blockNo ?? '-'} • ${e.status}'), trailing: const Icon(Icons.chevron_right), onTap: () => context.go('/visit/${e.id}')))).toList())),
+                    _Section(title: 'Jadwal Hari Ini', count: d.todaySchedules.length, onMore: () => GoRouter.of(c).go('/jadwal'), child: d.todaySchedules.isEmpty ? const EmptyState(message: 'Tidak ada jadwal hari ini') : Column(children: d.todaySchedules.take(3).map((e) => Card(child: ListTile(title: Text(e.memberName ?? '-'), subtitle: Text('${e.blockNo ?? '-'} • ${e.status}'), trailing: const Icon(Icons.chevron_right), onTap: () => GoRouter.of(c).go('/visit/${e.id}')))).toList())),
                     const SizedBox(height: 12),
-                    _Section(title: 'Akan Datang', count: d.upcoming.length, child: d.upcoming.isEmpty ? const Text('Tidak ada', style: TextStyle(color: Colors.grey)) : Column(children: d.upcoming.take(3).map((e) => ListTile(title: Text(e.memberName ?? '-'), subtitle: Text(e.visitDate))).toList())),
+                    _Section(title: 'Akan Datang', count: d.upcoming.length, child: d.upcoming.isEmpty ? const Padding(padding: EdgeInsets.all(12), child: Text('Tidak ada', style: TextStyle(color: Colors.grey))) : Column(children: d.upcoming.take(3).map((e) => ListTile(title: Text(e.memberName ?? '-'), subtitle: Text(e.visitDate))).toList())),
                   ],
                 ),
               );
             }
-            return const SizedBox.shrink();
+            return const LoadingState();
           },
         ),
       ),

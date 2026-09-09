@@ -53,32 +53,73 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final today = todayString();
         // fetch today schedules dengan timeout + RLS scope (qc: filter kabupaten, produksi: own)
         // Untuk audit maksimal, semua query pakai timeout 10s agar tidak stuck loading
-        final rows = await supabase
+        dynamic todayQuery = supabase
             .from('schedules')
             .select('id, visit_date, status, member_name, block_no')
-            .eq('visit_date', today)
-            .limit(10)
-            .timeout(const Duration(seconds: 10));
+            .eq('visit_date', today);
+        if (ctx != null) {
+          if (ctx.role == UserRole.produksi) {
+            todayQuery = todayQuery.eq('user_id', ctx.userId);
+          } else if (ctx.role == UserRole.qc) {
+            final scope = qcKabupatenScope(ctx);
+            if (scope != null) {
+              if (scope.isEmpty) {
+                todayQuery = todayQuery.eq('kabupaten_id', '__none__');
+              } else {
+                todayQuery = todayQuery.inFilter('kabupaten_id', scope);
+              }
+            }
+          }
+        }
+        final rows = await todayQuery.limit(10).timeout(const Duration(seconds: 10));
         final todayList = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
         }).toList();
 
         // upcoming
-        final up = await supabase
+        dynamic upQuery = supabase
             .from('schedules')
             .select('id, visit_date, status, member_name')
             .gt('visit_date', today)
-            .order('visit_date')
-            .limit(5)
-            .timeout(const Duration(seconds: 10));
+            .order('visit_date');
+        if (ctx != null) {
+          if (ctx.role == UserRole.produksi) {
+            upQuery = upQuery.eq('user_id', ctx.userId);
+          } else if (ctx.role == UserRole.qc) {
+            final scope = qcKabupatenScope(ctx);
+            if (scope != null) {
+              if (scope.isEmpty) {
+                upQuery = upQuery.eq('kabupaten_id', '__none__');
+              } else {
+                upQuery = upQuery.inFilter('kabupaten_id', scope);
+              }
+            }
+          }
+        }
+        final up = await upQuery.limit(5).timeout(const Duration(seconds: 10));
         final upList = (up as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?);
         }).toList();
 
         // stats: jangan scan full table tanpa limit — pakai limit 200 + timeout
-        final all = await supabase.from('schedules').select('status, visit_date').limit(200).timeout(const Duration(seconds: 10));
+        dynamic allQuery = supabase.from('schedules').select('status, visit_date');
+        if (ctx != null) {
+          if (ctx.role == UserRole.produksi) {
+            allQuery = allQuery.eq('user_id', ctx.userId);
+          } else if (ctx.role == UserRole.qc) {
+            final scope = qcKabupatenScope(ctx);
+            if (scope != null) {
+              if (scope.isEmpty) {
+                allQuery = allQuery.eq('kabupaten_id', '__none__');
+              } else {
+                allQuery = allQuery.inFilter('kabupaten_id', scope);
+              }
+            }
+          }
+        }
+        final all = await allQuery.limit(200).timeout(const Duration(seconds: 10));
         var late = 0;
         var completed = 0;
         var pending = 0;
@@ -98,7 +139,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       } on TimeoutException {
         emit(DashboardError('Timeout dashboard: cek koneksi internet'));
       } catch (err) {
-        emit(DashboardError(err.toString().replaceFirst('Exception: ', '')));
+        final m = err.toString();
+        if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+          emit(DashboardError('Supabase belum siap (LateInit): restart app'));
+        } else {
+          emit(DashboardError(m.replaceFirst('Exception: ', '')));
+        }
       }
     });
   }
