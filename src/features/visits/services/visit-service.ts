@@ -68,6 +68,9 @@ export async function saveVisitNotes(data: {
   recommend?: string;
   additional?: string;
 }) {
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
+  if (!(await canAccessSchedule(data.schedule_id, ctx))) throw new Error("Tidak memiliki akses ke jadwal ini");
   const admin = createAdminClient();
   const existing = await admin
     .from("visit_notes")
@@ -100,6 +103,9 @@ export async function uploadVisitPhoto(
   scheduleId: string,
   file: File,
 ): Promise<{ id: string; url: string; file_size: number; mime_type: string }> {
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
+  if (!(await canAccessSchedule(scheduleId, ctx))) throw new Error("Tidak memiliki akses ke jadwal ini");
   const config = getConfig();
   const filePath = `visits/${scheduleId}/${crypto.randomUUID()}.webp`;
 
@@ -202,6 +208,9 @@ export async function uploadVisitPhoto(
 }
 
 export async function getOwnedPhoto(photoId: string, scheduleId: string) {
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
+  if (!(await canAccessSchedule(scheduleId, ctx))) throw new Error("Tidak memiliki akses ke jadwal ini");
   const admin = createAdminClient();
   const { data } = await admin
     .from("visit_photos")
@@ -217,6 +226,12 @@ export async function updateVisitPhoto(
   photoId: string,
   caption: string | null,
 ): Promise<{ id: string; caption: string | null }> {
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
+  // caption update needs schedule ownership check via photo
+  const adminCheck = createAdminClient();
+  const { data: ph } = await adminCheck.from("visit_photos").select("schedule_id").eq("id", photoId).maybeSingle();
+  if (ph?.schedule_id && !(await canAccessSchedule(ph.schedule_id as string, ctx))) throw new Error("Tidak memiliki akses ke jadwal ini");
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("visit_photos")
@@ -230,6 +245,11 @@ export async function updateVisitPhoto(
 }
 
 export async function deleteVisitPhoto(photoId: string) {
+  const ctx = await getAuthContext();
+  if (!ctx) throw new Error("Unauthorized");
+  const adminCheck = createAdminClient();
+  const { data: ph2 } = await adminCheck.from("visit_photos").select("schedule_id").eq("id", photoId).maybeSingle();
+  if (ph2?.schedule_id && !(await canAccessSchedule(ph2.schedule_id as string, ctx))) throw new Error("Tidak memiliki akses ke jadwal ini");
   const admin = createAdminClient();
   const { data: photo } = await admin
     .from("visit_photos")
