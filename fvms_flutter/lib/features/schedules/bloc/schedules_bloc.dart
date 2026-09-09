@@ -45,7 +45,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
               if (scope.isEmpty) {
                 query = query.eq('kabupaten_id', '__none__');
               } else {
-                query = query.inFilter('kabupaten_id', scope);
+                query = query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
               }
             }
           }
@@ -88,7 +88,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
               if (scope.isEmpty) {
                 query = query.eq('kabupaten_id', '__none__');
               } else {
-                query = query.inFilter('kabupaten_id', scope);
+                query = query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
               }
             }
           }

@@ -66,7 +66,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
               if (scope.isEmpty) {
                 todayQuery = todayQuery.eq('kabupaten_id', '__none__');
               } else {
-                todayQuery = todayQuery.inFilter('kabupaten_id', scope);
+                todayQuery = todayQuery.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
               }
             }
           }
@@ -92,7 +92,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
               if (scope.isEmpty) {
                 upQuery = upQuery.eq('kabupaten_id', '__none__');
               } else {
-                upQuery = upQuery.inFilter('kabupaten_id', scope);
+                upQuery = upQuery.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
               }
             }
           }
@@ -114,7 +114,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
               if (scope.isEmpty) {
                 allQuery = allQuery.eq('kabupaten_id', '__none__');
               } else {
-                allQuery = allQuery.inFilter('kabupaten_id', scope);
+                // allQuery masih PostgrestTransformBuilder (select tanpa filter) -> pakai filter, bukan inFilter
+                allQuery = allQuery.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
               }
             }
           }

@@ -72,8 +72,8 @@ Future<AuthContext?> getAuthContext() async {
       'qc' => UserRole.qc,
       _ => UserRole.produksi,
     };
-    final kabIds = (row['assigned_kabupaten_ids'] as List?)?.cast<String>() ?? [];
-    return AuthContext(userId: user.id, role: role, assignedKabupatenIds: kabIds);
+  final kabIds = (row['assigned_kabupaten_ids'] as List?)?.map((e) => e.toString()).toList() ?? [];
+  return AuthContext(userId: user.id, role: role, assignedKabupatenIds: kabIds);
   } catch (e) {
     final m = e.toString();
     if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) return null;
