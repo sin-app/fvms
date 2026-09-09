@@ -23,7 +23,10 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT COALESCE(assigned_kabupaten_ids, '{}') FROM users WHERE id = auth.uid();
+  SELECT COALESCE(
+    (SELECT array_agg(elem::uuid) FROM jsonb_array_elements_text(assigned_kabupaten_ids) AS elem),
+    '{}'::uuid[]
+  ) FROM users WHERE id = auth.uid();
 $$;
 
 GRANT EXECUTE ON FUNCTION public.current_user_role() TO authenticated;
