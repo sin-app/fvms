@@ -35,7 +35,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date');
+        dynamic query = supabase.from('schedules');
         if (ctx != null) {
           if (ctx.role == UserRole.produksi) {
             query = query.eq('user_id', ctx.userId);
@@ -50,7 +50,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
             }
           }
         }
-        final rows = await query.limit(100).timeout(const Duration(seconds: 10));
+        final rows = await query.select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date').limit(100).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleItem(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?, nis: m['nis'] as String?, cgr: m['cgr'] as String?);
@@ -75,7 +75,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date');
+        dynamic query = supabase.from('schedules');
         if (e.status != null && e.status!.isNotEmpty) {
           query = query.eq('status', e.status!);
         }
@@ -93,7 +93,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
             }
           }
         }
-        final rows = await query.limit(100).timeout(const Duration(seconds: 10));
+        final rows = await query.select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date').limit(100).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleItem(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?, nis: m['nis'] as String?, cgr: m['cgr'] as String?);

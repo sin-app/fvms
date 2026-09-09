@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ShimmerBox extends StatelessWidget {
@@ -38,15 +39,33 @@ class ErrorState extends StatelessWidget {
   Widget build(BuildContext context) => Center(
         child: Semantics(
           liveRegion: true,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center),
-            if (onRetry != null) ...[
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 8),
+              Text(message, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              FilledButton(onPressed: onRetry, child: const Text('Coba lagi')),
-            ],
-          ],),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onRetry != null)
+                    FilledButton(onPressed: onRetry, child: const Text('Coba lagi')),
+                  if (onRetry != null) const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: const Text('Salin Error'),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: 'FVMS Error: $message'));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Error disalin ke clipboard'), duration: Duration(seconds: 2)),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ]),
+          ),
         ),
       );
 }

@@ -24,7 +24,6 @@ class SyncRequested extends SyncEvent {}
 
 class SyncBloc extends Bloc<SyncEvent, SyncState> {
   SyncBloc({required this.db}) : super(const SyncState(status: SyncStatus.online)) {
-    // Guard: supabase mungkin belum init (APK tanpa dart-define/.env) — jangan crash di konstruktor.
     if (isSupabaseInitialized) {
       try {
         _engine = OfflineEngine(db: db, supabase: supabase);
@@ -40,12 +39,18 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   final AppDatabase db;
   OfflineEngine? _engine;
 
+  bool _isOnline(List<ConnectivityResult> results) => !results.contains(ConnectivityResult.none);
+
   Future<void> _onStarted(SyncStarted e, Emitter<SyncState> emit) async {
-    final conn = await Connectivity().checkConnectivity();
-    final online = !conn.contains(ConnectivityResult.none);
-    emit(SyncState(status: online ? SyncStatus.online : SyncStatus.offline, pending: state.pending));
-    if (online) add(SyncRequested());
-    Connectivity().onConnectivityChanged.listen((r) => add(SyncConnectivityChanged(!r.contains(ConnectivityResult.none))));
+    try {
+      final conn = await Connectivity().checkConnectivity();
+      final online = _isOnline(conn);
+      emit(SyncState(status: online ? SyncStatus.online : SyncStatus.offline, pending: state.pending));
+      if (online) add(SyncRequested());
+      Connectivity().onConnectivityChanged.listen((r) => add(SyncConnectivityChanged(_isOnline(r))));
+    } catch (_) {
+      emit(const SyncState(status: SyncStatus.online));
+    }
   }
 
   Future<void> _onConn(SyncConnectivityChanged e, Emitter<SyncState> emit) async {
@@ -57,7 +62,6 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     if (state.status == SyncStatus.offline) return;
     emit(SyncState(status: SyncStatus.syncing, pending: state.pending, lastSyncAt: state.lastSyncAt));
     try {
-      // Lazy-init engine jika belum siap (mis. supabase baru ready setelah main init)
       _engine ??= isSupabaseInitialized ? OfflineEngine(db: db, supabase: supabase) : null;
       if (_engine == null) throw Exception('Supabase belum siap — sync ditunda');
       await _engine!.pushOutbox();

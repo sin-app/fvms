@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
@@ -30,10 +31,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (c, s) {
-          if (s is AuthFailure) {
-            ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(s.message), backgroundColor: Colors.red));
-          } else if (s is AuthAuthenticated) {
-            // Fallback jika go_router redirect tidak jalan (mis. stuck di loading)
+          if (s is AuthAuthenticated) {
             if (ModalRoute.of(c)?.settings.name != '/') {
               // ignore: use_build_context_synchronously
               c.go('/');
@@ -42,6 +40,7 @@ class _LoginPageState extends State<LoginPage> {
         },
         builder: (c, s) {
           final loading = s is AuthLoading;
+          final failure = s is AuthFailure ? s : null;
           return SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -104,21 +103,41 @@ class _LoginPageState extends State<LoginPage> {
                             context.read<AuthBloc>().add(AuthLoginRequested(_email.text.trim(), _pass.text));
                           },
                         ),
-                        if (s is AuthFailure)
+                        if (failure != null)
                           Container(
                             margin: const EdgeInsets.only(top: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
-                            child: Row(children: [
-                              const Icon(Icons.error_outline, color: Colors.red, size: 18),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(s.message, style: TextStyle(color: Colors.red.shade800, fontSize: 13))),
-                            ],),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(children: [
+                                  const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(failure.message, style: TextStyle(color: Colors.red.shade800, fontSize: 13))),
+                                ]),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.copy, size: 14),
+                                    label: const Text('Salin Error', style: TextStyle(fontSize: 12)),
+                                    style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.red.shade300)),
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: 'FVMS Login Error: ${failure.message}'));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Error disalin'), duration: Duration(seconds: 2)),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        if (s is AuthFailure && s.message.contains('Link reset'))
+                        if (failure != null && failure.message.contains('Link reset'))
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
-                            child: Text(s.message, style: const TextStyle(color: BrandColors.brand), textAlign: TextAlign.center),
+                            child: Text(failure.message, style: const TextStyle(color: BrandColors.brand), textAlign: TextAlign.center),
                           ),
                       ],
                     ),

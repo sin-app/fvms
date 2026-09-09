@@ -52,10 +52,8 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       return;
     }
     try {
-      // RLS scope: include user_id/kabupaten_id for client-side guard (defense in depth)
-      final row = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, user_id, kabupaten_id, visit_photos(id, url, caption), visit_notes(observation, problem, recommend)').eq('id', scheduleId).maybeSingle().timeout(const Duration(seconds: 10));
+      final row = await supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, user_id, kabupaten_id').eq('id', scheduleId).maybeSingle().timeout(const Duration(seconds: 10));
       if (row == null) throw Exception('Jadwal tidak ditemukan');
-      // client-side RLS check (server RLS bypass via service_role not used here, but guard still useful)
       final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
       if (ctx != null) {
         final rowUserId = row['user_id'] as String?;
@@ -70,18 +68,22 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
           }
         }
       }
-      final rowMap = row;
-      final photosRaw = rowMap['visit_photos'] as List? ?? [];
-      final photos = photosRaw.map((p) {
+
+      // Fetch photos separately (avoid join crash)
+      final photosRaw = await supabase.from('visit_photos').select('id, url, caption').eq('schedule_id', scheduleId).timeout(const Duration(seconds: 8));
+      final photos = (photosRaw as List).map((p) {
         final m = p as Map<String, dynamic>;
         return VisitPhotoLite(id: m['id'] as String, url: (m['url'] as String?) ?? '', caption: m['caption'] as String?);
       }).toList();
-      final notesRaw = rowMap['visit_notes'] as List? ?? [];
-      final vn = notesRaw.isNotEmpty ? notesRaw.first as Map<String, dynamic> : null;
+
+      // Fetch notes separately (avoid join crash)
+      final notesRaw = await supabase.from('visit_notes').select('observation, problem, recommend').eq('schedule_id', scheduleId).maybeSingle().timeout(const Duration(seconds: 8));
+      final vn = notesRaw;
+
       emit(VisitLoaded(VisitDetail(
-        id: rowMap['id'] as String, visitDate: rowMap['visit_date'] as String, status: rowMap['status'] as String,
-        memberName: rowMap['member_name'] as String?, blockNo: rowMap['block_no'] as String?, nis: rowMap['nis'] as String?, cgr: rowMap['cgr'] as String?,
-        latitude: (rowMap['latitude'] as num?)?.toDouble(), longitude: (rowMap['longitude'] as num?)?.toDouble(),
+        id: row['id'] as String, visitDate: row['visit_date'] as String, status: row['status'] as String,
+        memberName: row['member_name'] as String?, blockNo: row['block_no'] as String?, nis: row['nis'] as String?, cgr: row['cgr'] as String?,
+        latitude: (row['latitude'] as num?)?.toDouble(), longitude: (row['longitude'] as num?)?.toDouble(),
         photos: photos,
         notesField: {'observation': vn?['observation'] as String?, 'problem': vn?['problem'] as String?, 'recommend': vn?['recommend'] as String?},
       ),),);

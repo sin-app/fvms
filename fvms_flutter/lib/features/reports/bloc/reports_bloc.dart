@@ -37,8 +37,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules').select('status, visit_date, users!inner(name), kabupaten_id, user_id');
-        // RLS scope: produksi own, qc kabupaten, admin all
+        dynamic query = supabase.from('schedules');
         if (ctx != null) {
           if (ctx.role == UserRole.produksi) {
             query = query.eq('user_id', ctx.userId);
@@ -53,7 +52,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
             }
           }
         }
-        final rows = await query.limit(200).timeout(const Duration(seconds: 10));
+        final rows = await query.select('status, visit_date, user_id').limit(200).timeout(const Duration(seconds: 10));
         var total = 0;
         var completed = 0;
         var pending = 0;
@@ -69,8 +68,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
           if ((r['visit_date'] as String).compareTo(today) < 0 && !['completed','gagal_total'].contains(r['status'] as String)) late++;
           final visitDate = r['visit_date'] as String;
           daily[visitDate] = (daily[visitDate] ?? 0) + 1;
-          final users = r['users'] as Map<String, dynamic>?;
-          final name = (users?['name'] as String?) ?? 'Unknown';
+          final name = (r['user_id'] as String?) ?? 'Unknown';
           final ex = off[name] ?? OfficerLite(name,0,0);
           off[name] = OfficerLite(name, ex.total+1, ex.completed + ((r['status'] as String)=='completed'?1:0));
         }
@@ -94,7 +92,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules').select('status, visit_date, member_name, users!inner(name), kabupaten_id, user_id');
+        dynamic query = supabase.from('schedules');
         if (e.member != null && e.member!.trim().isNotEmpty) {
           query = query.ilike('member_name', '%${e.member!.trim()}%');
         }
@@ -112,7 +110,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
             }
           }
         }
-        final rows = await query.limit(200).timeout(const Duration(seconds: 10));
+        final rows = await query.select('status, visit_date, member_name, user_id').limit(200).timeout(const Duration(seconds: 10));
         var total = 0;
         var completed = 0;
         var pending = 0;
@@ -128,8 +126,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
           if ((r['visit_date'] as String).compareTo(today) < 0 && !['completed', 'gagal_total'].contains(r['status'] as String)) late++;
           final visitDate = r['visit_date'] as String;
           daily[visitDate] = (daily[visitDate] ?? 0) + 1;
-          final users = r['users'] as Map<String, dynamic>?;
-          final name = (users?['name'] as String?) ?? 'Unknown';
+          final name = (r['user_id'] as String?) ?? 'Unknown';
           final ex = off[name] ?? OfficerLite(name, 0, 0);
           off[name] = OfficerLite(name, ex.total + 1, ex.completed + ((r['status'] as String) == 'completed' ? 1 : 0));
         }

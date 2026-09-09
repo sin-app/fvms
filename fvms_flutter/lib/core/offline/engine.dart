@@ -4,9 +4,6 @@ import 'package:drift/drift.dart';
 import 'package:fvms_flutter/core/offline/db.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Mirror src/lib/offline/engine.ts
-/// hydrateOffline scoped by role, pushOutbox with whitelist + guard final status.
-
 const finalStatuses = {'completed', 'gagal_total'};
 const scheduleWhitelist = {
   'status',
@@ -23,11 +20,9 @@ class OfflineEngine {
   final SupabaseClient supabase;
 
   Future<void> hydrateOffline() async {
-    // Simplified F0: pull schedules, regions. Full watermark logic in F2/F3.
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    // Example: pull schedules (role scope applied server-side via RLS)
     final rows = await supabase
         .from('schedules')
         .select()
@@ -66,10 +61,10 @@ class OfflineEngine {
             varietas: Value(m['document_no'] != null ? (m['document_no'] as String).split('/').length > 1 ? (m['document_no'] as String).split('/')[1] : null : null),
             latitude: Value((m['latitude'] as num?)?.toDouble()),
             longitude: Value((m['longitude'] as num?)?.toDouble()),
-            kabupatenName: Value(m['kabupaten'] != null ? (m['kabupaten'] as Map<String, dynamic>)['name'] as String? : null),
-            kecamatanName: Value(m['kecamatan'] != null ? (m['kecamatan'] as Map<String, dynamic>)['name'] as String? : null),
-            desaName: Value(m['desa'] != null ? (m['desa'] as Map<String, dynamic>)['name'] as String? : null),
-            userName: Value(m['users'] != null ? (m['users'] as Map<String, dynamic>)['name'] as String? : null),
+            kabupatenName: Value(m['kabupaten'] is Map ? (m['kabupaten'] as Map<String, dynamic>)['name'] as String? : m['kabupaten_name'] as String?),
+            kecamatanName: Value(m['kecamatan'] is Map ? (m['kecamatan'] as Map<String, dynamic>)['name'] as String? : m['kecamatan_name'] as String?),
+            desaName: Value(m['desa'] is Map ? (m['desa'] as Map<String, dynamic>)['name'] as String? : m['desa_name'] as String?),
+            userName: Value(m['users'] is Map ? (m['users'] as Map<String, dynamic>)['name'] as String? : m['user_name'] as String?),
             updatedAt: Value(m['updated_at'] as String? ?? DateTime.now().toIso8601String()),
           ),
           mode: InsertMode.insertOrReplace,
@@ -102,17 +97,14 @@ class OfflineEngine {
   Future<void> _applyOutboxEntry(OutboxData e) async {
     final payload = jsonDecode(e.payload) as Map<String, dynamic>;
     if (e.tblName == 'schedules') {
-      // Guard final status offline-only = reject
       if (finalStatuses.contains(payload['status'])) {
         throw Exception('Status final hanya bisa online');
       }
-      // whitelist
       final filtered = {for (final k in scheduleWhitelist) if (payload.containsKey(k)) k: payload[k]};
       await supabase.from('schedules').update(filtered).eq('id', e.entityId);
     } else if (e.tblName == 'visit_notes') {
       await supabase.from('visit_notes').upsert({...payload, 'schedule_id': e.entityId});
     } else if (e.tblName == 'visit_photos') {
-      // Simplified: payload contains url etc; blob upload handled before queue in real F3
       if (e.action == 'delete') {
         await supabase.from('visit_photos').delete().eq('id', e.entityId);
       } else {
@@ -126,7 +118,6 @@ class OfflineEngine {
       throw Exception('Status final tidak bisa diubah saat luring');
     }
     final filtered = {for (final k in scheduleWhitelist) if (patch.containsKey(k)) k: patch[k]};
-    // patch local
     await (db.update(db.schedules)..where((t) => t.id.equals(scheduleId))).write(
       SchedulesCompanion(
         status: filtered.containsKey('status') ? Value(filtered['status'] as String) : const Value.absent(),

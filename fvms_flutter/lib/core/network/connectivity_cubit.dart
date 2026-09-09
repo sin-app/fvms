@@ -18,12 +18,18 @@ class ConnectivityCubit extends Cubit<ConnectivityState> {
   final Connectivity _conn = Connectivity();
   StreamSubscription? _sub;
 
+  bool _isOnline(List<ConnectivityResult> results) => !results.contains(ConnectivityResult.none);
+
   Future<void> _init() async {
-    final res = await _conn.checkConnectivity();
-    emit(ConnectivityState(!res.contains(ConnectivityResult.none)));
-    _sub = _conn.onConnectivityChanged.listen((r) {
-      emit(ConnectivityState(!r.contains(ConnectivityResult.none)));
-    });
+    try {
+      final res = await _conn.checkConnectivity();
+      emit(ConnectivityState(_isOnline(res)));
+      _sub = _conn.onConnectivityChanged.listen((r) {
+        emit(ConnectivityState(_isOnline(r)));
+      });
+    } catch (_) {
+      emit(const ConnectivityState(true));
+    }
   }
 
   @override

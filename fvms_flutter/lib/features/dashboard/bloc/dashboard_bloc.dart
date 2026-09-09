@@ -51,12 +51,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
         final name = supabase.auth.currentUser?.email ?? ctx?.userId.substring(0, 8) ?? 'User';
         final today = todayString();
-        // fetch today schedules dengan timeout + RLS scope (qc: filter kabupaten, produksi: own)
-        // Untuk audit maksimal, semua query pakai timeout 10s agar tidak stuck loading
-        dynamic todayQuery = supabase
-            .from('schedules')
-            .select('id, visit_date, status, member_name, block_no')
-            .eq('visit_date', today);
+
+        // today schedules
+        dynamic todayQuery = supabase.from('schedules');
         if (ctx != null) {
           if (ctx.role == UserRole.produksi) {
             todayQuery = todayQuery.eq('user_id', ctx.userId);
@@ -71,18 +68,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
             }
           }
         }
-        final rows = await todayQuery.limit(10).timeout(const Duration(seconds: 10));
+        todayQuery = todayQuery.eq('visit_date', today);
+        final rows = await todayQuery.select('id, visit_date, status, member_name, block_no').limit(10).timeout(const Duration(seconds: 10));
         final todayList = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
         }).toList();
 
         // upcoming
-        dynamic upQuery = supabase
-            .from('schedules')
-            .select('id, visit_date, status, member_name')
-            .gt('visit_date', today)
-            .order('visit_date');
+        dynamic upQuery = supabase.from('schedules');
         if (ctx != null) {
           if (ctx.role == UserRole.produksi) {
             upQuery = upQuery.eq('user_id', ctx.userId);
@@ -97,14 +91,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
             }
           }
         }
-        final up = await upQuery.limit(5).timeout(const Duration(seconds: 10));
+        upQuery = upQuery.gt('visit_date', today).order('visit_date');
+        final up = await upQuery.select('id, visit_date, status, member_name').limit(5).timeout(const Duration(seconds: 10));
         final upList = (up as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?);
         }).toList();
 
-        // stats: jangan scan full table tanpa limit — pakai limit 200 + timeout
-        dynamic allQuery = supabase.from('schedules').select('status, visit_date');
+        // stats
+        dynamic allQuery = supabase.from('schedules');
         if (ctx != null) {
           if (ctx.role == UserRole.produksi) {
             allQuery = allQuery.eq('user_id', ctx.userId);
@@ -114,13 +109,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
               if (scope.isEmpty) {
                 allQuery = allQuery.eq('kabupaten_id', '__none__');
               } else {
-                // allQuery masih PostgrestTransformBuilder (select tanpa filter) -> pakai filter, bukan inFilter
                 allQuery = allQuery.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
               }
             }
           }
         }
-        final all = await allQuery.limit(200).timeout(const Duration(seconds: 10));
+        final all = await allQuery.select('status, visit_date').limit(200).timeout(const Duration(seconds: 10));
         var late = 0;
         var completed = 0;
         var pending = 0;

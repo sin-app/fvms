@@ -27,7 +27,7 @@ class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('land_proposals').select('id, status, member_name, block_no, kabupaten_id, proposed_by').order('created_at', ascending: false);
+        dynamic query = supabase.from('land_proposals');
         if (ctx != null) {
           if (ctx.role == UserRole.produksi) {
             query = query.eq('proposed_by', ctx.userId);
@@ -42,7 +42,7 @@ class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
             }
           }
         }
-        final rows = await query.limit(50).timeout(const Duration(seconds: 10));
+        final rows = await query.select('id, status, member_name, block_no').order('created_at', ascending: false).limit(50).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return LandProposalLite(id: m['id'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
