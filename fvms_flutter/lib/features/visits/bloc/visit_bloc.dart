@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/core/constants/app_constants.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:path/path.dart' as p;
 
 class VisitPhotoLite { VisitPhotoLite({required this.id, required this.url, this.caption}); final String id;
 final String url; final String? caption; }
@@ -29,6 +32,7 @@ class VisitGpsCaptured extends VisitEvent { VisitGpsCaptured(this.lat, this.lng,
 final double lng;
 final double acc; @override List<Object?> get props => [lat,lng,acc]; }
 class VisitStatusChanged extends VisitEvent { VisitStatusChanged(this.status); final String status; @override List<Object?> get props => [status]; }
+class VisitPhotoUploaded extends VisitEvent { VisitPhotoUploaded(this.filePath); final String filePath; @override List<Object?> get props => [filePath]; }
 
 abstract class VisitState extends Equatable { @override List<Object?> get props => []; }
 class VisitInitial extends VisitState {}
@@ -42,6 +46,7 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
     on<VisitNotesSaved>(_saveNotes);
     on<VisitGpsCaptured>(_gps);
     on<VisitStatusChanged>(_status);
+    on<VisitPhotoUploaded>(_uploadPhoto);
   }
   final String scheduleId;
 
@@ -153,6 +158,59 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
         emit(VisitError('Supabase belum siap (LateInit): restart app'));
       } else {
         emit(VisitError(m.replaceFirst('Exception: ', '')));
+      }
+    }
+  }
+
+  Future<void> _uploadPhoto(VisitPhotoUploaded e, Emitter<VisitState> emit) async {
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(VisitError('Supabase belum siap'));
+      return;
+    }
+    try {
+      final file = File(e.filePath);
+      if (!file.existsSync()) {
+        emit(VisitError('File foto tidak ditemukan'));
+        return;
+      }
+      final bytes = await file.length();
+      if (bytes > AppConstants.maxPhotoSizeMb * 1024 * 1024) {
+        emit(VisitError('Ukuran foto maks ${AppConstants.maxPhotoSizeMb}MB'));
+        return;
+      }
+      final ext = p.extension(e.filePath).replaceFirst('.', '').toLowerCase();
+      if (!['jpg', 'jpeg', 'png', 'webp'].contains(ext)) {
+        emit(VisitError('Format foto harus JPG/PNG/WebP'));
+        return;
+      }
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        emit(VisitError('User tidak terautentikasi'));
+        return;
+      }
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final storagePath = '$userId/visits/$scheduleId/$fileName';
+      await supabase.storage.from(AppConstants.storageBucketVisitPhotos).upload(
+        storagePath,
+        file,
+      );
+      final signedUrl = await supabase.storage.from(AppConstants.storageBucketVisitPhotos).createSignedUrl(storagePath, 3600);
+      await supabase.from('visit_photos').upsert({
+        'schedule_id': scheduleId,
+        'url': signedUrl,
+        'caption': null,
+        'file_size': bytes,
+        'mime_type': 'image/$ext',
+      }).timeout(const Duration(seconds: 10));
+      add(VisitLoad());
+    } on TimeoutException {
+      emit(VisitError('Timeout upload foto: cek koneksi (10s)'));
+    } catch (err) {
+      final m = err.toString();
+      if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
+        emit(VisitError('Supabase belum siap (LateInit): restart app'));
+      } else {
+        emit(VisitError('Gagal upload foto: ${m.replaceFirst('Exception: ', '')}'));
       }
     }
   }

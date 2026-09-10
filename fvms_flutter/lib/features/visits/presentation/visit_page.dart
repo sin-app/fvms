@@ -5,6 +5,7 @@ import 'package:fvms_flutter/core/constants/status.dart';
 import 'package:fvms_flutter/features/visits/bloc/visit_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 class VisitPage extends StatelessWidget {
@@ -33,7 +34,7 @@ class VisitPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   _GpsCard(visitBloc: c.read<VisitBloc>(), lat: d.latitude, lng: d.longitude),
                   const SizedBox(height: 12),
-                  _PhotosCard(photos: d.photos),
+                  _PhotosCard(visitBloc: c.read<VisitBloc>(), photos: d.photos),
                 ],
               );
             }
@@ -261,6 +262,32 @@ class _GpsCard extends StatelessWidget {
                 label: const Text('Ambil Lokasi Sekarang'),
                 onPressed: () async {
                   try {
+                    var permission = await Geolocator.checkPermission();
+                    if (permission == LocationPermission.denied) {
+                      permission = await Geolocator.requestPermission();
+                      if (permission == LocationPermission.denied) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Izin lokasi ditolak')));
+                        }
+                        return;
+                      }
+                    }
+                    if (permission == LocationPermission.deniedForever) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Izin lokasi permanently ditolak. Buka Pengaturan aplikasi.'),
+                          action: SnackBarAction(label: 'Buka', onPressed: Geolocator.openAppSettings),
+                        ));
+                      }
+                      return;
+                    }
+                    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                    if (!serviceEnabled) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Layanan lokasi mati. Aktifkan GPS.')));
+                      }
+                      return;
+                    }
                     final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
                     visitBloc.add(VisitGpsCaptured(pos.latitude, pos.longitude, pos.accuracy));
                   } catch (e) {
@@ -279,7 +306,8 @@ class _GpsCard extends StatelessWidget {
 }
 
 class _PhotosCard extends StatelessWidget {
-  const _PhotosCard({required this.photos});
+  const _PhotosCard({required this.visitBloc, required this.photos});
+  final VisitBloc visitBloc;
   final List<VisitPhotoLite> photos;
   @override
   Widget build(BuildContext context) {
@@ -326,14 +354,36 @@ class _PhotosCard extends StatelessWidget {
                 )).toList(),
               ),
             const SizedBox(height: 10),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.camera_alt, size: 18),
-              label: const Text('Ambil Foto'),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Fitur foto segera hadir'),
-                ));
-              },
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.camera_alt, size: 18),
+                    label: const Text('Kamera'),
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      final photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+                      if (photo != null && context.mounted) {
+                        visitBloc.add(VisitPhotoUploaded(photo.path));
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.photo_library, size: 18),
+                    label: const Text('Galeri'),
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      final photo = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                      if (photo != null && context.mounted) {
+                        visitBloc.add(VisitPhotoUploaded(photo.path));
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),

@@ -1,12 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:go_router/go_router.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  List<String> _kabupatenNames = [];
+  bool _loadingKab = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolveKabupatenNames();
+  }
+
+  Future<void> _resolveKabupatenNames() async {
+    final state = context.read<AuthBloc>().state;
+    final user = (state is AuthAuthenticated) ? state.ctx : null;
+    if (user == null || user.assignedKabupatenIds.isEmpty) return;
+    if (!isSupabaseInitialized) return;
+    if (_loadingKab) return;
+    setState(() => _loadingKab = true);
+    try {
+      final rows = await supabase
+          .from('kabupaten')
+          .select('id, name')
+          .inFilter('id', user.assignedKabupatenIds)
+          .timeout(const Duration(seconds: 8));
+      if (mounted) {
+        setState(() {
+          _kabupatenNames = (rows as List).map((r) => (r as Map<String, dynamic>)['name'] as String).toList();
+          _loadingKab = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingKab = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
@@ -47,6 +86,10 @@ class ProfilePage extends StatelessWidget {
 
         final displayName = user.name.isNotEmpty ? user.name : user.email;
         final initials = displayName.length >= 2 ? displayName.substring(0, 2).toUpperCase() : displayName.toUpperCase();
+
+        final displayKab = _kabupatenNames.isNotEmpty
+            ? _kabupatenNames
+            : user.assignedKabupatenIds;
 
         return Scaffold(
           appBar: AppBar(title: const Text('Profil')),
@@ -90,14 +133,16 @@ class ProfilePage extends StatelessWidget {
                 const Center(child: Text('Kabupaten Tugas', style: TextStyle(fontSize: 12, color: Colors.grey))),
                 const SizedBox(height: 6),
                 Center(
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: user.assignedKabupatenIds.map((e) => Chip(
-                      label: Text(e, style: const TextStyle(fontSize: 12)),
-                      visualDensity: VisualDensity.compact,
-                    )).toList(),
-                  ),
+                  child: _loadingKab
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: displayKab.map((e) => Chip(
+                            label: Text(e, style: const TextStyle(fontSize: 12)),
+                            visualDensity: VisualDensity.compact,
+                          )).toList(),
+                        ),
                 ),
               ],
               const Divider(height: 32),

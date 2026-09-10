@@ -67,7 +67,7 @@ class ScheduleItem {
 const _selectFields = 'id, visit_date, status, member_name, block_no, no_plot, nis, cgr, document_no, '
     'tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, label, detaseling, '
     'tgl_panen, real_panen, rencana_panen, '
-    'kabupaten_id, kecamatan_id, desa_id, user_id';
+    'kabupaten:kabupaten_id(name), kecamatan:kecamatan_id(name), desa:desa_id(name), users:user_id(name)';
 
 class SchedulesFilter {
   const SchedulesFilter({

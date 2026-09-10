@@ -12,84 +12,86 @@ class SchedulesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => SchedulesBloc()..add(SchedulesLoad()),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Jadwal'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.filter_list),
-              onPressed: () => showFilterSheet(context),
-              tooltip: 'Filter',
-            ),
-          ],
-        ),
-        body: BlocBuilder<SchedulesBloc, SchedulesState>(
-          builder: (c, s) {
-            if (s is SchedulesInitial || s is SchedulesLoading) return const LoadingState();
-            if (s is SchedulesError) return ErrorState(message: s.message, onRetry: () => c.read<SchedulesBloc>().add(SchedulesLoad()));
-            if (s is SchedulesLoaded) {
-              if (s.items.isEmpty) return const EmptyState(message: 'Belum ada jadwal');
-              final grouped = <String, List<ScheduleItem>>{};
-              for (final it in s.items) {
-                grouped.putIfAbsent(it.visitDate, () => []).add(it);
-              }
-              return RefreshIndicator(
-                onRefresh: () async => c.read<SchedulesBloc>().add(SchedulesLoad()),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                  children: [
-                    BlocBuilder<SyncBloc, SyncState>(
-                      builder: (_, sync) {
-                        if (sync.status != SyncStatus.offline) return const SizedBox.shrink();
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.cloud_off, color: Colors.orange, size: 20),
-                              SizedBox(width: 10),
-                              Expanded(child: Text('Mode luring: data dari cache lokal', style: TextStyle(color: Colors.orange, fontSize: 13))),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    if (s.filter != null && !s.filter!.isEmpty)
-                      _ActiveFilters(filter: s.filter!),
-                    ...grouped.entries.map((e) {
-                      final dateLabel = _formatDate(e.key);
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
+      child: Builder(
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Jadwal'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () => showFilterSheet(ctx),
+                tooltip: 'Filter',
+              ),
+            ],
+          ),
+          body: BlocBuilder<SchedulesBloc, SchedulesState>(
+            builder: (c, s) {
+              if (s is SchedulesInitial || s is SchedulesLoading) return const LoadingState();
+              if (s is SchedulesError) return ErrorState(message: s.message, onRetry: () => c.read<SchedulesBloc>().add(SchedulesLoad()));
+              if (s is SchedulesLoaded) {
+                if (s.items.isEmpty) return const EmptyState(message: 'Belum ada jadwal');
+                final grouped = <String, List<ScheduleItem>>{};
+                for (final it in s.items) {
+                  grouped.putIfAbsent(it.visitDate, () => []).add(it);
+                }
+                return RefreshIndicator(
+                  onRefresh: () async => c.read<SchedulesBloc>().add(SchedulesLoad()),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                    children: [
+                      BlocBuilder<SyncBloc, SyncState>(
+                        builder: (_, sync) {
+                          if (sync.status != SyncStatus.offline) return const SizedBox.shrink();
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(
                               children: [
-                                Text(dateLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                                  child: Text('${e.value.length}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                ),
+                                Icon(Icons.cloud_off, color: Colors.orange, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(child: Text('Mode luring: data dari cache lokal', style: TextStyle(color: Colors.orange, fontSize: 13))),
                               ],
                             ),
-                          ),
-                          ...e.value.map((it) => _ScheduleCard(item: it)),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-              );
-            }
-            return const LoadingState();
-          },
+                          );
+                        },
+                      ),
+                      if (s.filter != null && !s.filter!.isEmpty)
+                        _ActiveFilters(filter: s.filter!),
+                      ...grouped.entries.map((e) {
+                        final dateLabel = _formatDate(e.key);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Text(dateLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                    child: Text('${e.value.length}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ...e.value.map((it) => _ScheduleCard(item: it)),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                );
+              }
+              return const LoadingState();
+            },
+          ),
         ),
       ),
     );
