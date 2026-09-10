@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/core/supabase/scope.dart';
 
 class ReportDataLite {
   ReportDataLite({
@@ -104,10 +105,15 @@ class ReportRow {
 const _selectFields = 'id, visit_date, status, member_name, block_no, no_plot, nis, cgr, document_no, '
     'tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, label, '
     'tgl_panen, real_panen, rencana_panen, '
-    'kabupaten_id, kecamatan_id, desa_id, user_id';
+    'kabupaten:kabupaten_id(name), kecamatan:kecamatan_id(name), desa:desa_id(name), users:user_id(name)';
 
-abstract class ReportsEvent extends Equatable { @override List<Object?> get props => []; }
+abstract class ReportsEvent extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
+
 class ReportsLoad extends ReportsEvent {}
+
 class ReportsFilterChanged extends ReportsEvent {
   ReportsFilterChanged({this.member, this.status, this.label, this.dateFrom, this.dateTo});
   final String? member;
@@ -119,9 +125,15 @@ class ReportsFilterChanged extends ReportsEvent {
   List<Object?> get props => [member, status, label, dateFrom, dateTo];
 }
 
-abstract class ReportsState extends Equatable { @override List<Object?> get props => []; }
+abstract class ReportsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
+
 class ReportsInitial extends ReportsState {}
+
 class ReportsLoading extends ReportsState {}
+
 class ReportsLoaded extends ReportsState {
   ReportsLoaded(this.data, {this.rows});
   final ReportDataLite data;
@@ -129,6 +141,7 @@ class ReportsLoaded extends ReportsState {
   @override
   List<Object?> get props => [data, rows];
 }
+
 class ReportsError extends ReportsState {
   ReportsError(this.message);
   final String message;
@@ -154,25 +167,22 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     }
     try {
       final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-      dynamic query = _applyScope(supabase.from('schedules').select(_selectFields), ctx);
+      if (isClosed) return;
+      dynamic query = applyScope(supabase.from('schedules').select(_selectFields), ctx);
       if (filter.member != null && filter.member!.isNotEmpty) query = query.ilike('member_name', '%${filter.member}%');
       if (filter.status != null && filter.status!.isNotEmpty) query = query.eq('status', filter.status!);
       if (filter.label != null && filter.label!.isNotEmpty) query = query.eq('label', filter.label!);
       if (filter.dateFrom != null && filter.dateFrom!.isNotEmpty) query = query.gte('visit_date', filter.dateFrom!);
       if (filter.dateTo != null && filter.dateTo!.isNotEmpty) query = query.lte('visit_date', filter.dateTo!);
       final rows = await query.order('visit_date').limit(500).timeout(const Duration(seconds: 15));
+      if (isClosed) return;
       final parsedRows = _parseRows(rows as List);
       final data = _computeStats(parsedRows);
       emit(ReportsLoaded(data, rows: parsedRows));
     } on TimeoutException {
-      emit(ReportsError('Timeout laporan: cek koneksi'));
+      if (!isClosed) emit(ReportsError('Timeout laporan: cek koneksi'));
     } catch (err) {
-      final m = err.toString();
-      if (m.contains('LateInitializationError') || m.contains('has not been initialized')) {
-        emit(ReportsError('Supabase belum siap: restart app'));
-      } else {
-        emit(ReportsError(m.replaceFirst('Exception: ', '')));
-      }
+      if (!isClosed) emit(ReportsError(sanitizeError(err)));
     }
   }
 
@@ -192,11 +202,16 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     for (final r in rows) {
       total++;
       switch (r.status) {
-        case 'completed': completed++;
-        case 'pending': pending++;
-        case 'in_progress': inProgress++;
-        case 'gagal_partial': gagalPartial++;
-        case 'gagal_total': gagalTotal++;
+        case 'completed':
+          completed++;
+        case 'pending':
+          pending++;
+        case 'in_progress':
+          inProgress++;
+        case 'gagal_partial':
+          gagalPartial++;
+        case 'gagal_total':
+          gagalTotal++;
       }
       if (r.visitDate.compareTo(today) < 0 && !['completed', 'gagal_total'].contains(r.status)) late++;
       daily[r.visitDate] = (daily[r.visitDate] ?? 0) + 1;
@@ -251,27 +266,14 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         gagalTanam: (m['gagal_tanam'] as num?)?.toDouble(),
         sisaDiLahanHa: (m['sisa_di_lahan_ha'] as num?)?.toDouble(),
         label: m['label'] as String?,
-        kabupatenName: kab != null ? (kab as Map<String, dynamic>)['name'] as String? : null,
-        kecamatanName: kec != null ? (kec as Map<String, dynamic>)['name'] as String? : null,
-        desaName: des != null ? (des as Map<String, dynamic>)['name'] as String? : null,
-        petugasName: usr != null ? (usr as Map<String, dynamic>)['name'] as String? : null,
+        kabupatenName: kab is Map<String, dynamic> ? kab['name'] as String? : null,
+        kecamatanName: kec is Map<String, dynamic> ? kec['name'] as String? : null,
+        desaName: des is Map<String, dynamic> ? des['name'] as String? : null,
+        petugasName: usr is Map<String, dynamic> ? usr['name'] as String? : null,
         tglPanen: m['tgl_panen'] as String?,
         realPanen: m['real_panen'] as String?,
         rencanaPanen: m['rencana_panen'] as String?,
       );
     }).toList();
-  }
-
-  static dynamic _applyScope(dynamic query, AuthContext? ctx) {
-    if (ctx == null) return query;
-    if (ctx.role == UserRole.produksi) return query.eq('user_id', ctx.userId);
-    if (ctx.role == UserRole.qc) {
-      final scope = qcKabupatenScope(ctx);
-      if (scope != null) {
-        if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
-        return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-      }
-    }
-    return query;
   }
 }

@@ -66,12 +66,13 @@ class _FilterSheetState extends State<FilterSheet> {
     setState(() => _loadingRegions = true);
     try {
       final data = await supabase.from('kabupaten').select('id, name').order('name').timeout(const Duration(seconds: 8));
+      if (!mounted) return;
       setState(() {
         _kabupatens = (data as List).cast<Map<String, dynamic>>();
         _loadingRegions = false;
       });
     } catch (_) {
-      setState(() => _loadingRegions = false);
+      if (mounted) setState(() => _loadingRegions = false);
     }
   }
 
@@ -79,7 +80,7 @@ class _FilterSheetState extends State<FilterSheet> {
     if (!isSupabaseInitialized) return;
     try {
       final data = await supabase.from('kecamatan').select('id, name').eq('kabupaten_id', kabId).order('name').timeout(const Duration(seconds: 8));
-      setState(() => _kecamatans = (data as List).cast<Map<String, dynamic>>());
+      if (mounted) setState(() => _kecamatans = (data as List).cast<Map<String, dynamic>>());
     } catch (_) {}
   }
 
@@ -87,7 +88,7 @@ class _FilterSheetState extends State<FilterSheet> {
     if (!isSupabaseInitialized) return;
     try {
       final data = await supabase.from('desa').select('id, name').eq('kecamatan_id', kecId).order('name').timeout(const Duration(seconds: 8));
-      setState(() => _desas = (data as List).cast<Map<String, dynamic>>());
+      if (mounted) setState(() => _desas = (data as List).cast<Map<String, dynamic>>());
     } catch (_) {}
   }
 
@@ -291,7 +292,7 @@ class _FilterSheetState extends State<FilterSheet> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: DropdownButtonFormField<String>(
-        value: value,
+        value: value ?? '',
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, size: 20),

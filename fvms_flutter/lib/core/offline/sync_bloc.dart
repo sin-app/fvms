@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,12 +16,24 @@ class SyncState extends Equatable {
   final String? lastSyncAt;
   final String? lastError;
   bool get online => status != SyncStatus.offline;
-  @override List<Object?> get props => [status, pending, lastSyncAt, lastError];
+  @override
+  List<Object?> get props => [status, pending, lastSyncAt, lastError];
 }
 
-abstract class SyncEvent extends Equatable { @override List<Object?> get props => []; }
+abstract class SyncEvent extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
+
 class SyncStarted extends SyncEvent {}
-class SyncConnectivityChanged extends SyncEvent { SyncConnectivityChanged(this.online); final bool online; @override List<Object?> get props => [online]; }
+
+class SyncConnectivityChanged extends SyncEvent {
+  SyncConnectivityChanged(this.online);
+  final bool online;
+  @override
+  List<Object?> get props => [online];
+}
+
 class SyncRequested extends SyncEvent {}
 
 class SyncBloc extends Bloc<SyncEvent, SyncState> {
@@ -36,20 +50,26 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     on<SyncRequested>(_onSync);
     add(SyncStarted());
   }
+
   final AppDatabase db;
   OfflineEngine? _engine;
+  StreamSubscription<List<ConnectivityResult>>? _connSub;
 
   bool _isOnline(List<ConnectivityResult> results) => !results.contains(ConnectivityResult.none);
 
   Future<void> _onStarted(SyncStarted e, Emitter<SyncState> emit) async {
     try {
       final conn = await Connectivity().checkConnectivity();
+      if (isClosed) return;
       final online = _isOnline(conn);
       emit(SyncState(status: online ? SyncStatus.online : SyncStatus.offline, pending: state.pending));
       if (online) add(SyncRequested());
-      Connectivity().onConnectivityChanged.listen((r) => add(SyncConnectivityChanged(_isOnline(r))));
+      if (_connSub != null) await _connSub!.cancel();
+      _connSub = Connectivity().onConnectivityChanged.listen((r) {
+        if (!isClosed) add(SyncConnectivityChanged(_isOnline(r)));
+      });
     } catch (_) {
-      emit(const SyncState(status: SyncStatus.online));
+      if (!isClosed) emit(const SyncState(status: SyncStatus.online));
     }
   }
 
@@ -66,10 +86,17 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       if (_engine == null) throw Exception('Supabase belum siap — sync ditunda');
       await _engine!.pushOutbox();
       await _engine!.hydrateOffline();
+      if (isClosed) return;
       final pending = await db.select(db.outbox).get().then((v) => v.length);
       emit(SyncState(status: SyncStatus.online, pending: pending, lastSyncAt: DateTime.now().toIso8601String()));
     } catch (err) {
-      emit(SyncState(status: SyncStatus.online, pending: state.pending, lastError: err.toString()));
+      if (!isClosed) emit(SyncState(status: SyncStatus.online, pending: state.pending, lastError: err.toString()));
     }
+  }
+
+  @override
+  Future<void> close() {
+    _connSub?.cancel();
+    return super.close();
   }
 }

@@ -30,6 +30,7 @@ GoRouter buildRouter(AuthBloc authBloc) {
     routes: [
       GoRoute(path: '/login', builder: (c, s) => const LoginPage()),
       GoRoute(path: '/reset-password', builder: (c, s) => const ResetPage()),
+      GoRoute(path: '/visit/:id', builder: (c, s) => VisitPage(id: s.pathParameters['id']!)),
       ShellRoute(
         builder: (c, s, child) => AppShell(child: child),
         routes: [
@@ -38,7 +39,6 @@ GoRouter buildRouter(AuthBloc authBloc) {
           GoRoute(path: '/kalender', builder: (c, s) => const CalendarPage()),
           GoRoute(path: '/laporan', builder: (c, s) => const ReportsPage()),
           GoRoute(path: '/profil', builder: (c, s) => const ProfilePage()),
-          GoRoute(path: '/visit/:id', builder: (c, s) => VisitPage(id: s.pathParameters['id']!)),
           GoRoute(path: '/pengajuan-lahan', builder: (c, s) => const LandProposalsPage()),
           GoRoute(path: '/notifikasi', builder: (c, s) => const NotificationsPage()),
         ],

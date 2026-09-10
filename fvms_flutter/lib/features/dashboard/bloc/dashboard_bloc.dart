@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/constants/status.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/core/supabase/scope.dart';
 import 'package:fvms_flutter/core/utils/date.dart';
 
 class DashboardStats {
@@ -30,14 +31,35 @@ class DashboardData {
   final List<ScheduleLite> upcoming;
 }
 
-abstract class DashboardEvent extends Equatable { @override List<Object?> get props => []; }
+abstract class DashboardEvent extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
+
 class DashboardLoad extends DashboardEvent {}
 
-abstract class DashboardState extends Equatable { @override List<Object?> get props => []; }
+abstract class DashboardState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
+
 class DashboardInitial extends DashboardState {}
+
 class DashboardLoading extends DashboardState {}
-class DashboardLoaded extends DashboardState { DashboardLoaded(this.data); final DashboardData data; @override List<Object?> get props => [data]; }
-class DashboardError extends DashboardState { DashboardError(this.message); final String message; @override List<Object?> get props => [message]; }
+
+class DashboardLoaded extends DashboardState {
+  DashboardLoaded(this.data);
+  final DashboardData data;
+  @override
+  List<Object?> get props => [data];
+}
+
+class DashboardError extends DashboardState {
+  DashboardError(this.message);
+  final String message;
+  @override
+  List<Object?> get props => [message];
+}
 
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   DashboardBloc() : super(DashboardInitial()) {
@@ -49,41 +71,54 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
+        if (isClosed) return;
         final name = (ctx?.name.isNotEmpty ?? false) ? ctx!.name : (supabase.auth.currentUser?.email ?? 'User');
         final today = todayString();
 
-        // today schedules - select() dulu baru filter/eq
-        final todayQuery = _applyScope(
+        final todayQuery = applyScope(
           supabase.from('schedules').select('id, visit_date, status, member_name, block_no'),
           ctx,
-        ).eq('visit_date', today);
-        final rows = await todayQuery.limit(10).timeout(const Duration(seconds: 10));
-        final todayList = (rows as List).map((r) {
-          final m = r as Map<String, dynamic>;
-          return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
-        }).toList();
-
-        // upcoming
-        final upQuery = _applyScope(
+        );
+        final upcomingQuery = applyScope(
           supabase.from('schedules').select('id, visit_date, status, member_name'),
           ctx,
-        ).gt('visit_date', today).order('visit_date');
-        final up = await upQuery.limit(5).timeout(const Duration(seconds: 10));
-        final upList = (up as List).map((r) {
-          final m = r as Map<String, dynamic>;
-          return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?);
-        }).toList();
-
-        // stats
-        final allQuery = _applyScope(
+        );
+        final allQuery = applyScope(
           supabase.from('schedules').select('status, visit_date'),
           ctx,
         );
-        final all = await allQuery.limit(200).timeout(const Duration(seconds: 10));
+        final todaySchedules = await (todayQuery as dynamic).eq('visit_date', today).limit(10).timeout(const Duration(seconds: 10)) as List;
+        if (isClosed) return;
+        final upcomingSchedules = await (upcomingQuery as dynamic).gt('visit_date', today).order('visit_date').limit(5).timeout(const Duration(seconds: 10)) as List;
+        if (isClosed) return;
+        final allSchedules = await (allQuery as dynamic).limit(200).timeout(const Duration(seconds: 10)) as List;
+        if (isClosed) return;
+
+        final todayList = todaySchedules.map((r) {
+          final m = r as Map<String, dynamic>;
+          return ScheduleLite(
+            id: m['id'] as String,
+            visitDate: m['visit_date'] as String,
+            status: m['status'] as String,
+            memberName: m['member_name'] as String?,
+            blockNo: m['block_no'] as String?,
+          );
+        }).toList();
+
+        final upList = upcomingSchedules.map((r) {
+          final m = r as Map<String, dynamic>;
+          return ScheduleLite(
+            id: m['id'] as String,
+            visitDate: m['visit_date'] as String,
+            status: m['status'] as String,
+            memberName: m['member_name'] as String?,
+          );
+        }).toList();
+
         var late = 0;
         var completed = 0;
         var pending = 0;
-        for (final rm in (all as List)) {
+        for (final rm in allSchedules) {
           final r = rm as Map<String, dynamic>;
           if (r['status'] as String == VisitStatus.completed.value) completed++;
           if (r['status'] as String == VisitStatus.pending.value) pending++;
@@ -95,31 +130,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           stats: DashboardStats(today: todayList.length, late: late, completed: completed, pending: pending),
           todaySchedules: todayList,
           upcoming: upList,
-        ),),);
+        )));
       } on TimeoutException {
-        emit(DashboardError('Timeout dashboard: cek koneksi internet'));
+        if (!isClosed) emit(DashboardError('Timeout dashboard: cek koneksi internet'));
       } catch (err) {
-        final m = err.toString();
-        if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) {
-          emit(DashboardError('Supabase belum siap (LateInit): restart app'));
-        } else {
-          emit(DashboardError(m.replaceFirst('Exception: ', '')));
-        }
+        if (!isClosed) emit(DashboardError(sanitizeError(err)));
       }
     });
-  }
-
-  /// Apply role scope to PostgrestSelectQueryBuilder (sudah select, punya .filter/.eq)
-  static dynamic _applyScope(dynamic query, AuthContext? ctx) {
-    if (ctx == null) return query;
-    if (ctx.role == UserRole.produksi) return query.eq('user_id', ctx.userId);
-    if (ctx.role == UserRole.qc) {
-      final scope = qcKabupatenScope(ctx);
-      if (scope != null) {
-        if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
-        return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-      }
-    }
-    return query;
   }
 }

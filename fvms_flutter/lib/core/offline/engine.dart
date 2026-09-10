@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:fvms_flutter/core/offline/db.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/core/supabase/scope.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const finalStatuses = {'completed', 'gagal_total'};
@@ -23,11 +25,10 @@ class OfflineEngine {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    final rows = await supabase
-        .from('schedules')
-        .select()
-        .isFilter('deleted_at', null)
-        .order('visit_date');
+    final ctx = await getAuthContext();
+    dynamic query = supabase.from('schedules').select().isFilter('deleted_at', null);
+    query = applyScope(query, ctx);
+    final rows = await query.order('visit_date');
 
     await db.batch((b) {
       b.deleteAll(db.schedules);

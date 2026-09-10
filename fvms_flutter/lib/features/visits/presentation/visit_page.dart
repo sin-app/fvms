@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:fvms_flutter/core/constants/status.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/features/visits/bloc/visit_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:geolocator/geolocator.dart';
@@ -21,20 +22,21 @@ class VisitPage extends StatelessWidget {
           builder: (c, s) {
             if (s is VisitInitial || s is VisitLoading) return const LoadingState();
             if (s is VisitError) return ErrorState(message: s.message, onRetry: () => c.read<VisitBloc>().add(VisitLoad()));
-            if (s is VisitLoaded) {
-              final d = s.data;
+            if (s is VisitLoaded || s is VisitUploading) {
+              final d = s is VisitUploading ? s.data : (s as VisitLoaded).data;
+              final uploading = s is VisitUploading;
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 children: [
                   _InfoCard(data: d),
                   const SizedBox(height: 12),
-                  _StatusCard(current: d.status, onChanged: (ns) => c.read<VisitBloc>().add(VisitStatusChanged(ns))),
+                  _StatusCard(current: d.status, label: d.label, onChanged: (ns) => c.read<VisitBloc>().add(VisitStatusChanged(ns)), onLabelChanged: (l) => c.read<VisitBloc>().add(VisitLabelChanged(l))),
                   const SizedBox(height: 12),
                   _NotesCard(visitBloc: c.read<VisitBloc>(), notes: d.notesField),
                   const SizedBox(height: 12),
                   _GpsCard(visitBloc: c.read<VisitBloc>(), lat: d.latitude, lng: d.longitude),
                   const SizedBox(height: 12),
-                  _PhotosCard(visitBloc: c.read<VisitBloc>(), photos: d.photos),
+                  _PhotosCard(visitBloc: c.read<VisitBloc>(), photos: d.photos, uploading: uploading),
                 ],
               );
             }
@@ -124,12 +126,15 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.current, required this.onChanged});
+  const _StatusCard({required this.current, this.label, required this.onChanged, required this.onLabelChanged});
   final String current;
+  final String? label;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String?> onLabelChanged;
   @override
   Widget build(BuildContext context) {
     final opts = statusTransitions[VisitStatusX.fromString(current)] ?? [];
+    final canSetLabel = isSupabaseInitialized && supabase.auth.currentUser != null;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -154,6 +159,12 @@ class _StatusCard extends StatelessWidget {
               )
             else
               const Text('Tidak ada transisi tersedia', style: TextStyle(color: Colors.grey)),
+            if (canSetLabel) ...[
+              const Divider(height: 24),
+              const Text('Label QC', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              _LabelSelector(current: label, onChanged: onLabelChanged),
+            ],
           ],
         ),
       ),
@@ -171,6 +182,44 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
+class _LabelSelector extends StatelessWidget {
+  const _LabelSelector({this.current, required this.onChanged});
+  final String? current;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _labelChip('Hijau', 'hijau', const Color(0xFF22C55E)),
+        _labelChip('Kuning', 'kuning', const Color(0xFFF59E0B)),
+        _labelChip('Merah', 'merah', Colors.red),
+        _labelChip('Tanpa Label', null, Colors.grey),
+      ],
+    );
+  }
+
+  Widget _labelChip(String text, String? value, Color color) {
+    final isActive = current == value;
+    return FilterChip(
+      label: Text(text, style: TextStyle(
+        color: isActive ? Colors.white : color,
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+      )),
+      selected: isActive,
+      onSelected: (_) => onChanged(isActive ? null : value),
+      backgroundColor: color.withValues(alpha: 0.08),
+      selectedColor: color,
+      side: BorderSide(color: color.withValues(alpha: 0.4)),
+      checkmarkColor: Colors.white,
+      visualDensity: VisualDensity.compact,
+    );
+  }
+}
+
 class _NotesCard extends StatefulWidget {
   const _NotesCard({required this.visitBloc, required this.notes});
   final VisitBloc visitBloc;
@@ -182,6 +231,14 @@ class _NotesCardState extends State<_NotesCard> {
   late final obs = TextEditingController(text: widget.notes['observation'] ?? '');
   late final prob = TextEditingController(text: widget.notes['problem'] ?? '');
   late final rec = TextEditingController(text: widget.notes['recommend'] ?? '');
+
+  @override
+  void dispose() {
+    obs.dispose();
+    prob.dispose();
+    rec.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +349,7 @@ class _GpsCard extends StatelessWidget {
                     visitBloc.add(VisitGpsCaptured(pos.latitude, pos.longitude, pos.accuracy));
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('GPS gagal: $e')));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal mengambil lokasi. Pastikan GPS aktif.')));
                     }
                   }
                 },
@@ -306,9 +363,10 @@ class _GpsCard extends StatelessWidget {
 }
 
 class _PhotosCard extends StatelessWidget {
-  const _PhotosCard({required this.visitBloc, required this.photos});
+  const _PhotosCard({required this.visitBloc, required this.photos, this.uploading = false});
   final VisitBloc visitBloc;
   final List<VisitPhotoLite> photos;
+  final bool uploading;
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -354,7 +412,13 @@ class _PhotosCard extends StatelessWidget {
                 )).toList(),
               ),
             const SizedBox(height: 10),
-            Row(
+            if (uploading)
+              const Padding(
+                padding: EdgeInsets.all(8),
+                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              )
+            else
+              Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(

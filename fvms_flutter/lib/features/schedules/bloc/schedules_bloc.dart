@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/core/supabase/scope.dart';
 
 class ScheduleItem {
   ScheduleItem({
@@ -102,14 +103,29 @@ class SchedulesFilter {
   final String? dateTo;
 
   bool get isEmpty =>
-      status == null && label == null && memberName == null && blockNo == null &&
-      noPlot == null && nis == null && documentNo == null && cgr == null &&
-      varietas == null && kabupatenId == null && kecamatanId == null &&
-      desaId == null && dateFrom == null && dateTo == null;
+      status == null &&
+      label == null &&
+      memberName == null &&
+      blockNo == null &&
+      noPlot == null &&
+      nis == null &&
+      documentNo == null &&
+      cgr == null &&
+      varietas == null &&
+      kabupatenId == null &&
+      kecamatanId == null &&
+      desaId == null &&
+      dateFrom == null &&
+      dateTo == null;
 }
 
-abstract class SchedulesEvent extends Equatable { @override List<Object?> get props => []; }
+abstract class SchedulesEvent extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
+
 class SchedulesLoad extends SchedulesEvent {}
+
 class SchedulesFilterChanged extends SchedulesEvent {
   SchedulesFilterChanged(this.filter);
   final SchedulesFilter filter;
@@ -117,9 +133,15 @@ class SchedulesFilterChanged extends SchedulesEvent {
   List<Object?> get props => [filter];
 }
 
-abstract class SchedulesState extends Equatable { @override List<Object?> get props => []; }
+abstract class SchedulesState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
+
 class SchedulesInitial extends SchedulesState {}
+
 class SchedulesLoading extends SchedulesState {}
+
 class SchedulesLoaded extends SchedulesState {
   SchedulesLoaded(this.items, {this.filter});
   final List<ScheduleItem> items;
@@ -127,6 +149,7 @@ class SchedulesLoaded extends SchedulesState {
   @override
   List<Object?> get props => [items, filter];
 }
+
 class SchedulesError extends SchedulesState {
   SchedulesError(this.message);
   final String message;
@@ -152,23 +175,17 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
     }
     try {
       final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-      dynamic query = _applyScope(
-        supabase.from('schedules').select(_selectFields),
-        ctx,
-      );
+      if (isClosed) return;
+      dynamic query = applyScope(supabase.from('schedules').select(_selectFields), ctx);
       query = _applyFilter(query, filter);
       final rows = await query.order('visit_date').limit(200).timeout(const Duration(seconds: 15));
+      if (isClosed) return;
       final items = _parseRows(rows as List);
       emit(SchedulesLoaded(items, filter: filter));
     } on TimeoutException {
-      emit(SchedulesError('Timeout memuat jadwal: cek koneksi'));
+      if (!isClosed) emit(SchedulesError('Timeout memuat jadwal: cek koneksi'));
     } catch (err) {
-      final m = err.toString();
-      if (m.contains('LateInitializationError') || m.contains('has not been initialized')) {
-        emit(SchedulesError('Supabase belum siap: restart app'));
-      } else {
-        emit(SchedulesError(m.replaceFirst('Exception: ', '')));
-      }
+      if (!isClosed) emit(SchedulesError(sanitizeError(err)));
     }
   }
 
@@ -214,27 +231,14 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
         sisaDiLahanHa: (m['sisa_di_lahan_ha'] as num?)?.toDouble(),
         label: m['label'] as String?,
         detaseling: m['detaseling'] as String?,
-        kabupatenName: kab != null ? (kab as Map<String, dynamic>)['name'] as String? : null,
-        kecamatanName: kec != null ? (kec as Map<String, dynamic>)['name'] as String? : null,
-        desaName: des != null ? (des as Map<String, dynamic>)['name'] as String? : null,
-        petugasName: usr != null ? (usr as Map<String, dynamic>)['name'] as String? : null,
+        kabupatenName: kab is Map<String, dynamic> ? kab['name'] as String? : null,
+        kecamatanName: kec is Map<String, dynamic> ? kec['name'] as String? : null,
+        desaName: des is Map<String, dynamic> ? des['name'] as String? : null,
+        petugasName: usr is Map<String, dynamic> ? usr['name'] as String? : null,
         tglPanen: m['tgl_panen'] as String?,
         realPanen: m['real_panen'] as String?,
         rencanaPanen: m['rencana_panen'] as String?,
       );
     }).toList();
-  }
-
-  static dynamic _applyScope(dynamic query, AuthContext? ctx) {
-    if (ctx == null) return query;
-    if (ctx.role == UserRole.produksi) return query.eq('user_id', ctx.userId);
-    if (ctx.role == UserRole.qc) {
-      final scope = qcKabupatenScope(ctx);
-      if (scope != null) {
-        if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
-        return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-      }
-    }
-    return query;
   }
 }

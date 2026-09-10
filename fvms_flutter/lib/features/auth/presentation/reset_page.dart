@@ -12,6 +12,13 @@ class ResetPage extends StatefulWidget {
 
 class _ResetPageState extends State<ResetPage> {
   final _email = TextEditingController();
+
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
