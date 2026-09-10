@@ -103,7 +103,7 @@ class _FilterSheetState extends State<FilterSheet> {
         dateFrom = today.subtract(Duration(days: weekday - 1));
         dateTo = today;
       case 'month':
-        dateFrom = DateTime(now.year, now.month, 1);
+        dateFrom = DateTime(now.year, now.month);
         dateTo = today;
       case 'custom':
         dateFrom = null;

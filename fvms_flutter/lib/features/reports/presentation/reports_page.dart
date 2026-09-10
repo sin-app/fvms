@@ -50,7 +50,7 @@ class _ReportsViewState extends State<ReportsView> {
         from = _fmt(today.subtract(Duration(days: now.weekday - 1)));
         to = _fmt(today);
       case 'month':
-        from = _fmt(DateTime(now.year, now.month, 1));
+        from = _fmt(DateTime(now.year, now.month));
         to = _fmt(today);
       case 'custom':
         from = _dateFrom != null ? _fmt(_dateFrom!) : null;
@@ -180,7 +180,6 @@ class _ReportsViewState extends State<ReportsView> {
   Widget _smallDropdown(String label, List<String> options, ValueChanged<String?> onChanged) {
     return DropdownButtonFormField<String>(
       value: options.first,
-      isDense: true,
       decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
       items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 12)))).toList(),
       onChanged: onChanged,
@@ -281,15 +280,15 @@ class _ReportsViewState extends State<ReportsView> {
             barTouchData: BarTouchData(
               touchTooltipData: BarTouchTooltipData(
                 getTooltipItem: (group, groupIdx, rod, rodIdx) {
-                  final date = last7[group.x.toInt()].key;
+                  final date = last7[group.x].key;
                   return BarTooltipItem('${rod.toY.toInt()}\n$date', const TextStyle(color: Colors.white, fontSize: 10));
                 },
               ),
             ),
             titlesData: FlTitlesData(
-              leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              leftTitles: const AxisTitles(),
+              rightTitles: const AxisTitles(),
+              topTitles: const AxisTitles(),
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
