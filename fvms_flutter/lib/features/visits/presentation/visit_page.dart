@@ -301,7 +301,10 @@ class _GpsCard extends StatelessWidget {
                     initialZoom: has ? 16 : 5,
                   ),
                   children: [
-                    TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'id.sinapp.fvms',
+                    ),
                     if (has) MarkerLayer(markers: [
                       Marker(point: LatLng(lat!, lng!), child: const Icon(Icons.location_on, color: Colors.red, size: 36)),
                     ]),
