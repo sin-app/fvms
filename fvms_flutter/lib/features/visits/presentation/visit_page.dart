@@ -295,19 +295,39 @@ class _GpsCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: SizedBox(
                 height: 200,
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: has ? LatLng(lat!, lng!) : const LatLng(-6.2, 106.8),
-                    initialZoom: has ? 16 : 5,
-                  ),
+                child: Stack(
                   children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'id.sinapp.fvms',
+                    FlutterMap(
+                      options: MapOptions(
+                        initialCenter: has ? LatLng(lat!, lng!) : const LatLng(-6.2, 106.8),
+                        initialZoom: has ? 16 : 5,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'id.sinapp.fvms',
+                          tileProvider: NetworkTileProvider(
+                            headers: {
+                              'User-Agent': 'id.sinapp.fvms/1.0 (fvms-field-visit-app; https://fvms-eight.vercel.app)',
+                            },
+                          ),
+                        ),
+                        if (has) MarkerLayer(markers: [
+                          Marker(point: LatLng(lat!, lng!), child: const Icon(Icons.location_on, color: Colors.red, size: 36)),
+                        ]),
+                      ],
                     ),
-                    if (has) MarkerLayer(markers: [
-                      Marker(point: LatLng(lat!, lng!), child: const Icon(Icons.location_on, color: Colors.red, size: 36)),
-                    ]),
+                    const Positioned(
+                      right: 4,
+                      bottom: 4,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(color: Colors.white70, borderRadius: BorderRadius.all(Radius.circular(4))),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          child: Text('© OpenStreetMap', style: TextStyle(fontSize: 9, color: Colors.black54)),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
