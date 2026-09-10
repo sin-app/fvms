@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/features/schedules/bloc/schedules_bloc.dart';
 
-/// Mirror web ReportFiltersView + ScheduleFilters cascading
-/// Compact bottom sheet for mobile, uses Dropdown + MultiSelect
 class FilterSheet extends StatefulWidget {
   const FilterSheet({super.key});
   @override
@@ -10,9 +10,16 @@ class FilterSheet extends StatefulWidget {
 
 class _FilterSheetState extends State<FilterSheet> {
   String? status;
-  String? cgr;
-  String? kabupaten;
-  List<String> blocks = [];
+
+  static const _statusOptions = [
+    ('', 'Semua Status'),
+    ('pending', 'Pending'),
+    ('in_progress', 'In Progress'),
+    ('gagal_partial', 'Gagal Partial'),
+    ('completed', 'Completed'),
+    ('gagal_total', 'Gagal Total'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -21,21 +28,58 @@ class _FilterSheetState extends State<FilterSheet> {
         shrinkWrap: true,
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Filter', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Row(
+            children: [
+              const Expanded(child: Text('Filter Jadwal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
-          TextField(decoration: const InputDecoration(labelText: 'Kode Varietas', border: OutlineInputBorder()), onChanged: (v) {}),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(decoration: const InputDecoration(labelText: 'CGR', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: '', child: Text('Semua CGR'))], onChanged: (v) => setState(() => cgr = v)),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'pending', child: Text('Pending')), DropdownMenuItem(value: 'completed', child: Text('Completed'))], onChanged: (v) => setState(() => status = v)),
+          DropdownButtonFormField<String>(
+            value: status ?? '',
+            decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+            items: _statusOptions.map((o) => DropdownMenuItem(value: o.$1, child: Text(o.$2))).toList(),
+            onChanged: (v) => setState(() => status = v),
+          ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Terapkan')),
-          const SizedBox(height: 8),
-          OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Reset')),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() => status = null);
+                  },
+                  child: const Text('Reset'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () {
+                    context.read<SchedulesBloc>().add(SchedulesFilterChanged(status));
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Terapkan'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-void showFilterSheet(BuildContext context) => showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const FilterSheet());
+void showFilterSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => BlocProvider.value(
+      value: context.read<SchedulesBloc>(),
+      child: const FilterSheet(),
+    ),
+  );
+}

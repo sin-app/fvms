@@ -49,7 +49,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        final name = supabase.auth.currentUser?.email ?? ctx?.userId.substring(0, 8) ?? 'User';
+        final name = (ctx?.name.isNotEmpty ?? false) ? ctx!.name : (supabase.auth.currentUser?.email ?? 'User');
         final today = todayString();
 
         // today schedules - select() dulu baru filter/eq

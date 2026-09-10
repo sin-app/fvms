@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseConfig {
-  // dart-define (CI release) has priority, then .env (local dev), then empty
   static const _envUrl = String.fromEnvironment('SUPABASE_URL');
   static const _envAnon = String.fromEnvironment('SUPABASE_ANON_KEY');
   static String get url => _envUrl.isNotEmpty ? _envUrl : (dotenv.env['SUPABASE_URL'] ?? '');
@@ -40,17 +39,20 @@ SupabaseClient get supabase {
   return Supabase.instance.client;
 }
 
-/// Mirror getAuthContext + qcKabupatenScope
 enum UserRole { admin, qc, produksi }
 
 class AuthContext {
   AuthContext({
     required this.userId,
     required this.role,
+    this.name = '',
+    this.email = '',
     this.assignedKabupatenIds = const [],
   });
   final String userId;
   final UserRole role;
+  final String name;
+  final String email;
   final List<String> assignedKabupatenIds;
 }
 
@@ -61,7 +63,7 @@ Future<AuthContext?> getAuthContext() async {
     if (user == null) return null;
     final row = await supabase
         .from('users')
-        .select('id, role, assigned_kabupaten_ids')
+        .select('id, role, name, email, assigned_kabupaten_ids')
         .eq('id', user.id)
         .maybeSingle()
         .timeout(const Duration(seconds: 8));
@@ -72,13 +74,14 @@ Future<AuthContext?> getAuthContext() async {
       'qc' => UserRole.qc,
       _ => UserRole.produksi,
     };
-  final kabIds = (row['assigned_kabupaten_ids'] as List?)?.map((e) => e.toString()).toList() ?? [];
-  return AuthContext(userId: user.id, role: role, assignedKabupatenIds: kabIds);
+    final kabIds = (row['assigned_kabupaten_ids'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final name = (row['name'] as String?) ?? user.email ?? '';
+    final email = (row['email'] as String?) ?? user.email ?? '';
+    return AuthContext(userId: user.id, role: role, name: name, email: email, assignedKabupatenIds: kabIds);
   } catch (e) {
     final m = e.toString();
     if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) return null;
     if (m.contains('TimeoutException') || e is TimeoutException) rethrow;
-    // Other errors: return null so caller can handle gracefully, not crash
     return null;
   }
 }

@@ -81,7 +81,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
     try {
-      // Timeout pakai Future.any agar pasti 15s meski supabase hang di native
       await Future.any([
         supabase.auth.signInWithPassword(email: e.email, password: e.password),
         Future.delayed(const Duration(seconds: 15), () => throw TimeoutException('Login timeout 15s')),

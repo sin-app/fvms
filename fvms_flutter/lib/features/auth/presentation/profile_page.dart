@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
 import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
+import 'package:go_router/go_router.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -22,45 +23,123 @@ class ProfilePage extends StatelessWidget {
         if (s is AuthUnauthenticated) {
           return Scaffold(
             appBar: AppBar(title: const Text('Profil')),
-            body: const EmptyState(message: 'Belum login — silakan login kembali'),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.person_off, size: 64, color: Colors.grey),
+                  const SizedBox(height: 12),
+                  const Text('Belum login', style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => context.go('/login'),
+                    child: const Text('Login'),
+                  ),
+                ],
+              ),
+            ),
           );
         }
         final user = (s is AuthAuthenticated) ? s.ctx : null;
         if (user == null) {
           return Scaffold(appBar: AppBar(title: const Text('Profil')), body: const LoadingState());
         }
+
+        final displayName = user.name.isNotEmpty ? user.name : user.email;
+        final initials = displayName.length >= 2 ? displayName.substring(0, 2).toUpperCase() : displayName.toUpperCase();
+
         return Scaffold(
           appBar: AppBar(title: const Text('Profil')),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              CircleAvatar(radius: 36, backgroundColor: BrandColors.brandSoft, child: Text(user.userId.length >= 2 ? user.userId.substring(0, 2).toUpperCase() : user.userId.toUpperCase(), style: const TextStyle(color: BrandColors.brand, fontWeight: FontWeight.bold))),
-              const SizedBox(height: 12),
-              Text(user.userId, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
-              Center(child: Chip(label: Text(user.role.name))),
+              Center(
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: BrandColors.brandSoft,
+                  child: Text(initials, style: const TextStyle(color: BrandColors.brand, fontSize: 22, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Center(
+                child: Text(
+                  displayName,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+              if (user.email.isNotEmpty && user.name.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Center(
+                  child: Text(user.email, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                ),
+              ],
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: BrandColors.brand.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: BrandColors.brand.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(user.role.name.toUpperCase(), style: const TextStyle(color: BrandColors.brand, fontWeight: FontWeight.w600, fontSize: 12)),
+                ),
+              ),
               if (user.assignedKabupatenIds.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Center(child: Wrap(spacing: 6, children: user.assignedKabupatenIds.map((e) => Chip(label: Text(e))).toList())),
+                const SizedBox(height: 12),
+                const Center(child: Text('Kabupaten Tugas', style: TextStyle(fontSize: 12, color: Colors.grey))),
+                const SizedBox(height: 6),
+                Center(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: user.assignedKabupatenIds.map((e) => Chip(
+                      label: Text(e, style: const TextStyle(fontSize: 12)),
+                      visualDensity: VisualDensity.compact,
+                    )).toList(),
+                  ),
+                ),
               ],
               const Divider(height: 32),
-              ListTile(leading: const Icon(Icons.admin_panel_settings), title: const Text('Master Data'), subtitle: const Text('Kelola via web (coexist)'), onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Buka web fvms-eight.vercel.app untuk Master Data')))),
-              ListTile(leading: const Icon(Icons.upload_file), title: const Text('Import Excel'), subtitle: const Text('Admin only - via web'), onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Import Excel hanya via web (admin)')))),
-              ListTile(leading: const Icon(Icons.group), title: const Text('Users'), subtitle: const Text(' via web'), onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kelola Users via web')))),
+              _menuTile(context, Icons.dashboard_outlined, 'Dashboard', () => context.go('/')),
+              _menuTile(context, Icons.calendar_today_outlined, 'Jadwal', () => context.go('/jadwal')),
+              _menuTile(context, Icons.bar_chart_outlined, 'Laporan', () => context.go('/laporan')),
+              _menuTile(context, Icons.notifications_outlined, 'Notifikasi', () => context.go('/notifikasi')),
+              const Divider(height: 32),
+              _menuTile(context, Icons.language, 'Buka Web (Admin)', () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Buka fvms-eight.vercel.app di browser')));
+              }),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text('Keluar'),
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () {
-                  context.read<AuthBloc>().add(AuthLogoutRequested());
-                },
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Keluar'),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () {
+                    context.read<AuthBloc>().add(AuthLogoutRequested());
+                  },
+                ),
               ),
               const SizedBox(height: 24),
-              const Text('FVMS Flutter v0.1.0 • Android Only • Coexist Web', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const Text('FVMS Flutter v0.1.0', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _menuTile(BuildContext context, IconData icon, String title, VoidCallback onTap) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(icon, color: BrandColors.brand),
+        title: Text(title),
+        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }
