@@ -52,69 +52,34 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final name = supabase.auth.currentUser?.email ?? ctx?.userId.substring(0, 8) ?? 'User';
         final today = todayString();
 
-        // today schedules
-        dynamic todayQuery = supabase.from('schedules');
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            todayQuery = todayQuery.eq('user_id', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                todayQuery = todayQuery.eq('kabupaten_id', '__none__');
-              } else {
-                todayQuery = todayQuery.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        todayQuery = todayQuery.eq('visit_date', today);
-        final rows = await todayQuery.select('id, visit_date, status, member_name, block_no').limit(10).timeout(const Duration(seconds: 10));
+        // today schedules - select() dulu baru filter/eq
+        final todayQuery = _applyScope(
+          supabase.from('schedules').select('id, visit_date, status, member_name, block_no'),
+          ctx,
+        ).eq('visit_date', today);
+        final rows = await todayQuery.limit(10).timeout(const Duration(seconds: 10));
         final todayList = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
         }).toList();
 
         // upcoming
-        dynamic upQuery = supabase.from('schedules');
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            upQuery = upQuery.eq('user_id', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                upQuery = upQuery.eq('kabupaten_id', '__none__');
-              } else {
-                upQuery = upQuery.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        upQuery = upQuery.gt('visit_date', today).order('visit_date');
-        final up = await upQuery.select('id, visit_date, status, member_name').limit(5).timeout(const Duration(seconds: 10));
+        final upQuery = _applyScope(
+          supabase.from('schedules').select('id, visit_date, status, member_name'),
+          ctx,
+        ).gt('visit_date', today).order('visit_date');
+        final up = await upQuery.limit(5).timeout(const Duration(seconds: 10));
         final upList = (up as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleLite(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?);
         }).toList();
 
         // stats
-        dynamic allQuery = supabase.from('schedules');
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            allQuery = allQuery.eq('user_id', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                allQuery = allQuery.eq('kabupaten_id', '__none__');
-              } else {
-                allQuery = allQuery.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        final all = await allQuery.select('status, visit_date').limit(200).timeout(const Duration(seconds: 10));
+        final allQuery = _applyScope(
+          supabase.from('schedules').select('status, visit_date'),
+          ctx,
+        );
+        final all = await allQuery.limit(200).timeout(const Duration(seconds: 10));
         var late = 0;
         var completed = 0;
         var pending = 0;
@@ -142,5 +107,19 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         }
       }
     });
+  }
+
+  /// Apply role scope to PostgrestSelectQueryBuilder (sudah select, punya .filter/.eq)
+  static dynamic _applyScope(dynamic query, AuthContext? ctx) {
+    if (ctx == null) return query;
+    if (ctx.role == UserRole.produksi) return query.eq('user_id', ctx.userId);
+    if (ctx.role == UserRole.qc) {
+      final scope = qcKabupatenScope(ctx);
+      if (scope != null) {
+        if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
+        return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
+      }
+    }
+    return query;
   }
 }

@@ -35,22 +35,8 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules');
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            query = query.eq('user_id', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                query = query.eq('kabupaten_id', '__none__');
-              } else {
-                query = query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        final rows = await query.select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date').limit(100).timeout(const Duration(seconds: 10));
+        final query = _applyScope(supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr'), ctx);
+        final rows = await query.order('visit_date').limit(100).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleItem(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?, nis: m['nis'] as String?, cgr: m['cgr'] as String?);
@@ -75,25 +61,11 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules');
+        var query = _applyScope(supabase.from('schedules').select('id, visit_date, status, member_name, block_no, nis, cgr'), ctx);
         if (e.status != null && e.status!.isNotEmpty) {
           query = query.eq('status', e.status!);
         }
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            query = query.eq('user_id', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                query = query.eq('kabupaten_id', '__none__');
-              } else {
-                query = query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        final rows = await query.select('id, visit_date, status, member_name, block_no, nis, cgr').order('visit_date').limit(100).timeout(const Duration(seconds: 10));
+        final rows = await query.order('visit_date').limit(100).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return ScheduleItem(id: m['id'] as String, visitDate: m['visit_date'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?, nis: m['nis'] as String?, cgr: m['cgr'] as String?);
@@ -110,5 +82,18 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
         }
       }
     });
+  }
+
+  static dynamic _applyScope(dynamic query, AuthContext? ctx) {
+    if (ctx == null) return query;
+    if (ctx.role == UserRole.produksi) return query.eq('user_id', ctx.userId);
+    if (ctx.role == UserRole.qc) {
+      final scope = qcKabupatenScope(ctx);
+      if (scope != null) {
+        if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
+        return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
+      }
+    }
+    return query;
   }
 }

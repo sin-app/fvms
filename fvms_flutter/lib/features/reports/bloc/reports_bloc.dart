@@ -37,22 +37,8 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules');
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            query = query.eq('user_id', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                query = query.eq('kabupaten_id', '__none__');
-              } else {
-                query = query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        final rows = await query.select('status, visit_date, user_id').limit(200).timeout(const Duration(seconds: 10));
+        final query = _applyScope(supabase.from('schedules').select('status, visit_date, user_id'), ctx);
+        final rows = await query.limit(200).timeout(const Duration(seconds: 10));
         var total = 0;
         var completed = 0;
         var pending = 0;
@@ -92,25 +78,11 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('schedules');
+        var query = _applyScope(supabase.from('schedules').select('status, visit_date, member_name, user_id'), ctx);
         if (e.member != null && e.member!.trim().isNotEmpty) {
           query = query.ilike('member_name', '%${e.member!.trim()}%');
         }
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            query = query.eq('user_id', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                query = query.eq('kabupaten_id', '__none__');
-              } else {
-                query = query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        final rows = await query.select('status, visit_date, member_name, user_id').limit(200).timeout(const Duration(seconds: 10));
+        final rows = await query.limit(200).timeout(const Duration(seconds: 10));
         var total = 0;
         var completed = 0;
         var pending = 0;
@@ -142,5 +114,18 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         }
       }
     });
+  }
+
+  static dynamic _applyScope(dynamic query, AuthContext? ctx) {
+    if (ctx == null) return query;
+    if (ctx.role == UserRole.produksi) return query.eq('user_id', ctx.userId);
+    if (ctx.role == UserRole.qc) {
+      final scope = qcKabupatenScope(ctx);
+      if (scope != null) {
+        if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
+        return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
+      }
+    }
+    return query;
   }
 }

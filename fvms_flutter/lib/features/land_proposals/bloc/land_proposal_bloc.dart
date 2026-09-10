@@ -27,22 +27,8 @@ class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
       }
       try {
         final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
-        dynamic query = supabase.from('land_proposals');
-        if (ctx != null) {
-          if (ctx.role == UserRole.produksi) {
-            query = query.eq('proposed_by', ctx.userId);
-          } else if (ctx.role == UserRole.qc) {
-            final scope = qcKabupatenScope(ctx);
-            if (scope != null) {
-              if (scope.isEmpty) {
-                query = query.eq('kabupaten_id', '__none__');
-              } else {
-                query = query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
-              }
-            }
-          }
-        }
-        final rows = await query.select('id, status, member_name, block_no').order('created_at', ascending: false).limit(50).timeout(const Duration(seconds: 10));
+        final query = _applyScope(supabase.from('land_proposals').select('id, status, member_name, block_no'), ctx);
+        final rows = await query.order('created_at', ascending: false).limit(50).timeout(const Duration(seconds: 10));
         final items = (rows as List).map((r) {
           final m = r as Map<String, dynamic>;
           return LandProposalLite(id: m['id'] as String, status: m['status'] as String, memberName: m['member_name'] as String?, blockNo: m['block_no'] as String?);
@@ -59,5 +45,18 @@ class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
         }
       }
     });
+  }
+
+  static dynamic _applyScope(dynamic query, AuthContext? ctx) {
+    if (ctx == null) return query;
+    if (ctx.role == UserRole.produksi) return query.eq('proposed_by', ctx.userId);
+    if (ctx.role == UserRole.qc) {
+      final scope = qcKabupatenScope(ctx);
+      if (scope != null) {
+        if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
+        return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
+      }
+    }
+    return query;
   }
 }

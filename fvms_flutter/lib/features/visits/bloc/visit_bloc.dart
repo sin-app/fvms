@@ -69,14 +69,12 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
         }
       }
 
-      // Fetch photos separately (avoid join crash)
       final photosRaw = await supabase.from('visit_photos').select('id, url, caption').eq('schedule_id', scheduleId).timeout(const Duration(seconds: 8));
       final photos = (photosRaw as List).map((p) {
         final m = p as Map<String, dynamic>;
         return VisitPhotoLite(id: m['id'] as String, url: (m['url'] as String?) ?? '', caption: m['caption'] as String?);
       }).toList();
 
-      // Fetch notes separately (avoid join crash)
       final notesRaw = await supabase.from('visit_notes').select('observation, problem, recommend').eq('schedule_id', scheduleId).maybeSingle().timeout(const Duration(seconds: 8));
       final vn = notesRaw;
 
