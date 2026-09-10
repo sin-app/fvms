@@ -161,16 +161,29 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       }
 
       final results = await Future.wait([
-        supabase.from('visit_photos').select('id, url, caption').eq('schedule_id', scheduleId).timeout(const Duration(seconds: 8)),
+        supabase.from('visit_photos').select('id, url, caption').eq('schedule_id', scheduleId).order('created_at').timeout(const Duration(seconds: 8)),
         supabase.from('visit_notes').select('observation, problem, recommend').eq('schedule_id', scheduleId).maybeSingle().timeout(const Duration(seconds: 8)),
       ]);
       if (isClosed) return;
       final photosRaw = results[0] as List? ?? [];
       final notesRaw = results[1] as Map<String, dynamic>? ?? {};
-      final photos = photosRaw.map((p) {
+      final photos = <VisitPhotoLite>[];
+      for (final p in photosRaw) {
         final m = p as Map<String, dynamic>;
-        return VisitPhotoLite(id: m['id'] as String, url: (m['url'] as String?) ?? '', caption: m['caption'] as String?);
-      }).toList();
+        final storedUrl = (m['url'] as String?) ?? '';
+        var displayUrl = storedUrl;
+        if (storedUrl.isNotEmpty && !storedUrl.contains('?')) {
+          try {
+            final signed = await supabase.storage.from(AppConstants.storageBucketVisitPhotos).createSignedUrl(storedUrl, 3600);
+            displayUrl = signed;
+          } catch (_) {
+            displayUrl = '';
+          }
+        }
+        if (!isClosed) {
+          photos.add(VisitPhotoLite(id: m['id'] as String, url: displayUrl, caption: m['caption'] as String?));
+        }
+      }
 
       emit(VisitLoaded(VisitDetail(
         id: row['id'] as String,
@@ -275,10 +288,9 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
       final storagePath = '$userId/visits/$scheduleId/$fileName';
       await supabase.storage.from(AppConstants.storageBucketVisitPhotos).upload(storagePath, file);
-      final signedUrl = await supabase.storage.from(AppConstants.storageBucketVisitPhotos).createSignedUrl(storagePath, 3600);
       await supabase.from('visit_photos').upsert({
         'schedule_id': scheduleId,
-        'url': signedUrl,
+        'url': storagePath,
         'caption': null,
         'file_size': bytes,
         'mime_type': 'image/$ext',
