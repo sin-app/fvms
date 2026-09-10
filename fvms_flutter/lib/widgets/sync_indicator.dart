@@ -13,13 +13,48 @@ class SyncIndicator extends StatelessWidget {
         String label;
         switch (s.status) {
           case SyncStatus.syncing:
-            icon = Icons.sync; color = Colors.blue; label = 'Sync...';
+            icon = Icons.sync;
+            color = Colors.blue;
+            label = 'Sync...';
           case SyncStatus.offline:
-            icon = Icons.cloud_off; color = Colors.orange; label = 'Luring';
+            icon = Icons.cloud_off;
+            color = Colors.orange;
+            label = 'Luring';
           default:
-            icon = Icons.cloud_done; color = Colors.green; label = s.pending > 0 ? '${s.pending} antri' : 'Online';
+            icon = Icons.cloud_done;
+            color = Colors.green;
+            label = s.pending > 0 ? '${s.pending} antri' : 'Online';
         }
-        return Chip(avatar: Icon(icon, size: 16, color: color), label: Text(label, style: const TextStyle(fontSize: 11)), visualDensity: VisualDensity.compact);
+        return Tooltip(
+          message: s.status == SyncStatus.offline
+              ? 'Mode luring: perubahan disimpan lokal'
+              : s.pending > 0
+                  ? '${s.pending} perubahan menunggu sync'
+                  : 'Terhubung ke server',
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (s.status == SyncStatus.syncing)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Icon(icon, size: 14, color: color),
+                const SizedBox(width: 5),
+                Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+              ],
+            ),
+          ),
+        );
       },
     );
   }

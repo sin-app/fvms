@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fvms_flutter/core/offline/sync_bloc.dart';
 import 'package:fvms_flutter/features/schedules/bloc/schedules_bloc.dart';
 import 'package:fvms_flutter/features/schedules/presentation/filter_sheet.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
@@ -36,15 +37,46 @@ class SchedulesPage extends StatelessWidget {
                 onRefresh: () async => c.read<SchedulesBloc>().add(SchedulesLoad()),
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                  children: grouped.entries.map((e) {
-                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
-                      ),
-                      ...e.value.map((it) => _ScheduleCard(item: it)),
-                    ],);
-                  }).toList(),
+                  children: [
+                    BlocBuilder<SyncBloc, SyncState>(
+                      builder: (_, sync) {
+                        if (sync.status != SyncStatus.offline) return const SizedBox.shrink();
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.cloud_off, color: Colors.orange, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Mode luring: data ditampilkan dari cache lokal',
+                                  style: TextStyle(color: Colors.orange, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    ...grouped.entries.map((e) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                          ),
+                          ...e.value.map((it) => _ScheduleCard(item: it)),
+                        ],
+                      );
+                    }),
+                  ],
                 ),
               );
             }
