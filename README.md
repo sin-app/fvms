@@ -178,6 +178,82 @@ Deployed on Vercel as the **fvms** project → https://fvms-eight.vercel.app.
 
  If you have the Android SDK + JDK 17 locally, run `./scripts/build-android.sh` (it generates a debug keystore if none is provided via `TWA_KEYSTORE_PATH`). Output: `android/app/build/outputs/apk/release/*.apk`.
 
+## Flutter App
+
+Native Flutter app (`fvms_flutter/`) with full offline support, GPS, camera, and push notifications. Builds via CI on every push to `main`.
+
+### Features
+
+- **Dashboard** — Hero greeting, stats cards (snap-scroll on mobile), today's schedules, upcoming list
+- **Schedules** — Card view (mobile) + table (desktop), Excel-style filters (cascading region, multi-select block, status/label/member/varietas/date presets), bulk actions, offline cache fallback
+- **Calendar** — `table_calendar` with event dots, status colors, auto-select today, pull-to-refresh, Indonesian locale
+- **Visit Detail** — Status transitions with chips, GPS capture + OpenStreetMap view, photo upload (camera/gallery) with signed URL, notes (observation/problem/recommendation), QC label toggle (hijau/kuning/merah)
+- **Reports** — KPI grid, pie/bar charts (fl_chart), officer & kabupaten breakdowns, data table with Excel export
+- **Pengajuan Lahan** — Full CRUD: create proposal (region cascading, plot fields, GPS, notes), detail view, approve/reject (QC/Admin), cancel (owner), photo gallery
+- **Profile** — Avatar initials, role badge, assigned kabupaten, **light/dark mode toggle** (persisted via HydratedBloc), admin link to web
+- **Offline-first** — Dexie/IndexedDB-like Drift database, outbox queue for mutations, role-scoped hydration, auto-sync on reconnect
+- **Push Notifications** — Firebase Cloud Messaging, topic-based
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Flutter 3.x (Dart) |
+| State | BLoC + HydratedBloc (persistence) |
+| Database | Drift (SQLite) for offline |
+| Auth | Supabase Auth |
+| Storage | Supabase Storage (signed URLs) |
+| Maps | flutter_map + OpenStreetMap |
+| Charts | fl_chart |
+| Calendar | table_calendar |
+| Camera/Gallery | image_picker |
+| Location | geolocator |
+| Notifications | firebase_messaging |
+| CI | GitHub Actions (`flutter.yml`) |
+
+### Environment Variables
+
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=eyJhbGci...
+```
+
+Passed via `--dart-define` in CI. For local dev, create `fvms_flutter/.env`.
+
+### Build
+
+```bash
+cd fvms_flutter
+flutter pub get
+flutter pub run build_runner build --delete-conflicting-outputs
+flutter build apk --release --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+```
+
+CI builds automatically on push to `main`: analyze → test → APK + AAB artifacts.
+
+### Download
+
+Download the latest APK/AAB from [GitHub Releases](https://github.com/sin-app/fvms/releases) or from the [Flutter CI artifacts](https://github.com/sin-app/fvms/actions/workflows/flutter.yml).
+
+### Project Structure
+
+```
+fvms_flutter/lib/
+├── app/                    # App shell, router, theme (light/dark)
+├── core/                   # Supabase client, auth context, offline engine, constants
+├── features/
+│   ├── auth/               # Login, reset password, profile
+│   ├── dashboard/          # Dashboard page + BLoC
+│   ├── schedules/          # Schedule list, calendar, filter sheet + BLoC
+│   ├── visits/             # Visit detail (status, GPS, photos, notes) + BLoC
+│   ├── reports/            # Reports page + BLoC
+│   ├── land_proposals/     # Pengajuan lahan (CRUD, approve/reject) + BLoC
+│   ├── panen/              # Panen status logic
+│   └── notifications/      # Push notification handler
+├── widgets/                # Shared widgets (LoadingState, ErrorState, EmptyState, SyncIndicator)
+└── __tests__/              # Unit & integration tests
+```
+
 ## Project Structure
 
 ```
