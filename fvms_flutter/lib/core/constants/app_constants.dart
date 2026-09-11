@@ -5,4 +5,5 @@ class AppConstants {
   static const maxReportRows = 10000;
   static const defaultAppUrl = 'https://fvms-eight.vercel.app';
   static const storageBucketVisitPhotos = 'visit-photos';
+  static const storageBucketLandProposalPhotos = 'land-proposal-photos';
 }
