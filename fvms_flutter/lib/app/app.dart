@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/router.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
+import 'package:fvms_flutter/app/theme/theme_cubit.dart';
 import 'package:fvms_flutter/core/network/connectivity_cubit.dart';
 import 'package:fvms_flutter/core/offline/db.dart';
 import 'package:fvms_flutter/core/offline/sync_bloc.dart';
@@ -20,13 +21,16 @@ class FvmsApp extends StatelessWidget {
         BlocProvider(create: (_) => AuthBloc()..add(AuthStarted())),
         BlocProvider(create: (_) => ConnectivityCubit()),
         BlocProvider(create: (_) => SyncBloc(db: db)),
+        BlocProvider(create: (_) => ThemeCubit()),
       ],
       child: Builder(builder: (ctx) {
         final authBloc = ctx.read<AuthBloc>();
+        final themeMode = ctx.watch<ThemeCubit>().state;
         return MaterialApp.router(
           title: 'FVMS',
           theme: buildLightTheme(),
           darkTheme: buildDarkTheme(),
+          themeMode: themeMode,
           routerConfig: buildRouter(authBloc),
           debugShowCheckedModeBanner: false,
         );

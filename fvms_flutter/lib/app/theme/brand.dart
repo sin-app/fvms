@@ -54,10 +54,26 @@ ThemeData buildDarkTheme() {
       seedColor: BrandColors.brand,
       brightness: Brightness.dark,
       primary: BrandColors.brand,
+      surface: const Color(0xFF1E1E1E),
     ),
     scaffoldBackgroundColor: const Color(0xFF121212),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF1E1E1E),
+      elevation: 0,
+      scrolledUnderElevation: 4,
+      surfaceTintColor: Colors.transparent,
+    ),
     cardTheme: CardThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: const Color(0xFF1E1E1E),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+    ),
+    dividerColor: Colors.white.withValues(alpha: 0.1),
+    chipTheme: base.chipTheme.copyWith(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
   );
 }

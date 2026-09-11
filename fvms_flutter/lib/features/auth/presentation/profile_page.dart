@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
+import 'package:fvms_flutter/app/theme/theme_cubit.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
@@ -146,6 +147,30 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ],
               const Divider(height: 32),
+              BlocBuilder<ThemeCubit, ThemeMode>(
+                builder: (_, mode) => Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Tampilan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _themeChip(Icons.light_mode, 'Terang', ThemeMode.light, mode),
+                            const SizedBox(width: 8),
+                            _themeChip(Icons.dark_mode, 'Gelap', ThemeMode.dark, mode),
+                            const SizedBox(width: 8),
+                            _themeChip(Icons.phone_android, 'Sistem', ThemeMode.system, mode),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               _menuTile(context, Icons.dashboard_outlined, 'Dashboard', () => context.go('/')),
               _menuTile(context, Icons.calendar_today_outlined, 'Jadwal', () => context.go('/jadwal')),
               _menuTile(context, Icons.bar_chart_outlined, 'Laporan', () => context.go('/laporan')),
@@ -184,6 +209,32 @@ class _ProfilePageState extends State<ProfilePage> {
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _themeChip(IconData icon, String label, ThemeMode value, ThemeMode current) {
+    final isActive = value == current;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => context.read<ThemeCubit>().setTheme(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? BrandColors.brand : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isActive ? BrandColors.brand : Colors.grey.shade300),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: isActive ? Colors.white : Colors.grey),
+              const SizedBox(width: 6),
+              Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isActive ? Colors.white : Colors.grey)),
+            ],
+          ),
+        ),
       ),
     );
   }
