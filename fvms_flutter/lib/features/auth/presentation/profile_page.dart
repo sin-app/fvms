@@ -175,10 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
               _menuTile(context, Icons.calendar_today_outlined, 'Jadwal', () => context.go('/jadwal')),
               _menuTile(context, Icons.bar_chart_outlined, 'Laporan', () => context.go('/laporan')),
               _menuTile(context, Icons.notifications_outlined, 'Notifikasi', () => context.go('/notifikasi')),
-              const Divider(height: 32),
-              _menuTile(context, Icons.language, 'Buka Web (Admin)', () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Buka fvms-eight.vercel.app di browser')));
-              }),
+              _menuTile(context, Icons.grass, 'Pengajuan Lahan', () => context.go('/pengajuan-lahan')),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

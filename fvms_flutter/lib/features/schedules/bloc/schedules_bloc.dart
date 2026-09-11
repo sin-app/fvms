@@ -179,7 +179,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
       if (isClosed) return;
       dynamic query = applyScope(supabase.from('schedules').select(_selectFields), ctx);
       query = _applyFilter(query, filter);
-      final rows = await query.order('visit_date').limit(200).timeout(const Duration(seconds: 15));
+      final rows = await query.order('visit_date').timeout(const Duration(seconds: 15));
       if (isClosed) return;
       final items = _parseRows(rows as List);
       emit(SchedulesLoaded(items, filter: filter));

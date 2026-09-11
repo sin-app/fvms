@@ -13,26 +13,58 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   late DateTime _focused;
   DateTime? _selected;
+  late SchedulesBloc _bloc;
 
   @override
   void initState() {
     super.initState();
     _focused = DateTime.now();
     _selected = DateTime.now();
+    _bloc = SchedulesBloc()..add(SchedulesLoad());
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => SchedulesBloc()..add(SchedulesLoad()),
+    return BlocProvider.value(
+      value: _bloc,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Kalender')),
+        appBar: AppBar(
+          title: const Text('Kalender'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.today),
+              tooltip: 'Hari Ini',
+              onPressed: () {
+                final now = DateTime.now();
+                setState(() {
+                  _focused = now;
+                  _selected = now;
+                });
+              },
+            ),
+          ],
+        ),
         body: BlocBuilder<SchedulesBloc, SchedulesState>(
           builder: (c, s) {
             if (s is SchedulesInitial || s is SchedulesLoading) return const LoadingState();
-            if (s is SchedulesError) return ErrorState(message: s.message, onRetry: () => c.read<SchedulesBloc>().add(SchedulesLoad()));
+            if (s is SchedulesError) {
+              return ErrorState(message: s.message, onRetry: () => _bloc.add(SchedulesLoad()));
+            }
             if (s is SchedulesLoaded) {
               final events = s.items;
+              final eventMap = <String, List<ScheduleItem>>{};
+              for (final e in events) {
+                final key = _normalizeDate(e.visitDate);
+                if (key != null) {
+                  eventMap.putIfAbsent(key, () => []).add(e);
+                }
+              }
               return Column(children: [
                 TableCalendar(
                   firstDay: DateTime.utc(2020),
@@ -40,13 +72,23 @@ class _CalendarPageState extends State<CalendarPage> {
                   focusedDay: _focused,
                   locale: 'id_ID',
                   selectedDayPredicate: (d) => isSameDay(_selected, d),
-                  onDaySelected: (sel, foc) => setState(() {_selected = sel; _focused = foc;}),
+                  onDaySelected: (sel, foc) => setState(() {
+                    _selected = sel;
+                    _focused = foc;
+                  }),
+                  onDayLongPressed: (sel, foc) => setState(() {
+                    _selected = sel;
+                    _focused = foc;
+                  }),
+                  onPageChanged: (foc) => setState(() => _focused = foc),
                   eventLoader: (d) {
-                    final key = _dateKey(d);
-                    return events.where((e) => e.visitDate == key).toList();
+                    final key = _normalizeDateFromDt(d);
+                    return key.isNotEmpty ? (eventMap[key] ?? <ScheduleItem>[]) : <ScheduleItem>[];
                   },
                   calendarStyle: CalendarStyle(
                     markerDecoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                    markerSize: 8,
+                    markersMaxCount: 3,
                     todayDecoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
@@ -61,53 +103,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 Expanded(
                   child: _selected == null
                       ? const Center(child: Text('Pilih tanggal'))
-                      : Builder(builder: (_) {
-                          final key = _dateKey(_selected!);
-                          final day = events.where((e) => e.visitDate == key).toList();
-                          if (day.isEmpty) return const EmptyState(message: 'Tidak ada jadwal');
-                          return RefreshIndicator(
-                            onRefresh: () async => c.read<SchedulesBloc>().add(SchedulesLoad()),
-                            child: ListView.separated(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: day.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 6),
-                              itemBuilder: (_, i) {
-                                final item = day[i];
-                                final c = _statusColor(item.status);
-                                return Card(
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: c.withValues(alpha: 0.12),
-                                      child: Icon(_statusIcon(item.status), size: 18, color: c),
-                                    ),
-                                    title: Text(item.memberName ?? '-', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                          decoration: BoxDecoration(
-                                            color: c.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(_statusText(item.status), style: TextStyle(fontSize: 11, color: c, fontWeight: FontWeight.w600)),
-                                        ),
-                                        if (item.blockNo != null) ...[
-                                          const SizedBox(width: 8),
-                                          Text('Block: ${item.blockNo}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                                        ],
-                                        if (item.panenStatus != '—') ...[
-                                          const SizedBox(width: 8),
-                                          Text(item.panenStatus, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                                        ],
-                                      ],
-                                    ),
-                                    isThreeLine: true,
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        }),
+                      : _buildDayList(eventMap),
                 ),
               ]);
             }
@@ -118,7 +114,78 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  static String _dateKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  Widget _buildDayList(Map<String, List<ScheduleItem>> eventMap) {
+    final key = _normalizeDateFromDt(_selected!);
+    final day = eventMap[key] ?? <ScheduleItem>[];
+    if (day.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () async => _bloc.add(SchedulesLoad()),
+        child: ListView(
+          children: const [
+            SizedBox(height: 80),
+            Center(child: EmptyState(message: 'Tidak ada jadwal')),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () async => _bloc.add(SchedulesLoad()),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: day.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 6),
+        itemBuilder: (_, i) {
+          final item = day[i];
+          final c = _statusColor(item.status);
+          return Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: c.withValues(alpha: 0.12),
+                child: Icon(_statusIcon(item.status), size: 18, color: c),
+              ),
+              title: Text(item.memberName ?? '-', style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: c.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(_statusText(item.status), style: TextStyle(fontSize: 11, color: c, fontWeight: FontWeight.w600)),
+                  ),
+                  if (item.blockNo != null) ...[
+                    const SizedBox(width: 8),
+                    Text('Block: ${item.blockNo}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  ],
+                  if (item.panenStatus != '—') ...[
+                    const SizedBox(width: 8),
+                    Text(item.panenStatus, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  ],
+                ],
+              ),
+              isThreeLine: true,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  static String? _normalizeDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    try {
+      final d = DateTime.parse(dateStr);
+      return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    } catch (_) {
+      if (dateStr.length >= 10) return dateStr.substring(0, 10);
+      return dateStr;
+    }
+  }
+
+  static String _normalizeDateFromDt(DateTime d) {
+    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
 
   Color _statusColor(String s) => switch (s) {
     'completed' => const Color(0xFF22C55E),

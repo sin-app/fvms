@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fvms_flutter/widgets/sync_indicator.dart';
 import 'package:go_router/go_router.dart';
 
@@ -28,12 +29,12 @@ class AppShell extends StatelessWidget {
     final isHome = GoRouterState.of(context).matchedLocation == '/';
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
+      onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (!isHome) {
           context.go('/');
         } else {
-          final confirmed = await showDialog<bool>(
+          showDialog<bool>(
             context: context,
             builder: (c) => AlertDialog(
               title: const Text('Keluar Aplikasi?'),
@@ -43,10 +44,11 @@ class AppShell extends StatelessWidget {
                 FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Keluar')),
               ],
             ),
-          );
-          if ((confirmed ?? false) && context.mounted) {
-            Navigator.of(context).maybePop();
-          }
+          ).then((confirmed) {
+            if ((confirmed ?? false) && context.mounted) {
+              SystemNavigator.pop();
+            }
+          });
         }
       },
       child: Scaffold(
