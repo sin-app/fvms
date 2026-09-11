@@ -6,6 +6,7 @@ import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/features/visits/bloc/visit_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -16,8 +17,14 @@ class VisitPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => VisitBloc(scheduleId: id)..add(VisitLoad()),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Detail Kunjungan')),
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          context.go('/jadwal');
+        },
+        child: Scaffold(
+          appBar: AppBar(title: const Text('Detail Kunjungan')),
         body: BlocBuilder<VisitBloc, VisitState>(
           builder: (c, s) {
             if (s is VisitInitial || s is VisitLoading) return const LoadingState();
@@ -43,6 +50,7 @@ class VisitPage extends StatelessWidget {
             return const LoadingState();
           },
         ),
+      ),
       ),
     );
   }
