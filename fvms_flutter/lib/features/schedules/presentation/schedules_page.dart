@@ -257,13 +257,26 @@ class _ScheduleCard extends StatelessWidget {
               ],
               if (item.panenStatus != '—') ...[
                 const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.agriculture_outlined, size: 13, color: Colors.grey.shade500),
-                    const SizedBox(width: 4),
-                    Text(item.panenStatus, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                  ],
-                ),
+                Builder(builder: (ctx) {
+                  final isPanen = item.panenStatus.startsWith('Panen');
+                  final isJatuhTempo = item.panenStatus == 'Jatuh Tempo';
+                  final c = isPanen ? const Color(0xFF22C55E) : isJatuhTempo ? Colors.orange : Colors.blue;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: c.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.agriculture_outlined, size: 13, color: c),
+                        const SizedBox(width: 4),
+                        Text(item.panenStatus, style: TextStyle(fontSize: 11, color: c, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ],
           ),
