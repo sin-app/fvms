@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
 import 'package:fvms_flutter/features/reports/bloc/reports_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
-import 'package:go_router/go_router.dart';
+import 'package:fvms_flutter/features/visits/presentation/visit_page.dart';
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
@@ -451,7 +451,7 @@ class _ReportsViewState extends State<ReportsView> {
             DataColumn(label: Text('Panen')),
           ],
           rows: rows.take(100).map((r) => DataRow(
-            onSelectChanged: (_) => context.go('/visit/${r.id}'),
+            onSelectChanged: (_) => Navigator.push<Null>(context, MaterialPageRoute<Null>(builder: (_) => VisitPage(id: r.id))),
             cells: [
               DataCell(Text(r.visitDate)),
               DataCell(Text(r.kabupatenName ?? '—')),

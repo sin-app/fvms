@@ -202,7 +202,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         final now = DateTime.now();
         final today = _fmtDate(now);
         switch (filter.panenStatus) {
-          case 'panen':
+          case 'sudah_panen':
             query = query.or('tgl_panen.not.is.null,real_panen.not.is.null');
           case 'jatuh_tempo':
             query = query.lt('rencana_panen', today);

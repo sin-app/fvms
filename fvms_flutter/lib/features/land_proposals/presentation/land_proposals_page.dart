@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/features/auth/bloc/auth_bloc.dart';
 import 'package:fvms_flutter/features/land_proposals/bloc/land_proposal_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:geolocator/geolocator.dart';
@@ -20,15 +21,21 @@ class _LandProposalsView extends StatelessWidget {
   const _LandProposalsView();
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final isProduksi = authState is AuthAuthenticated && authState.ctx.role == UserRole.produksi;
+    final isAdmin = authState is AuthAuthenticated && authState.ctx.role == UserRole.admin;
+    final canCreate = isProduksi || isAdmin;
     return Scaffold(
       appBar: AppBar(title: const Text('Pengajuan Lahan')),
-      floatingActionButton: Builder(
-        builder: (fabCtx) => FloatingActionButton.extended(
-          icon: const Icon(Icons.add),
-          label: const Text('Ajukan'),
-          onPressed: () => Navigator.push<LandProposalItem>(fabCtx, MaterialPageRoute<LandProposalItem>(builder: (_) => BlocProvider.value(value: fabCtx.read<LandProposalBloc>(), child: const _CreateProposalPage()))),
-        ),
-      ),
+      floatingActionButton: canCreate
+          ? Builder(
+              builder: (fabCtx) => FloatingActionButton.extended(
+                icon: const Icon(Icons.add),
+                label: const Text('Ajukan'),
+                onPressed: () => Navigator.push<LandProposalItem>(fabCtx, MaterialPageRoute<LandProposalItem>(builder: (_) => BlocProvider.value(value: fabCtx.read<LandProposalBloc>(), child: const _CreateProposalPage()))),
+              ),
+            )
+          : null,
       body: BlocBuilder<LandProposalBloc, LandProposalState>(
         builder: (c, s) {
           if (s is LandProposalsInitial || s is LandProposalsLoading) return const LoadingState();
