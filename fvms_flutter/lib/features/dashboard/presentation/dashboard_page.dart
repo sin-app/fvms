@@ -270,6 +270,15 @@ class _ScheduleCard extends StatelessWidget {
                     Text(member, style: const TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text('Block $block', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    if (schedule.desaName != null || schedule.kecamatanName != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        [schedule.desaName, schedule.kecamatanName].where((e) => e != null && e.isNotEmpty).join(', '),
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/features/schedules/bloc/schedules_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
+import 'package:go_router/go_router.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -137,38 +138,92 @@ class _CalendarPageState extends State<CalendarPage> {
         itemBuilder: (_, i) {
           final item = day[i];
           final c = _statusColor(item.status);
+          final luasan = item.realTanamHa != null ? '${item.realTanamHa} ha' : null;
+          final sisa = item.sisaDiLahanHa != null ? '${item.sisaDiLahanHa} ha' : null;
           return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: c.withValues(alpha: 0.12),
-                child: Icon(_statusIcon(item.status), size: 18, color: c),
-              ),
-              title: Text(item.memberName ?? '-', style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: c.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => context.go('/visit/${item.id}'),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: c.withValues(alpha: 0.12),
+                          child: Icon(_statusIcon(item.status), size: 16, color: c),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.memberName ?? '-', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: c.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(_statusText(item.status), style: TextStyle(fontSize: 10, color: c, fontWeight: FontWeight.w600)),
+                                  ),
+                                  if (item.blockNo != null) ...[
+                                    const SizedBox(width: 6),
+                                    Text('Block ${item.blockNo}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                  ],
+                                  if (item.noPlot != null) ...[
+                                    const SizedBox(width: 6),
+                                    Text('Plot ${item.noPlot}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+                      ],
                     ),
-                    child: Text(_statusText(item.status), style: TextStyle(fontSize: 11, color: c, fontWeight: FontWeight.w600)),
-                  ),
-                  if (item.blockNo != null) ...[
-                    const SizedBox(width: 8),
-                    Text('Block: ${item.blockNo}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                    if (luasan != null || sisa != null || item.cgr != null || item.detaseling != null || item.panenStatus != '—') ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (luasan != null) _infoChip(Icons.landscape_outlined, 'Luasan', luasan),
+                          if (sisa != null) _infoChip(Icons.grass_outlined, 'Sisa', sisa),
+                          if (item.cgr != null) _infoChip(Icons.agriculture_outlined, 'CGR', item.cgr!),
+                          if (item.detaseling != null && item.detaseling!.isNotEmpty) _infoChip(Icons.swap_horiz, 'Detaseling', item.detaseling!),
+                          if (item.panenStatus != '—') _infoChip(
+                            Icons.eco_outlined, 'Panen', item.panenStatus,
+                            color: item.panenStatus == 'Panen' ? Colors.green : item.panenStatus == 'Jatuh Tempo' ? Colors.red : null,
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
-                  if (item.panenStatus != '—') ...[
-                    const SizedBox(width: 8),
-                    Text(item.panenStatus, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                  ],
-                ],
+                ),
               ),
-              isThreeLine: true,
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _infoChip(IconData icon, String label, String value, {Color? color}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: color ?? Colors.grey.shade500),
+        const SizedBox(width: 2),
+        Text('$label: ', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+        Text(value, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color ?? Colors.grey.shade700)),
+      ],
     );
   }
 

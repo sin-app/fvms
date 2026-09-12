@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
 import 'package:fvms_flutter/features/reports/bloc/reports_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
+import 'package:go_router/go_router.dart';
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
@@ -23,27 +24,20 @@ class ReportsView extends StatefulWidget {
 }
 
 class _ReportsViewState extends State<ReportsView> {
-  final _memberCtrl = TextEditingController();
   final _varietasCtrl = TextEditingController();
   String? _status;
   String? _label;
   String? _datePreset;
   DateTime? _dateFrom;
   DateTime? _dateTo;
-  String? _kabupatenId;
-  String? _kecamatanId;
-  String? _desaId;
   String? _blockNo;
   String? _cgr;
-  String? _noPlot;
-  String? _nis;
   String? _documentNo;
   String? _panenStatus;
   bool _showTable = false;
 
   @override
   void dispose() {
-    _memberCtrl.dispose();
     _varietasCtrl.dispose();
     super.dispose();
   }
@@ -71,18 +65,12 @@ class _ReportsViewState extends State<ReportsView> {
         to = null;
     }
     context.read<ReportsBloc>().add(ReportsFilterChanged(
-      member: _memberCtrl.text.isEmpty ? null : _memberCtrl.text,
       status: _status,
       label: _label,
       dateFrom: from,
       dateTo: to,
-      kabupatenId: _kabupatenId,
-      kecamatanId: _kecamatanId,
-      desaId: _desaId,
       blockNo: _blockNo,
       cgr: _cgr,
-      noPlot: _noPlot,
-      nis: _nis,
       documentNo: _documentNo,
       varietas: _varietasCtrl.text.isEmpty ? null : _varietasCtrl.text,
       panenStatus: _panenStatus,
@@ -107,7 +95,7 @@ class _ReportsViewState extends State<ReportsView> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 children: [
-                  _buildFilterCard(c),
+                  _buildFilterCard(),
                   const SizedBox(height: 12),
                   _kpiGrid(d),
                   const SizedBox(height: 16),
@@ -122,10 +110,6 @@ class _ReportsViewState extends State<ReportsView> {
                   _sectionTitle('Per Petugas'),
                   const SizedBox(height: 8),
                   _officerList(d),
-                  const SizedBox(height: 16),
-                  _sectionTitle('Per Kabupaten'),
-                  const SizedBox(height: 8),
-                  _kabupatenList(d),
                   const SizedBox(height: 16),
                   _sectionTitle('Data Detail (${rows.length})'),
                   const SizedBox(height: 8),
@@ -144,24 +128,16 @@ class _ReportsViewState extends State<ReportsView> {
     );
   }
 
-  Widget _buildFilterCard(BuildContext c) {
+  Widget _buildFilterCard() {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Row 1: Member + Varietas
+            // Row 1: Varietas + Doc No
             Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _memberCtrl,
-                    decoration: const InputDecoration(hintText: 'Nama Member', prefixIcon: Icon(Icons.person_outline, size: 20), isDense: true, border: OutlineInputBorder()),
-                    onSubmitted: (_) => _applyFilter(),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _varietasCtrl,
@@ -169,10 +145,27 @@ class _ReportsViewState extends State<ReportsView> {
                     onSubmitted: (_) => _applyFilter(),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Expanded(child: _smallDropdown('Doc No', ['Semua'] + List.generate(20, (i) => '${2000 + i}'), (v) {
+                  _documentNo = v == 'Semua' ? null : v;
+                })),
               ],
             ),
             const SizedBox(height: 8),
-            // Row 2: Status + Label
+            // Row 2: CGR + Block
+            Row(
+              children: [
+                Expanded(child: _smallDropdown('CGR', ['Semua', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], (v) {
+                  _cgr = v == 'Semua' ? null : v;
+                })),
+                const SizedBox(width: 8),
+                Expanded(child: _smallDropdown('Block', ['Semua', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'], (v) {
+                  _blockNo = v == 'Semua' ? null : v;
+                })),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Row 3: Status + Label
             Row(
               children: [
                 Expanded(child: _smallDropdown('Status', ['Semua', 'Pending', 'In Progress', 'Gagal Partial', 'Completed', 'Gagal Total'], (v) {
@@ -185,74 +178,28 @@ class _ReportsViewState extends State<ReportsView> {
               ],
             ),
             const SizedBox(height: 8),
-            // Row 3: CGR + Block + No Plot
+            // Row 4: Panen + Tanggal
             Row(
               children: [
-                Expanded(child: _smallDropdown('CGR', ['Semua', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], (v) {
-                  _cgr = v == 'Semua' ? null : v;
-                })),
-                const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Block', ['Semua', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'], (v) {
-                  _blockNo = v == 'Semua' ? null : v;
-                })),
-                const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('No Plot', ['Semua'] + List.generate(50, (i) => '${i + 1}'), (v) {
-                  _noPlot = v == 'Semua' ? null : v;
-                })),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Row 4: NIS + Doc No + Panen
-            Row(
-              children: [
-                Expanded(child: _smallDropdown('NIS', ['Semua'] + List.generate(20, (i) => '${1000 + i}'), (v) {
-                  _nis = v == 'Semua' ? null : v;
-                })),
-                const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Doc No', ['Semua'] + List.generate(20, (i) => '${2000 + i}'), (v) {
-                  _documentNo = v == 'Semua' ? null : v;
-                })),
-                const SizedBox(width: 8),
                 Expanded(child: _smallDropdown('Panen', ['Semua', 'Sudah Panen', 'Jatuh Tempo', 'Belum Panen'], (v) {
                   _panenStatus = v == 'Semua' ? null : v?.toLowerCase().replaceAll(' ', '_');
                 })),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Row 5: Kabupaten + Kecamatan + Desa
-            Row(
-              children: [
-                Expanded(child: _smallDropdown('Kabupaten', ['Semua'], (v) {
-                  _kabupatenId = v == 'Semua' ? null : v;
-                  _kecamatanId = null;
-                  _desaId = null;
-                })),
                 const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Kecamatan', ['Semua'], (v) {
-                  _kecamatanId = v == 'Semua' ? null : v;
-                  _desaId = null;
-                })),
-                const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Desa', ['Semua'], (v) {
-                  _desaId = v == 'Semua' ? null : v;
-                })),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Row 6: Date
-            Row(
-              children: [
                 Expanded(child: _smallDropdown('Tanggal', ['Semua', 'Hari Ini', 'Minggu Ini', 'Bulan Ini', 'Kustom'], (v) {
                   _datePreset = v == 'Semua' ? null : v?.toLowerCase().replaceAll(' ', '');
                 })),
-                if (_datePreset == 'custom') ...[
-                  const SizedBox(width: 8),
+              ],
+            ),
+            if (_datePreset == 'custom') ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
                   Expanded(child: _dateBtn('Dari', _dateFrom, (d) => setState(() => _dateFrom = d))),
                   const SizedBox(width: 8),
                   Expanded(child: _dateBtn('Sampai', _dateTo, (d) => setState(() => _dateTo = d))),
                 ],
-              ],
-            ),
+              ),
+            ],
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -271,7 +218,13 @@ class _ReportsViewState extends State<ReportsView> {
   Widget _smallDropdown(String label, List<String> options, ValueChanged<String?> onChanged) {
     return DropdownButtonFormField<String>(
       value: options.first,
-      decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(fontSize: 11, color: Colors.grey),
+        isDense: true,
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      ),
       items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 12)))).toList(),
       onChanged: onChanged,
     );
@@ -451,28 +404,6 @@ class _ReportsViewState extends State<ReportsView> {
     );
   }
 
-  Widget _kabupatenList(ReportDataLite d) {
-    if (d.byKabupaten.isEmpty) return const Padding(padding: EdgeInsets.all(12), child: Text('Belum ada data kabupaten', style: TextStyle(color: Colors.grey)));
-    return Card(
-      child: Column(
-        children: d.byKabupaten.map((k) {
-          final rate = k.total > 0 ? (k.completed * 100 / k.total).round() : 0;
-          return ListTile(
-            dense: true,
-            title: Text(k.name, style: const TextStyle(fontSize: 13)),
-            subtitle: LinearProgressIndicator(
-              value: k.total > 0 ? k.completed / k.total : 0,
-              backgroundColor: Colors.grey.shade200,
-              color: rate >= 80 ? Colors.green : rate >= 50 ? Colors.amber : Colors.red,
-              minHeight: 4,
-            ),
-            trailing: Text('${k.completed}/${k.total} ($rate%)', style: const TextStyle(fontSize: 12)),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
   Widget _buildToggleButton() {
     return OutlinedButton.icon(
       icon: Icon(_showTable ? Icons.visibility_off : Icons.table_chart, size: 16),
@@ -492,15 +423,12 @@ class _ReportsViewState extends State<ReportsView> {
           columns: const [
             DataColumn(label: Text('Tanggal')),
             DataColumn(label: Text('Kab')),
-            DataColumn(label: Text('Kec')),
-            DataColumn(label: Text('Desa')),
             DataColumn(label: Text('Petugas')),
             DataColumn(label: Text('CGR')),
             DataColumn(label: Text('Block')),
             DataColumn(label: Text('Plot')),
             DataColumn(label: Text('Member')),
             DataColumn(label: Text('Doc No')),
-            DataColumn(label: Text('NIS')),
             DataColumn(label: Text('Tgl Tanam')),
             DataColumn(label: Text('Real')),
             DataColumn(label: Text('Gagal')),
@@ -509,26 +437,26 @@ class _ReportsViewState extends State<ReportsView> {
             DataColumn(label: Text('Label')),
             DataColumn(label: Text('Panen')),
           ],
-          rows: rows.take(100).map((r) => DataRow(cells: [
-            DataCell(Text(r.visitDate)),
-            DataCell(Text(r.kabupatenName ?? '—')),
-            DataCell(Text(r.kecamatanName ?? '—')),
-            DataCell(Text(r.desaName ?? '—')),
-            DataCell(Text(r.petugasName ?? '—')),
-            DataCell(Text(r.cgr ?? '—')),
-            DataCell(Text(r.blockNo ?? '—')),
-            DataCell(Text(r.noPlot ?? '—')),
-            DataCell(Text(r.memberName ?? '—')),
-            DataCell(Text(r.documentNo ?? '—')),
-            DataCell(Text(r.nis ?? '—')),
-            DataCell(Text(r.tglTanam ?? '—')),
-            DataCell(Text(r.realTanamHa != null ? '${r.realTanamHa}' : '—')),
-            DataCell(Text(r.gagalTanam != null ? '${r.gagalTanam}' : '—')),
-            DataCell(Text(r.sisaDiLahanHa != null ? '${r.sisaDiLahanHa}' : '—')),
-            DataCell(_statusBadge(r.status)),
-            DataCell(_labelDot(r.label)),
-            DataCell(Text(r.panenStatus, style: TextStyle(fontSize: 11, color: r.panenStatus == 'Panen' ? Colors.green : r.panenStatus == 'Jatuh Tempo' ? Colors.red : Colors.grey))),
-          ])).toList(),
+          rows: rows.take(100).map((r) => DataRow(
+            onSelectChanged: (_) => context.go('/visit/${r.id}'),
+            cells: [
+              DataCell(Text(r.visitDate)),
+              DataCell(Text(r.kabupatenName ?? '—')),
+              DataCell(Text(r.petugasName ?? '—')),
+              DataCell(Text(r.cgr ?? '—')),
+              DataCell(Text(r.blockNo ?? '—')),
+              DataCell(Text(r.noPlot ?? '—')),
+              DataCell(Text(r.memberName ?? '—')),
+              DataCell(Text(r.documentNo ?? '—')),
+              DataCell(Text(r.tglTanam ?? '—')),
+              DataCell(Text(r.realTanamHa != null ? '${r.realTanamHa}' : '—')),
+              DataCell(Text(r.gagalTanam != null ? '${r.gagalTanam}' : '—')),
+              DataCell(Text(r.sisaDiLahanHa != null ? '${r.sisaDiLahanHa}' : '—')),
+              DataCell(_statusBadge(r.status)),
+              DataCell(_labelDot(r.label)),
+              DataCell(Text(r.panenStatus, style: TextStyle(fontSize: 11, color: r.panenStatus == 'Panen' ? Colors.green : r.panenStatus == 'Jatuh Tempo' ? Colors.red : Colors.grey))),
+            ],
+          )).toList(),
         ),
       ),
     );

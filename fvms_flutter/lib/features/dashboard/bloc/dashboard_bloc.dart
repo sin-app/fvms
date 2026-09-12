@@ -15,12 +15,14 @@ class DashboardStats {
 }
 
 class ScheduleLite {
-  ScheduleLite({required this.id, required this.visitDate, required this.status, this.memberName, this.blockNo});
+  ScheduleLite({required this.id, required this.visitDate, required this.status, this.memberName, this.blockNo, this.desaName, this.kecamatanName});
   final String id;
   final String visitDate;
   final String status;
   final String? memberName;
   final String? blockNo;
+  final String? desaName;
+  final String? kecamatanName;
 }
 
 class DashboardData {
@@ -76,7 +78,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final today = todayString();
 
         final todayQuery = applyScope(
-          supabase.from('schedules').select('id, visit_date, status, member_name, block_no'),
+          supabase.from('schedules').select('id, visit_date, status, member_name, block_no, desa:desa_id(name), kecamatan:kecamatan_id(name)'),
           ctx,
         );
         final upcomingQuery = applyScope(
@@ -96,12 +98,16 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
         final todayList = todaySchedules.map((r) {
           final m = r as Map<String, dynamic>;
+          final desaRaw = m['desa'];
+          final kecRaw = m['kecamatan'];
           return ScheduleLite(
             id: m['id'] as String,
             visitDate: m['visit_date'] as String,
             status: m['status'] as String,
             memberName: m['member_name'] as String?,
             blockNo: m['block_no'] as String?,
+            desaName: desaRaw is Map ? desaRaw['name'] as String? : null,
+            kecamatanName: kecRaw is Map ? kecRaw['name'] as String? : null,
           );
         }).toList();
 

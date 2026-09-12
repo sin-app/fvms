@@ -452,13 +452,37 @@ class _PhotosCard extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 6,
                 crossAxisSpacing: 6,
-                children: photos.map((p) => ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: p.url.isEmpty
-                      ? ColoredBox(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey))
-                      : Image.network(p.url, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => ColoredBox(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)),
+                children: photos.map((p) => Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: p.url.isEmpty
+                            ? ColoredBox(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey))
+                            : GestureDetector(
+                                onTap: () => _openFullScreen(context, p),
+                                child: Image.network(p.url, fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => ColoredBox(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)),
+                                ),
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () => _confirmDelete(context, p),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 14, color: Colors.white),
                         ),
+                      ),
+                    ),
+                  ],
                 )).toList(),
               ),
             const SizedBox(height: 10),
@@ -501,6 +525,50 @@ class _PhotosCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _openFullScreen(BuildContext context, VisitPhotoLite photo) {
+    if (photo.url.isEmpty) return;
+    Navigator.of(context).push(MaterialPageRoute<Null>(
+      builder: (_) => Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          title: Text(photo.caption ?? 'Foto', style: const TextStyle(fontSize: 14)),
+        ),
+        body: Center(
+          child: InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4,
+            child: Image.network(photo.url, fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 48),
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
+
+  void _confirmDelete(BuildContext context, VisitPhotoLite photo) {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Hapus Foto?'),
+        content: const Text('Foto ini akan dihapus secara permanen.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Batal')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(c);
+              visitBloc.add(VisitPhotoDeleted(photo.id, photo.storagePath));
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
       ),
     );
   }

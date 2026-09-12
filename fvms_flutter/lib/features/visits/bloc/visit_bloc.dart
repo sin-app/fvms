@@ -9,10 +9,11 @@ import 'package:fvms_flutter/core/supabase/scope.dart';
 import 'package:path/path.dart' as p;
 
 class VisitPhotoLite {
-  VisitPhotoLite({required this.id, required this.url, this.caption});
+  VisitPhotoLite({required this.id, required this.url, this.caption, this.storagePath = ''});
   final String id;
   final String url;
   final String? caption;
+  final String storagePath;
 }
 
 class VisitDetail {
@@ -128,6 +129,14 @@ class VisitLabelChanged extends VisitEvent {
   List<Object?> get props => [label];
 }
 
+class VisitPhotoDeleted extends VisitEvent {
+  VisitPhotoDeleted(this.photoId, this.storagePath);
+  final String photoId;
+  final String storagePath;
+  @override
+  List<Object?> get props => [photoId, storagePath];
+}
+
 abstract class VisitState extends Equatable {
   @override
   List<Object?> get props => [];
@@ -166,6 +175,7 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
     on<VisitStatusChanged>(_status);
     on<VisitPhotoUploaded>(_uploadPhoto);
     on<VisitLabelChanged>(_label);
+    on<VisitPhotoDeleted>(_deletePhoto);
   }
   final String scheduleId;
 
@@ -226,7 +236,7 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
           }
         }
         if (!isClosed) {
-          photos.add(VisitPhotoLite(id: m['id'] as String, url: displayUrl, caption: m['caption'] as String?));
+          photos.add(VisitPhotoLite(id: m['id'] as String, url: displayUrl, caption: m['caption'] as String?, storagePath: storedUrl));
         }
       }
 
@@ -377,6 +387,26 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       add(VisitLoad());
     } on TimeoutException {
       if (!isClosed) emit(VisitError('Timeout ubah label: cek koneksi'));
+    } catch (err) {
+      if (!isClosed) emit(VisitError(sanitizeError(err)));
+    }
+  }
+
+  Future<void> _deletePhoto(VisitPhotoDeleted e, Emitter<VisitState> emit) async {
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(VisitError('Supabase belum siap'));
+      return;
+    }
+    try {
+      // Delete from storage
+      if (e.storagePath.isNotEmpty) {
+        await supabase.storage.from(AppConstants.storageBucketVisitPhotos).remove([e.storagePath]);
+      }
+      // Delete from DB
+      await supabase.from('visit_photos').delete().eq('id', e.photoId).timeout(const Duration(seconds: 10));
+      add(VisitLoad());
+    } on TimeoutException {
+      if (!isClosed) emit(VisitError('Timeout hapus foto: cek koneksi'));
     } catch (err) {
       if (!isClosed) emit(VisitError(sanitizeError(err)));
     }

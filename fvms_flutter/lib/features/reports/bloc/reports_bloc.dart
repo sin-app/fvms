@@ -120,41 +120,27 @@ class ReportsLoad extends ReportsEvent {}
 
 class ReportsFilterChanged extends ReportsEvent {
   ReportsFilterChanged({
-    this.member,
     this.status,
     this.label,
     this.dateFrom,
     this.dateTo,
-    this.kabupatenId,
-    this.kecamatanId,
-    this.desaId,
     this.blockNo,
     this.cgr,
-    this.noPlot,
-    this.nis,
     this.documentNo,
     this.varietas,
     this.panenStatus,
-    this.userId,
   });
-  final String? member;
   final String? status;
   final String? label;
   final String? dateFrom;
   final String? dateTo;
-  final String? kabupatenId;
-  final String? kecamatanId;
-  final String? desaId;
   final String? blockNo;
   final String? cgr;
-  final String? noPlot;
-  final String? nis;
   final String? documentNo;
   final String? varietas;
   final String? panenStatus;
-  final String? userId;
   @override
-  List<Object?> get props => [member, status, label, dateFrom, dateTo, kabupatenId, kecamatanId, desaId, blockNo, cgr, noPlot, nis, documentNo, varietas, panenStatus, userId];
+  List<Object?> get props => [status, label, dateFrom, dateTo, blockNo, cgr, documentNo, varietas, panenStatus];
 }
 
 abstract class ReportsState extends Equatable {
@@ -201,21 +187,14 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
       if (isClosed) return;
       dynamic query = applyScope(supabase.from('schedules').select(_selectFields), ctx);
-      if (filter.member != null && filter.member!.isNotEmpty) query = query.ilike('member_name', '%${filter.member}%');
       if (filter.status != null && filter.status!.isNotEmpty) query = query.eq('status', filter.status!);
       if (filter.label != null && filter.label!.isNotEmpty) query = query.eq('label', filter.label!);
       if (filter.dateFrom != null && filter.dateFrom!.isNotEmpty) query = query.gte('visit_date', filter.dateFrom!);
       if (filter.dateTo != null && filter.dateTo!.isNotEmpty) query = query.lte('visit_date', filter.dateTo!);
-      if (filter.kabupatenId != null && filter.kabupatenId!.isNotEmpty) query = query.eq('kabupaten_id', filter.kabupatenId!);
-      if (filter.kecamatanId != null && filter.kecamatanId!.isNotEmpty) query = query.eq('kecamatan_id', filter.kecamatanId!);
-      if (filter.desaId != null && filter.desaId!.isNotEmpty) query = query.eq('desa_id', filter.desaId!);
       if (filter.blockNo != null && filter.blockNo!.isNotEmpty) query = query.eq('block_no', filter.blockNo!);
       if (filter.cgr != null && filter.cgr!.isNotEmpty) query = query.eq('cgr', filter.cgr!);
-      if (filter.noPlot != null && filter.noPlot!.isNotEmpty) query = query.eq('no_plot', filter.noPlot!);
-      if (filter.nis != null && filter.nis!.isNotEmpty) query = query.eq('nis', filter.nis!);
       if (filter.documentNo != null && filter.documentNo!.isNotEmpty) query = query.eq('document_no', filter.documentNo!);
       if (filter.varietas != null && filter.varietas!.isNotEmpty) query = query.ilike('document_no', '%${filter.varietas}%');
-      if (filter.userId != null && filter.userId!.isNotEmpty) query = query.eq('user_id', filter.userId!);
       if (filter.panenStatus != null && filter.panenStatus!.isNotEmpty) {
         final now = DateTime.now();
         final today = _fmtDate(now);
