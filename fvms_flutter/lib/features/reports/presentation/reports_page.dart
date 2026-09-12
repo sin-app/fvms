@@ -35,6 +35,7 @@ class _ReportsViewState extends State<ReportsView> {
   String? _documentNo;
   String? _panenStatus;
   bool _showTable = false;
+  String _prevDistinctHash = '';
 
   @override
   void dispose() {
@@ -90,12 +91,21 @@ class _ReportsViewState extends State<ReportsView> {
           if (s is ReportsLoaded) {
             final d = s.data;
             final rows = s.rows ?? [];
+            // Reset dropdown values if distinct options changed
+            final hash = '${s.distinctCgr.join(',')}${s.distinctDocNo.join(',')}${s.distinctBlockNo.join(',')}';
+            if (hash != _prevDistinctHash) {
+              _prevDistinctHash = hash;
+              // Validate selected values still exist in options
+              if (_cgr != null && !s.distinctCgr.contains(_cgr)) _cgr = null;
+              if (_documentNo != null && !s.distinctDocNo.contains(_documentNo)) _documentNo = null;
+              if (_blockNo != null && !s.distinctBlockNo.contains(_blockNo)) _blockNo = null;
+            }
             return RefreshIndicator(
               onRefresh: () async => c.read<ReportsBloc>().add(ReportsLoad()),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 children: [
-                  _buildFilterCard(),
+                  _buildFilterCard(s),
                   const SizedBox(height: 12),
                   _kpiGrid(d),
                   const SizedBox(height: 16),
@@ -128,7 +138,10 @@ class _ReportsViewState extends State<ReportsView> {
     );
   }
 
-  Widget _buildFilterCard() {
+  Widget _buildFilterCard(ReportsState state) {
+    final docNoOptions = state is ReportsLoaded ? state.distinctDocNo : <String>[];
+    final cgrOptions = state is ReportsLoaded ? state.distinctCgr : <String>[];
+    final blockOptions = state is ReportsLoaded ? state.distinctBlockNo : <String>[];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -146,7 +159,7 @@ class _ReportsViewState extends State<ReportsView> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Doc No', ['Semua'] + List.generate(20, (i) => '${2000 + i}'), (v) {
+                Expanded(child: _smallDropdown('Doc No', ['Semua'] + docNoOptions, (v) {
                   _documentNo = v == 'Semua' ? null : v;
                 })),
               ],
@@ -155,11 +168,11 @@ class _ReportsViewState extends State<ReportsView> {
             // Row 2: CGR + Block
             Row(
               children: [
-                Expanded(child: _smallDropdown('CGR', ['Semua', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], (v) {
+                Expanded(child: _smallDropdown('CGR', ['Semua'] + cgrOptions, (v) {
                   _cgr = v == 'Semua' ? null : v;
                 })),
                 const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Block', ['Semua', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'], (v) {
+                Expanded(child: _smallDropdown('Block', ['Semua'] + blockOptions, (v) {
                   _blockNo = v == 'Semua' ? null : v;
                 })),
               ],

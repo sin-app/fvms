@@ -153,11 +153,14 @@ class ReportsInitial extends ReportsState {}
 class ReportsLoading extends ReportsState {}
 
 class ReportsLoaded extends ReportsState {
-  ReportsLoaded(this.data, {this.rows});
+  ReportsLoaded(this.data, {this.rows, this.distinctCgr = const [], this.distinctDocNo = const [], this.distinctBlockNo = const []});
   final ReportDataLite data;
   final List<ReportRow>? rows;
+  final List<String> distinctCgr;
+  final List<String> distinctDocNo;
+  final List<String> distinctBlockNo;
   @override
-  List<Object?> get props => [data, rows];
+  List<Object?> get props => [data, rows, distinctCgr, distinctDocNo, distinctBlockNo];
 }
 
 class ReportsError extends ReportsState {
@@ -211,9 +214,28 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       }
       final rows = await query.order('visit_date').limit(500).timeout(const Duration(seconds: 15));
       if (isClosed) return;
+
+      // Fetch distinct values for filters
+      final distinctQuery = applyScope(supabase.from('schedules').select('cgr, document_no, block_no'), ctx);
+      final distinctRows = await (distinctQuery as dynamic).limit(1000).timeout(const Duration(seconds: 10)) as List;
+      if (isClosed) return;
+
+      final cgrSet = <String>{};
+      final docSet = <String>{};
+      final blockSet = <String>{};
+      for (final r in distinctRows) {
+        final m = r as Map<String, dynamic>;
+        final cgr = m['cgr'] as String?;
+        final doc = m['document_no'] as String?;
+        final block = m['block_no'] as String?;
+        if (cgr != null && cgr.isNotEmpty) cgrSet.add(cgr);
+        if (doc != null && doc.isNotEmpty) docSet.add(doc);
+        if (block != null && block.isNotEmpty) blockSet.add(block);
+      }
+
       final parsedRows = _parseRows(rows as List);
       final data = _computeStats(parsedRows);
-      emit(ReportsLoaded(data, rows: parsedRows));
+      emit(ReportsLoaded(data, rows: parsedRows, distinctCgr: cgrSet.toList()..sort(), distinctDocNo: docSet.toList()..sort(), distinctBlockNo: blockSet.toList()..sort()));
     } on TimeoutException {
       if (!isClosed) emit(ReportsError('Timeout laporan: cek koneksi'));
     } catch (err) {
