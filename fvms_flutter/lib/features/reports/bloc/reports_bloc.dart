@@ -31,10 +31,14 @@ class ReportDataLite {
 }
 
 class OfficerLite {
-  OfficerLite({required this.name, required this.total, required this.completed});
+  OfficerLite({required this.name, required this.total, required this.completed, this.inProgress = 0, this.gagalPartial = 0, this.gagalTotal = 0, this.pending = 0});
   final String name;
   final int total;
   final int completed;
+  final int inProgress;
+  final int gagalPartial;
+  final int gagalTotal;
+  final int pending;
 }
 
 class RegionCount {
@@ -115,14 +119,42 @@ abstract class ReportsEvent extends Equatable {
 class ReportsLoad extends ReportsEvent {}
 
 class ReportsFilterChanged extends ReportsEvent {
-  ReportsFilterChanged({this.member, this.status, this.label, this.dateFrom, this.dateTo});
+  ReportsFilterChanged({
+    this.member,
+    this.status,
+    this.label,
+    this.dateFrom,
+    this.dateTo,
+    this.kabupatenId,
+    this.kecamatanId,
+    this.desaId,
+    this.blockNo,
+    this.cgr,
+    this.noPlot,
+    this.nis,
+    this.documentNo,
+    this.varietas,
+    this.panenStatus,
+    this.userId,
+  });
   final String? member;
   final String? status;
   final String? label;
   final String? dateFrom;
   final String? dateTo;
+  final String? kabupatenId;
+  final String? kecamatanId;
+  final String? desaId;
+  final String? blockNo;
+  final String? cgr;
+  final String? noPlot;
+  final String? nis;
+  final String? documentNo;
+  final String? varietas;
+  final String? panenStatus;
+  final String? userId;
   @override
-  List<Object?> get props => [member, status, label, dateFrom, dateTo];
+  List<Object?> get props => [member, status, label, dateFrom, dateTo, kabupatenId, kecamatanId, desaId, blockNo, cgr, noPlot, nis, documentNo, varietas, panenStatus, userId];
 }
 
 abstract class ReportsState extends Equatable {
@@ -174,6 +206,30 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       if (filter.label != null && filter.label!.isNotEmpty) query = query.eq('label', filter.label!);
       if (filter.dateFrom != null && filter.dateFrom!.isNotEmpty) query = query.gte('visit_date', filter.dateFrom!);
       if (filter.dateTo != null && filter.dateTo!.isNotEmpty) query = query.lte('visit_date', filter.dateTo!);
+      if (filter.kabupatenId != null && filter.kabupatenId!.isNotEmpty) query = query.eq('kabupaten_id', filter.kabupatenId!);
+      if (filter.kecamatanId != null && filter.kecamatanId!.isNotEmpty) query = query.eq('kecamatan_id', filter.kecamatanId!);
+      if (filter.desaId != null && filter.desaId!.isNotEmpty) query = query.eq('desa_id', filter.desaId!);
+      if (filter.blockNo != null && filter.blockNo!.isNotEmpty) query = query.eq('block_no', filter.blockNo!);
+      if (filter.cgr != null && filter.cgr!.isNotEmpty) query = query.eq('cgr', filter.cgr!);
+      if (filter.noPlot != null && filter.noPlot!.isNotEmpty) query = query.eq('no_plot', filter.noPlot!);
+      if (filter.nis != null && filter.nis!.isNotEmpty) query = query.eq('nis', filter.nis!);
+      if (filter.documentNo != null && filter.documentNo!.isNotEmpty) query = query.eq('document_no', filter.documentNo!);
+      if (filter.varietas != null && filter.varietas!.isNotEmpty) query = query.ilike('document_no', '%${filter.varietas}%');
+      if (filter.userId != null && filter.userId!.isNotEmpty) query = query.eq('user_id', filter.userId!);
+      if (filter.panenStatus != null && filter.panenStatus!.isNotEmpty) {
+        final now = DateTime.now();
+        final today = _fmtDate(now);
+        switch (filter.panenStatus) {
+          case 'panen':
+            query = query.or('tgl_panen.not.is.null,real_panen.not.is.null');
+          case 'jatuh_tempo':
+            query = query.lt('rencana_panen', today);
+            query = query.or('tgl_panen.is.null,real_panen.is.null');
+          case 'belum_panen':
+            query = query.or('tgl_panen.is.null,real_panen.is.null');
+            query = query.or('rencana_panen.is.null,rencana_panen.gte,$today');
+        }
+      }
       final rows = await query.order('visit_date').limit(500).timeout(const Duration(seconds: 15));
       if (isClosed) return;
       final parsedRows = _parseRows(rows as List);
@@ -185,6 +241,8 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       if (!isClosed) emit(ReportsError(sanitizeError(err)));
     }
   }
+
+  static String _fmtDate(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   static ReportDataLite _computeStats(List<ReportRow> rows) {
     var total = 0;
@@ -221,6 +279,10 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
         name: officerName,
         total: (ex?.total ?? 0) + 1,
         completed: (ex?.completed ?? 0) + (r.status == 'completed' ? 1 : 0),
+        inProgress: (ex?.inProgress ?? 0) + (r.status == 'in_progress' ? 1 : 0),
+        gagalPartial: (ex?.gagalPartial ?? 0) + (r.status == 'gagal_partial' ? 1 : 0),
+        gagalTotal: (ex?.gagalTotal ?? 0) + (r.status == 'gagal_total' ? 1 : 0),
+        pending: (ex?.pending ?? 0) + (r.status == 'pending' ? 1 : 0),
       );
       final kabName = r.kabupatenName ?? 'Unknown';
       final kEx = kabMap[kabName];

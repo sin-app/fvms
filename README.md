@@ -4,7 +4,7 @@ FVMS is a mobile-first web application for managing field visit schedules. It re
 
 ## Key Features
 
-- **Excel import** — Admin-only: upload a schedule workbook; petugas (staff) are auto-created, master data (kabupaten/kecamatan/desa) is upserted, and schedules are appended (no duplicate cross-file). Auto-creates production auth accounts. If the import fails mid-run, the `excel_imports` record is marked `failed` with an `error_log` (it no longer gets stuck in `processing`).
+- **Excel import** — Admin-only: upload a schedule workbook; petugas (staff) are auto-created, master data (kabupaten/kecamatan/desa) is upserted, and schedules are appended (no duplicate cross-file). **Upsert on composite key** (`desa_id|block_no|no_plot|member_name`): when a row matches an existing schedule, its columns are **updated** with the new Excel values (except `visit_date` is preserved for `completed` records). Auto-creates production auth accounts. If the import fails mid-run, the `excel_imports` record is marked `failed` with an `error_log` (it no longer gets stuck in `processing`).
 - **Schedules** — Browse visits grouped by day, filter by petugas/status/region/date/CGR/varietas/member/block/plot/NIS/tgl_tanam, calendar view, PDF export, bulk actions (shift date, set status).
 - **Visits** — Per-schedule detail: status transitions (`pending → in_progress → completed / gagal_partial / gagal_total`), GPS capture with validation, photo upload (private bucket, signed URLs), notes, activity timeline.
 - **Notifications** — Real-time bell badge via Supabase Realtime; import-completed notification; daily cron for due-soon reminders (`/api/cron/notifications`).

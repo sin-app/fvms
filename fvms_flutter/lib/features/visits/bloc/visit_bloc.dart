@@ -24,24 +24,64 @@ class VisitDetail {
     required this.notesField,
     this.memberName,
     this.blockNo,
+    this.noPlot,
     this.nis,
     this.cgr,
+    this.documentNo,
+    this.tglTanam,
+    this.realTanamHa,
+    this.gagalTanam,
+    this.sisaDiLahanHa,
+    this.label,
+    this.detaseling,
     this.latitude,
     this.longitude,
-    this.label,
+    this.kabupatenName,
+    this.kecamatanName,
+    this.desaName,
+    this.petugasName,
+    this.tglPanen,
+    this.realPanen,
+    this.rencanaPanen,
   });
   final String id;
   final String status;
   final String visitDate;
   final String? memberName;
   final String? blockNo;
+  final String? noPlot;
   final String? nis;
   final String? cgr;
+  final String? documentNo;
+  final String? tglTanam;
+  final double? realTanamHa;
+  final double? gagalTanam;
+  final double? sisaDiLahanHa;
+  final String? label;
+  final String? detaseling;
   final double? latitude;
   final double? longitude;
-  final String? label;
+  final String? kabupatenName;
+  final String? kecamatanName;
+  final String? desaName;
+  final String? petugasName;
+  final String? tglPanen;
+  final String? realPanen;
+  final String? rencanaPanen;
   final List<VisitPhotoLite> photos;
   final Map<String, String?> notesField;
+
+  String get panenStatus {
+    final now = DateTime.now();
+    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    if (tglPanen != null && tglPanen!.isNotEmpty) return 'Panen $tglPanen';
+    if (realPanen != null && realPanen!.isNotEmpty) return 'Panen $realPanen';
+    if (rencanaPanen != null && rencanaPanen!.isNotEmpty) {
+      if (rencanaPanen!.compareTo(today) < 0) return 'Jatuh Tempo';
+      return 'Renc: $rencanaPanen';
+    }
+    return '—';
+  }
 }
 
 abstract class VisitEvent extends Equatable {
@@ -140,7 +180,12 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       if (isClosed) return;
       final row = await supabase
           .from('schedules')
-          .select('id, visit_date, status, member_name, block_no, nis, cgr, latitude, longitude, user_id, kabupaten_id, label')
+          .select('id, visit_date, status, member_name, block_no, no_plot, nis, cgr, document_no, '
+              'tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, label, detaseling, '
+              'latitude, longitude, user_id, kabupaten_id, '
+              'tgl_panen, real_panen, rencana_panen, '
+              'kabupaten:kabupaten_id(name), kecamatan:kecamatan_id(name), desa:desa_id(name), '
+              'users:user_id(name)')
           .eq('id', scheduleId)
           .maybeSingle()
           .timeout(const Duration(seconds: 10));
@@ -191,11 +236,25 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
         status: row['status'] as String,
         memberName: row['member_name'] as String?,
         blockNo: row['block_no'] as String?,
+        noPlot: row['no_plot'] as String?,
         nis: row['nis'] as String?,
         cgr: row['cgr'] as String?,
+        documentNo: row['document_no'] as String?,
+        tglTanam: row['tgl_tanam'] as String?,
+        realTanamHa: (row['real_tanam_ha'] as num?)?.toDouble(),
+        gagalTanam: (row['gagal_tanam'] as num?)?.toDouble(),
+        sisaDiLahanHa: (row['sisa_di_lahan_ha'] as num?)?.toDouble(),
+        label: row['label'] as String?,
+        detaseling: row['detaseling'] as String?,
         latitude: (row['latitude'] as num?)?.toDouble(),
         longitude: (row['longitude'] as num?)?.toDouble(),
-        label: row['label'] as String?,
+        kabupatenName: (row['kabupaten'] as Map<String, dynamic>?)?['name'] as String?,
+        kecamatanName: (row['kecamatan'] as Map<String, dynamic>?)?['name'] as String?,
+        desaName: (row['desa'] as Map<String, dynamic>?)?['name'] as String?,
+        petugasName: (row['users'] as Map<String, dynamic>?)?['name'] as String?,
+        tglPanen: row['tgl_panen'] as String?,
+        realPanen: row['real_panen'] as String?,
+        rencanaPanen: row['rencana_panen'] as String?,
         photos: photos,
         notesField: {
           'observation': notesRaw['observation'] as String?,

@@ -52,21 +52,51 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthResetRequested>(_onReset);
   }
 
+  StreamSubscription<dynamic>? _authSub;
+
   Future<void> _onStarted(AuthStarted e, Emitter<AuthState> emit) async {
     if (!isSupabaseInitialized) {
       emit(AuthFailure('Supabase belum siap: ${SupabaseConfig.isConfigured ? "init gagal" : "URL/ANON_KEY kosong"}'));
       emit(AuthUnauthenticated());
       return;
     }
-    try {
-      final ctx = await getAuthContext();
-      if (ctx != null) {
-        emit(AuthAuthenticated(ctx));
-      } else {
-        emit(AuthUnauthenticated());
+
+    // Listen to auth state changes (session restoration, token refresh)
+    await _authSub?.cancel();
+    _authSub = supabase.auth.onAuthStateChange.listen((data) async {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedOut) {
+        if (!isClosed) emit(AuthUnauthenticated());
+        return;
       }
+      final session = data.session;
+      if (session == null) {
+        if (!isClosed) emit(AuthUnauthenticated());
+        return;
+      }
+      final ctx = await getAuthContext();
+      if (!isClosed) {
+        emit(ctx != null ? AuthAuthenticated(ctx) : AuthUnauthenticated());
+      }
+    });
+
+    try {
+      // Check existing session first
+      final currentSession = supabase.auth.currentSession;
+      if (currentSession != null) {
+        final ctx = await getAuthContext();
+        if (ctx != null) {
+          emit(AuthAuthenticated(ctx));
+          return;
+        }
+      }
+
+      // Wait briefly for onAuthStateChange to fire (session restoration)
+      await Future<void>.delayed(const Duration(seconds: 2));
+
+      if (!isClosed) emit(AuthUnauthenticated());
     } catch (_) {
-      emit(AuthUnauthenticated());
+      if (!isClosed) emit(AuthUnauthenticated());
     }
   }
 
@@ -130,5 +160,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (err) {
       emit(AuthFailure(err.toString()));
     }
+  }
+
+  @override
+  Future<void> close() {
+    _authSub?.cancel();
+    return super.close();
   }
 }
