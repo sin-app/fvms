@@ -11,7 +11,6 @@ class AppShell extends StatelessWidget {
     ('/', Icons.home_rounded, 'Home'),
     ('/jadwal', Icons.calendar_today_rounded, 'Jadwal'),
     ('/kalender', Icons.calendar_month_rounded, 'Kalender'),
-    ('/pengajuan-lahan', Icons.grass_rounded, 'Lahan'),
     ('/laporan', Icons.bar_chart_rounded, 'Laporan'),
     ('/profil', Icons.person_rounded, 'Profil'),
   ];

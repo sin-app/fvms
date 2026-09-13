@@ -129,18 +129,32 @@ class ReportsFilterChanged extends ReportsEvent {
     this.documentNo,
     this.varietas,
     this.panenStatus,
+    this.noPlot,
+    this.memberName,
+    this.nis,
+    this.userId,
+    this.kabupatenId,
+    this.kecamatanId,
+    this.desaId,
   });
   final String? status;
   final String? label;
   final String? dateFrom;
   final String? dateTo;
-  final String? blockNo;
+  final List<String>? blockNo;
   final String? cgr;
   final String? documentNo;
   final String? varietas;
   final String? panenStatus;
+  final String? noPlot;
+  final String? memberName;
+  final String? nis;
+  final String? userId;
+  final String? kabupatenId;
+  final String? kecamatanId;
+  final String? desaId;
   @override
-  List<Object?> get props => [status, label, dateFrom, dateTo, blockNo, cgr, documentNo, varietas, panenStatus];
+  List<Object?> get props => [status, label, dateFrom, dateTo, blockNo, cgr, documentNo, varietas, panenStatus, noPlot, memberName, nis, userId, kabupatenId, kecamatanId, desaId];
 }
 
 abstract class ReportsState extends Equatable {
@@ -153,14 +167,34 @@ class ReportsInitial extends ReportsState {}
 class ReportsLoading extends ReportsState {}
 
 class ReportsLoaded extends ReportsState {
-  ReportsLoaded(this.data, {this.rows, this.distinctCgr = const [], this.distinctDocNo = const [], this.distinctBlockNo = const []});
+  ReportsLoaded(this.data, {
+    this.rows,
+    this.distinctCgr = const [],
+    this.distinctDocNo = const [],
+    this.distinctBlockNo = const [],
+    this.distinctNoPlot = const [],
+    this.distinctNis = const [],
+    this.kabupatens = const [],
+    this.kecamatans = const [],
+    this.desas = const [],
+    this.petugas = const [],
+    this.userRole,
+  });
   final ReportDataLite data;
   final List<ReportRow>? rows;
   final List<String> distinctCgr;
   final List<String> distinctDocNo;
   final List<String> distinctBlockNo;
+  final List<String> distinctNoPlot;
+  final List<String> distinctNis;
+  final List<Map<String, dynamic>> kabupatens;
+  final List<Map<String, dynamic>> kecamatans;
+  final List<Map<String, dynamic>> desas;
+  final List<Map<String, dynamic>> petugas;
+  final UserRole? userRole;
+  bool get isPrivileged => userRole == UserRole.admin || userRole == UserRole.qc;
   @override
-  List<Object?> get props => [data, rows, distinctCgr, distinctDocNo, distinctBlockNo];
+  List<Object?> get props => [data, rows, distinctCgr, distinctDocNo, distinctBlockNo, distinctNoPlot, distinctNis, kabupatens, kecamatans, desas, petugas, userRole];
 }
 
 class ReportsError extends ReportsState {
@@ -189,15 +223,26 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     try {
       final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
       if (isClosed) return;
+
+      // Build main query
       dynamic query = applyScope(supabase.from('schedules').select(_selectFields), ctx);
       if (filter.status != null && filter.status!.isNotEmpty) query = query.eq('status', filter.status!);
       if (filter.label != null && filter.label!.isNotEmpty) query = query.eq('label', filter.label!);
       if (filter.dateFrom != null && filter.dateFrom!.isNotEmpty) query = query.gte('visit_date', filter.dateFrom!);
       if (filter.dateTo != null && filter.dateTo!.isNotEmpty) query = query.lte('visit_date', filter.dateTo!);
-      if (filter.blockNo != null && filter.blockNo!.isNotEmpty) query = query.eq('block_no', filter.blockNo!);
+      if (filter.blockNo != null && filter.blockNo!.isNotEmpty) {
+        query = query.filter('block_no', 'in', '(${filter.blockNo!.map((e) => '"$e"').join(',')})');
+      }
       if (filter.cgr != null && filter.cgr!.isNotEmpty) query = query.eq('cgr', filter.cgr!);
       if (filter.documentNo != null && filter.documentNo!.isNotEmpty) query = query.eq('document_no', filter.documentNo!);
+      if (filter.noPlot != null && filter.noPlot!.isNotEmpty) query = query.eq('no_plot', filter.noPlot!);
+      if (filter.nis != null && filter.nis!.isNotEmpty) query = query.eq('nis', filter.nis!);
+      if (filter.userId != null && filter.userId!.isNotEmpty) query = query.eq('user_id', filter.userId!);
+      if (filter.kabupatenId != null && filter.kabupatenId!.isNotEmpty) query = query.eq('kabupaten_id', filter.kabupatenId!);
+      if (filter.kecamatanId != null && filter.kecamatanId!.isNotEmpty) query = query.eq('kecamatan_id', filter.kecamatanId!);
+      if (filter.desaId != null && filter.desaId!.isNotEmpty) query = query.eq('desa_id', filter.desaId!);
       if (filter.varietas != null && filter.varietas!.isNotEmpty) query = query.ilike('document_no', '%${filter.varietas}%');
+      if (filter.memberName != null && filter.memberName!.isNotEmpty) query = query.ilike('member_name', '%${filter.memberName}%');
       if (filter.panenStatus != null && filter.panenStatus!.isNotEmpty) {
         final now = DateTime.now();
         final today = _fmtDate(now);
@@ -215,31 +260,95 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       final rows = await query.order('visit_date').limit(500).timeout(const Duration(seconds: 15));
       if (isClosed) return;
 
-      // Fetch distinct values for filters
-      final distinctQuery = applyScope(supabase.from('schedules').select('cgr, document_no, block_no'), ctx);
-      final distinctRows = await (distinctQuery as dynamic).limit(1000).timeout(const Duration(seconds: 10)) as List;
+      // Fetch distinct values in parallel
+      final distinctFuture = _fetchDistinctValues(ctx);
+      final regionsFuture = _fetchRegions(ctx);
+      final results = await Future.wait([distinctFuture, regionsFuture]);
       if (isClosed) return;
 
-      final cgrSet = <String>{};
-      final docSet = <String>{};
-      final blockSet = <String>{};
-      for (final r in distinctRows) {
-        final m = r as Map<String, dynamic>;
-        final cgr = m['cgr'] as String?;
-        final doc = m['document_no'] as String?;
-        final block = m['block_no'] as String?;
-        if (cgr != null && cgr.isNotEmpty) cgrSet.add(cgr);
-        if (doc != null && doc.isNotEmpty) docSet.add(doc);
-        if (block != null && block.isNotEmpty) blockSet.add(block);
-      }
+      final distinct = results[0] as _DistinctValues;
+      final regions = results[1] as _RegionData;
 
       final parsedRows = _parseRows(rows as List);
       final data = _computeStats(parsedRows);
-      emit(ReportsLoaded(data, rows: parsedRows, distinctCgr: cgrSet.toList()..sort(), distinctDocNo: docSet.toList()..sort(), distinctBlockNo: blockSet.toList()..sort()));
+      emit(ReportsLoaded(data,
+        rows: parsedRows,
+        distinctCgr: distinct.cgr,
+        distinctDocNo: distinct.docNo,
+        distinctBlockNo: distinct.blockNo,
+        distinctNoPlot: distinct.noPlot,
+        distinctNis: distinct.nis,
+        kabupatens: regions.kabupatens,
+        kecamatans: regions.kecamatans,
+        desas: regions.desas,
+        petugas: regions.petugas,
+        userRole: ctx?.role,
+      ));
     } on TimeoutException {
       if (!isClosed) emit(ReportsError('Timeout laporan: cek koneksi'));
     } catch (err) {
       if (!isClosed) emit(ReportsError(sanitizeError(err)));
+    }
+  }
+
+  static Future<_DistinctValues> _fetchDistinctValues(AuthContext? ctx) async {
+    try {
+      final query = applyScope(supabase.from('schedules').select('cgr, document_no, block_no, no_plot, nis'), ctx);
+      final rows = await (query as dynamic).limit(1000).timeout(const Duration(seconds: 10)) as List;
+      final cgrSet = <String>{};
+      final docSet = <String>{};
+      final blockSet = <String>{};
+      final noPlotSet = <String>{};
+      final nisSet = <String>{};
+      for (final r in rows) {
+        final m = r as Map<String, dynamic>;
+        final cgr = m['cgr'] as String?;
+        final doc = m['document_no'] as String?;
+        final block = m['block_no'] as String?;
+        final noPlot = m['no_plot'] as String?;
+        final nis = m['nis'] as String?;
+        if (cgr != null && cgr.isNotEmpty) cgrSet.add(cgr);
+        if (doc != null && doc.isNotEmpty) docSet.add(doc);
+        if (block != null && block.isNotEmpty) blockSet.add(block);
+        if (noPlot != null && noPlot.isNotEmpty) noPlotSet.add(noPlot);
+        if (nis != null && nis.isNotEmpty) nisSet.add(nis);
+      }
+      return _DistinctValues(
+        cgr: cgrSet.toList()..sort(),
+        docNo: docSet.toList()..sort(),
+        blockNo: blockSet.toList()..sort(),
+        noPlot: noPlotSet.toList()..sort(),
+        nis: nisSet.toList()..sort(),
+      );
+    } catch (_) {
+      return _DistinctValues(cgr: [], docNo: [], blockNo: [], noPlot: [], nis: []);
+    }
+  }
+
+  static Future<_RegionData> _fetchRegions(AuthContext? ctx) async {
+    try {
+      final futures = await Future.wait([
+        supabase.from('kabupaten').select('id, name').order('name').timeout(const Duration(seconds: 8)),
+        _fetchUsers(ctx),
+      ]);
+      final kabupatens = (futures[0] as List).cast<Map<String, dynamic>>();
+      final petugas = futures[1];
+      return _RegionData(kabupatens: kabupatens, kecamatans: [], desas: [], petugas: petugas);
+    } catch (_) {
+      return _RegionData(kabupatens: [], kecamatans: [], desas: [], petugas: []);
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> _fetchUsers(AuthContext? ctx) async {
+    try {
+      dynamic query = supabase.from('users').select('id, name, role').eq('role', 'produksi').order('name');
+      if (ctx != null && ctx.role == UserRole.qc && ctx.assignedKabupatenIds.isNotEmpty) {
+        query = query.filter('kabupaten_id', 'in', '(${ctx.assignedKabupatenIds.map((e) => '"$e"').join(',')})');
+      }
+      final rows = await query.timeout(const Duration(seconds: 8));
+      return (rows as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return [];
     }
   }
 
@@ -339,4 +448,21 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       );
     }).toList();
   }
+}
+
+class _DistinctValues {
+  _DistinctValues({required this.cgr, required this.docNo, required this.blockNo, required this.noPlot, required this.nis});
+  final List<String> cgr;
+  final List<String> docNo;
+  final List<String> blockNo;
+  final List<String> noPlot;
+  final List<String> nis;
+}
+
+class _RegionData {
+  _RegionData({required this.kabupatens, required this.kecamatans, required this.desas, required this.petugas});
+  final List<Map<String, dynamic>> kabupatens;
+  final List<Map<String, dynamic>> kecamatans;
+  final List<Map<String, dynamic>> desas;
+  final List<Map<String, dynamic>> petugas;
 }

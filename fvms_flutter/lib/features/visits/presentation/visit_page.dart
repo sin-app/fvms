@@ -5,8 +5,10 @@ import 'package:fvms_flutter/core/constants/status.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/features/visits/bloc/visit_bloc.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
+import 'package:gal/gal.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -532,23 +534,7 @@ class _PhotosCard extends StatelessWidget {
   void _openFullScreen(BuildContext context, VisitPhotoLite photo) {
     if (photo.url.isEmpty) return;
     Navigator.of(context).push(MaterialPageRoute<Null>(
-      builder: (_) => Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: Text(photo.caption ?? 'Foto', style: const TextStyle(fontSize: 14)),
-        ),
-        body: Center(
-          child: InteractiveViewer(
-            minScale: 0.5,
-            maxScale: 4,
-            child: Image.network(photo.url, fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 48),
-            ),
-          ),
-        ),
-      ),
+      builder: (_) => _FullScreenPhoto(photo: photo),
     ));
   }
 
@@ -569,6 +555,85 @@ class _PhotosCard extends StatelessWidget {
             child: const Text('Hapus'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FullScreenPhoto extends StatefulWidget {
+  const _FullScreenPhoto({required this.photo});
+  final VisitPhotoLite photo;
+
+  @override
+  State<_FullScreenPhoto> createState() => _FullScreenPhotoState();
+}
+
+class _FullScreenPhotoState extends State<_FullScreenPhoto> {
+  bool _downloading = false;
+
+  Future<void> _downloadPhoto() async {
+    if (_downloading) return;
+    setState(() => _downloading = true);
+    try {
+      final response = await http.get(Uri.parse(widget.photo.url));
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        final ext = widget.photo.url.contains('.png') ? 'png' : 'jpg';
+        final fileName = 'fvms_${DateTime.now().millisecondsSinceEpoch}.$ext';
+        await Gal.putImageBytes(bytes, album: 'FVMS', name: fileName);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto berhasil disimpan ke galeri')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal mengunduh foto')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(widget.photo.caption ?? 'Foto', style: const TextStyle(fontSize: 14)),
+        actions: [
+          if (_downloading)
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.download_rounded),
+              tooltip: 'Download',
+              onPressed: _downloadPhoto,
+            ),
+        ],
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4,
+          child: Image.network(widget.photo.url, fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 48),
+          ),
+        ),
       ),
     );
   }

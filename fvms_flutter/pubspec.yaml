@@ -42,6 +42,8 @@ dependencies:
   image_picker: ^1.1.2
   flutter_image_compress: ^2.4.0
   cached_network_image: ^3.4.1
+  gal: ^2.3.0
+  http: ^1.2.2
   # Files
   file_picker: ^10.1.9
   share_plus: ^10.1.4

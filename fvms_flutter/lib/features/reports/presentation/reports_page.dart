@@ -2,9 +2,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/app/theme/brand.dart';
+import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/features/reports/bloc/reports_bloc.dart';
-import 'package:fvms_flutter/widgets/shimmer.dart';
 import 'package:fvms_flutter/features/visits/presentation/visit_page.dart';
+import 'package:fvms_flutter/widgets/shimmer.dart';
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
@@ -25,22 +26,52 @@ class ReportsView extends StatefulWidget {
 
 class _ReportsViewState extends State<ReportsView> {
   final _varietasCtrl = TextEditingController();
+  final _memberNameCtrl = TextEditingController();
   String? _status;
   String? _label;
   String? _datePreset;
   DateTime? _dateFrom;
   DateTime? _dateTo;
-  String? _blockNo;
+  List<String> _blockNo = [];
   String? _cgr;
   String? _documentNo;
   String? _panenStatus;
+  String? _noPlot;
+  String? _nis;
+  String? _userId;
+  String? _kabupatenId;
+  String? _kecamatanId;
+  String? _desaId;
   bool _showTable = false;
   String _prevDistinctHash = '';
+
+  // Region data loaded from DB
+  List<Map<String, dynamic>> _kabupatens = [];
+  List<Map<String, dynamic>> _kecamatans = [];
+  List<Map<String, dynamic>> _desas = [];
+  List<Map<String, dynamic>> _petugas = [];
 
   @override
   void dispose() {
     _varietasCtrl.dispose();
+    _memberNameCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadKecamatan(String kabId) async {
+    if (!isSupabaseInitialized) return;
+    try {
+      final data = await supabase.from('kecamatan').select('id, name').eq('kabupaten_id', kabId).order('name').timeout(const Duration(seconds: 8));
+      if (mounted) setState(() => _kecamatans = (data as List).cast<Map<String, dynamic>>());
+    } catch (_) {}
+  }
+
+  Future<void> _loadDesa(String kecId) async {
+    if (!isSupabaseInitialized) return;
+    try {
+      final data = await supabase.from('desa').select('id, name').eq('kecamatan_id', kecId).order('name').timeout(const Duration(seconds: 8));
+      if (mounted) setState(() => _desas = (data as List).cast<Map<String, dynamic>>());
+    } catch (_) {}
   }
 
   void _applyFilter() {
@@ -70,15 +101,69 @@ class _ReportsViewState extends State<ReportsView> {
       label: _label,
       dateFrom: from,
       dateTo: to,
-      blockNo: _blockNo,
+      blockNo: _blockNo.isEmpty ? null : _blockNo,
       cgr: _cgr,
       documentNo: _documentNo,
       varietas: _varietasCtrl.text.isEmpty ? null : _varietasCtrl.text,
       panenStatus: _panenStatus,
+      noPlot: _noPlot,
+      memberName: _memberNameCtrl.text.isEmpty ? null : _memberNameCtrl.text,
+      nis: _nis,
+      userId: _userId,
+      kabupatenId: _kabupatenId,
+      kecamatanId: _kecamatanId,
+      desaId: _desaId,
     ));
   }
 
   String? _fmt(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  void _showMultiSelectDialog(List<String> options, List<String> selected, String title, ValueChanged<List<String>> onConfirm) {
+    final tempSelected = List<String>.from(selected);
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(title, style: const TextStyle(fontSize: 16)),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: ListView.builder(
+              itemCount: options.length,
+              itemBuilder: (_, i) {
+                final opt = options[i];
+                final isSelected = tempSelected.contains(opt);
+                return CheckboxListTile(
+                  value: isSelected,
+                  title: Text(opt, style: const TextStyle(fontSize: 13)),
+                  dense: true,
+                  onChanged: (v) {
+                    setDialogState(() {
+                      if (v ?? false) {
+                        tempSelected.add(opt);
+                      } else {
+                        tempSelected.remove(opt);
+                      }
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onConfirm(tempSelected);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,14 +176,28 @@ class _ReportsViewState extends State<ReportsView> {
           if (s is ReportsLoaded) {
             final d = s.data;
             final rows = s.rows ?? [];
+            // Update region data from state
+            if (s.kabupatens.isNotEmpty && _kabupatens.isEmpty) {
+              _kabupatens = s.kabupatens;
+            }
+            if (s.kecamatans.isNotEmpty && _kecamatans.isEmpty) {
+              _kecamatans = s.kecamatans;
+            }
+            if (s.desas.isNotEmpty && _desas.isEmpty) {
+              _desas = s.desas;
+            }
+            if (s.petugas.isNotEmpty && _petugas.isEmpty) {
+              _petugas = s.petugas;
+            }
             // Reset dropdown values if distinct options changed
-            final hash = '${s.distinctCgr.join(',')}${s.distinctDocNo.join(',')}${s.distinctBlockNo.join(',')}';
+            final hash = '${s.distinctCgr.join(',')}${s.distinctDocNo.join(',')}${s.distinctBlockNo.join(',')}${s.distinctNoPlot.join(',')}${s.distinctNis.join(',')}';
             if (hash != _prevDistinctHash) {
               _prevDistinctHash = hash;
-              // Validate selected values still exist in options
               if (_cgr != null && !s.distinctCgr.contains(_cgr)) _cgr = null;
               if (_documentNo != null && !s.distinctDocNo.contains(_documentNo)) _documentNo = null;
-              if (_blockNo != null && !s.distinctBlockNo.contains(_blockNo)) _blockNo = null;
+              _blockNo = _blockNo.where((b) => s.distinctBlockNo.contains(b)).toList();
+              if (_noPlot != null && !s.distinctNoPlot.contains(_noPlot)) _noPlot = null;
+              if (_nis != null && !s.distinctNis.contains(_nis)) _nis = null;
             }
             return RefreshIndicator(
               onRefresh: () async => c.read<ReportsBloc>().add(ReportsLoad()),
@@ -142,13 +241,23 @@ class _ReportsViewState extends State<ReportsView> {
     final docNoOptions = state is ReportsLoaded ? state.distinctDocNo : <String>[];
     final cgrOptions = state is ReportsLoaded ? state.distinctCgr : <String>[];
     final blockOptions = state is ReportsLoaded ? state.distinctBlockNo : <String>[];
+    final noPlotOptions = state is ReportsLoaded ? state.distinctNoPlot : <String>[];
+    final nisOptions = state is ReportsLoaded ? state.distinctNis : <String>[];
+    final petugasOptions = state is ReportsLoaded ? state.petugas : <Map<String, dynamic>>[];
+    final kabOptions = state is ReportsLoaded ? state.kabupatens : <Map<String, dynamic>>[];
+    final kecOptions = state is ReportsLoaded ? _kecamatans : <Map<String, dynamic>>[];
+    final desaOptions = state is ReportsLoaded ? _desas : <Map<String, dynamic>>[];
+
+    // Determine if user is admin/qc (show petugas filter)
+    final isPrivileged = state is ReportsLoaded && state.isPrivileged;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Row 1: Varietas + Doc No
+            // Row 1: Varietas + Nama Member
             Row(
               children: [
                 Expanded(
@@ -159,50 +268,129 @@ class _ReportsViewState extends State<ReportsView> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Doc No', ['Semua'] + docNoOptions, (v) {
-                  _documentNo = v == 'Semua' ? null : v;
-                })),
+                Expanded(
+                  child: TextField(
+                    controller: _memberNameCtrl,
+                    decoration: const InputDecoration(hintText: 'Nama Member', prefixIcon: Icon(Icons.person_outline, size: 20), isDense: true, border: OutlineInputBorder()),
+                    onSubmitted: (_) => _applyFilter(),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
-            // Row 2: CGR + Block
+            // Row 2: CGR + Doc No
             Row(
               children: [
                 Expanded(child: _smallDropdown('CGR', ['Semua'] + cgrOptions, (v) {
                   _cgr = v == 'Semua' ? null : v;
                 })),
                 const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Block', ['Semua'] + blockOptions, (v) {
-                  _blockNo = v == 'Semua' ? null : v;
+                Expanded(child: _smallDropdown('Doc No', ['Semua'] + docNoOptions, (v) {
+                  _documentNo = v == 'Semua' ? null : v;
                 })),
               ],
             ),
             const SizedBox(height: 8),
-            // Row 3: Status + Label
+            // Row 3: Block (multi) + Plot
             Row(
               children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _showMultiSelectDialog(blockOptions, _blockNo, 'Pilih Block', (v) => setState(() => _blockNo = v)),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Block',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.arrow_drop_down, size: 20),
+                      ),
+                      child: Text(
+                        _blockNo.isEmpty ? 'Semua' : _blockNo.join(', '),
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: _smallDropdown('Plot', ['Semua'] + noPlotOptions, (v) {
+                  _noPlot = v == 'Semua' ? null : v;
+                })),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Row 4: NIS + Status
+            Row(
+              children: [
+                Expanded(child: _smallDropdown('NIS', ['Semua'] + nisOptions, (v) {
+                  _nis = v == 'Semua' ? null : v;
+                })),
+                const SizedBox(width: 8),
                 Expanded(child: _smallDropdown('Status', ['Semua', 'Pending', 'In Progress', 'Gagal Partial', 'Completed', 'Gagal Total'], (v) {
                   _status = v == 'Semua' ? null : v?.toLowerCase().replaceAll(' ', '_');
                 })),
-                const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Label', ['Semua', 'Hijau', 'Kuning', 'Merah'], (v) {
-                  _label = v == 'Semua' ? null : v?.toLowerCase();
-                })),
               ],
             ),
             const SizedBox(height: 8),
-            // Row 4: Panen + Tanggal
+            // Row 5: Label + Panen
             Row(
               children: [
+                Expanded(child: _smallDropdown('Label', ['Semua', 'Hijau', 'Kuning', 'Merah'], (v) {
+                  _label = v == 'Semua' ? null : v?.toLowerCase();
+                })),
+                const SizedBox(width: 8),
                 Expanded(child: _smallDropdown('Panen', ['Semua', 'Sudah Panen', 'Jatuh Tempo', 'Belum Panen'], (v) {
                   _panenStatus = v == 'Semua' ? null : v?.toLowerCase().replaceAll(' ', '_');
                 })),
-                const SizedBox(width: 8),
-                Expanded(child: _smallDropdown('Tanggal', ['Semua', 'Hari Ini', 'Minggu Ini', 'Bulan Ini', 'Kustom'], (v) {
-                  _datePreset = v == 'Semua' ? null : v?.toLowerCase().replaceAll(' ', '');
-                })),
               ],
             ),
+            // Row 6: Petugas (admin/qc only)
+            if (isPrivileged) ...[
+              const SizedBox(height: 8),
+              _smallDropdown('Petugas', ['Semua'] + petugasOptions.map<String>((p) => p['name'] as String).toList(), (v) {
+                if (v == 'Semua') {
+                  _userId = null;
+                } else {
+                  final match = petugasOptions.firstWhere((p) => p['name'] == v, orElse: () => {});
+                  _userId = match['id'] as String?;
+                }
+              }),
+            ],
+            // Row 7: Kabupaten
+            const SizedBox(height: 8),
+            _regionDropdown('Kabupaten', kabOptions, _kabupatenId, (v) {
+              setState(() {
+                _kabupatenId = v;
+                _kecamatanId = null;
+                _desaId = null;
+                _kecamatans = [];
+                _desas = [];
+              });
+              if (v != null && v.isNotEmpty) _loadKecamatan(v);
+            }),
+            // Row 8: Kecamatan (conditional)
+            if (_kabupatenId != null || kecOptions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _regionDropdown('Kecamatan', kecOptions, _kecamatanId, (v) {
+                setState(() {
+                  _kecamatanId = v;
+                  _desaId = null;
+                  _desas = [];
+                });
+                if (v != null && v.isNotEmpty) _loadDesa(v);
+              }),
+            ],
+            // Row 9: Desa (conditional)
+            if (_kecamatanId != null || desaOptions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _regionDropdown('Desa', desaOptions, _desaId, (v) => setState(() => _desaId = v)),
+            ],
+            // Row 10: Date range
+            const SizedBox(height: 8),
+            _smallDropdown('Tanggal', ['Semua', 'Hari Ini', 'Minggu Ini', 'Bulan Ini', 'Kustom'], (v) {
+              _datePreset = v == 'Semua' ? null : v?.toLowerCase().replaceAll(' ', '');
+            }),
             if (_datePreset == 'custom') ...[
               const SizedBox(height: 8),
               Row(
@@ -213,7 +401,7 @@ class _ReportsViewState extends State<ReportsView> {
                 ],
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -240,6 +428,22 @@ class _ReportsViewState extends State<ReportsView> {
       ),
       items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 12)))).toList(),
       onChanged: onChanged,
+    );
+  }
+
+  Widget _regionDropdown(String label, List<Map<String, dynamic>> items, String? value, ValueChanged<String?> onChanged) {
+    final allItems = <Map<String, dynamic>>[{'id': '', 'name': 'Semua $label'}, ...items];
+    return DropdownButtonFormField<String>(
+      value: value ?? '',
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(fontSize: 11, color: Colors.grey),
+        isDense: true,
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      ),
+      items: allItems.map((r) => DropdownMenuItem(value: r['id'] as String, child: Text(r['name'] as String, style: const TextStyle(fontSize: 12)))).toList(),
+      onChanged: (v) => onChanged((v?.isEmpty ?? false) ? null : v),
     );
   }
 
