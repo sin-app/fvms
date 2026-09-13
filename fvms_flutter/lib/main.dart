@@ -21,9 +21,12 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Supabase init error: $e');
   }
-  // FCM
+  // FCM — skip if credentials are placeholder
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    final opts = DefaultFirebaseOptions.currentPlatform;
+    if (opts.apiKey != 'REPLACE_ME') {
+      await Firebase.initializeApp(options: opts);
+    }
   } catch (_) {}
   runApp(const FvmsApp());
 }

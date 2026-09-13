@@ -119,16 +119,20 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async => m.createAll(),
         onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.createAll();
-          }
-          if (from < 3) {
-            await m.createAll();
+          // Safely handle schema upgrades — create missing tables only
+          for (final table in allTables) {
+            try {
+              await m.createTable(table);
+            } catch (_) {}
           }
         },
         beforeOpen: (details) async {
-          await customStatement('PRAGMA journal_mode=WAL');
-          await customStatement('PRAGMA foreign_keys=ON');
+          try {
+            await customStatement('PRAGMA journal_mode=WAL');
+          } catch (_) {}
+          try {
+            await customStatement('PRAGMA foreign_keys=ON');
+          } catch (_) {}
         },
       );
 
