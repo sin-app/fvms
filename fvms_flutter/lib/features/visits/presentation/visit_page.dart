@@ -43,6 +43,8 @@ class VisitPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   _NotesCard(visitBloc: c.read<VisitBloc>(), notes: d.notesField),
                   const SizedBox(height: 12),
+                  _PanenCard(visitBloc: c.read<VisitBloc>(), data: d),
+                  const SizedBox(height: 12),
                   _GpsCard(visitBloc: c.read<VisitBloc>(), lat: d.latitude, lng: d.longitude),
                   const SizedBox(height: 12),
                   _PhotosCard(visitBloc: c.read<VisitBloc>(), photos: d.photos, uploading: uploading),
@@ -128,10 +130,11 @@ class _InfoCard extends StatelessWidget {
             _infoRow(Icons.landscape_outlined, 'Real Tanam', data.realTanamHa != null ? '${data.realTanamHa} ha' : null),
             _infoRow(Icons.warning_amber_outlined, 'Gagal Tanam', data.gagalTanam != null ? '${data.gagalTanam} ha' : null),
             _infoRow(Icons.grass_outlined, 'Sisa Lahan', data.sisaDiLahanHa != null ? '${data.sisaDiLahanHa} ha' : null),
-            if (data.panenStatus != '—') ...[
-              const Divider(height: 20),
-              _infoRow(Icons.eco_outlined, 'Panen', data.panenStatus),
-            ],
+            const Divider(height: 20),
+            _infoRow(Icons.eco_outlined, 'Tgl Panen', data.tglPanen),
+            _infoRow(Icons.agriculture_outlined, 'Real Panen', data.realPanen != null ? '${data.realPanen} ha' : null),
+            _infoRow(Icons.event_outlined, 'Renc. Panen', data.rencanaPanen),
+            _infoRow(Icons.flag_outlined, 'Status Panen', data.panenStatus),
           ],
         ),
       ),
@@ -297,6 +300,149 @@ class _NotesCardState extends State<_NotesCard> {
                 })),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PanenCard extends StatefulWidget {
+  const _PanenCard({required this.visitBloc, required this.data});
+  final VisitBloc visitBloc;
+  final VisitDetail data;
+
+  @override
+  State<_PanenCard> createState() => _PanenCardState();
+}
+
+class _PanenCardState extends State<_PanenCard> {
+  late final TextEditingController _keteranganCtrl;
+  DateTime? _tglPanen;
+  bool _editing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _keteranganCtrl = TextEditingController(text: widget.data.panenKeterangan ?? '');
+    if (widget.data.tglPanen != null && widget.data.tglPanen!.isNotEmpty) {
+      _tglPanen = DateTime.tryParse(widget.data.tglPanen!);
+    }
+  }
+
+  @override
+  void dispose() {
+    _keteranganCtrl.dispose();
+    super.dispose();
+  }
+
+  String? _fmtDate(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  bool get _isHarvested => widget.data.tglPanen != null && widget.data.tglPanen!.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.eco_outlined, size: 18, color: _isHarvested ? Colors.green : Colors.grey),
+                const SizedBox(width: 8),
+                const Expanded(child: Text('Status Panen', style: TextStyle(fontWeight: FontWeight.bold))),
+                if (!_editing)
+                  TextButton(
+                    onPressed: () => setState(() => _editing = true),
+                    child: Text(_isHarvested ? 'Ubah' : 'Isi', style: const TextStyle(fontSize: 12)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (!_editing) ...[
+              if (_isHarvested) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Text('Sudah Panen', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.green.shade700)),
+                    const SizedBox(width: 8),
+                    Text(widget.data.tglPanen!, style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+                if (widget.data.panenKeterangan != null && widget.data.panenKeterangan!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24),
+                    child: Text(widget.data.panenKeterangan!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ),
+                ],
+              ] else ...[
+                const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                    SizedBox(width: 8),
+                    Text('Belum ada data panen', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ] else ...[
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _tglPanen ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) setState(() => _tglPanen = picked);
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Tanggal Panen',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  ),
+                  child: Text(
+                    _tglPanen != null ? (_fmtDate(_tglPanen!) ?? 'Pilih tanggal') : 'Pilih tanggal',
+                    style: TextStyle(fontSize: 13, color: _tglPanen != null ? null : Colors.grey),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _keteranganCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Keterangan',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  FilledButton(
+                    onPressed: () {
+                      widget.visitBloc.add(VisitPanenSaved(
+                        tglPanen: _tglPanen != null ? _fmtDate(_tglPanen!) : null,
+                        panenKeterangan: _keteranganCtrl.text.isEmpty ? null : _keteranganCtrl.text,
+                      ));
+                      setState(() => _editing = false);
+                    },
+                    child: const Text('Simpan', style: TextStyle(fontSize: 12)),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () => setState(() => _editing = false),
+                    child: const Text('Batal', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

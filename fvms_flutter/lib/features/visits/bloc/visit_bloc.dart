@@ -44,6 +44,7 @@ class VisitDetail {
     this.tglPanen,
     this.realPanen,
     this.rencanaPanen,
+    this.panenKeterangan,
   });
   final String id;
   final String status;
@@ -69,6 +70,7 @@ class VisitDetail {
   final String? tglPanen;
   final String? realPanen;
   final String? rencanaPanen;
+  final String? panenKeterangan;
   final List<VisitPhotoLite> photos;
   final Map<String, String?> notesField;
 
@@ -137,6 +139,14 @@ class VisitPhotoDeleted extends VisitEvent {
   List<Object?> get props => [photoId, storagePath];
 }
 
+class VisitPanenSaved extends VisitEvent {
+  VisitPanenSaved({this.tglPanen, this.panenKeterangan});
+  final String? tglPanen;
+  final String? panenKeterangan;
+  @override
+  List<Object?> get props => [tglPanen, panenKeterangan];
+}
+
 abstract class VisitState extends Equatable {
   @override
   List<Object?> get props => [];
@@ -176,6 +186,7 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
     on<VisitPhotoUploaded>(_uploadPhoto);
     on<VisitLabelChanged>(_label);
     on<VisitPhotoDeleted>(_deletePhoto);
+    on<VisitPanenSaved>(_savePanen);
   }
   final String scheduleId;
 
@@ -193,7 +204,7 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
           .select('id, visit_date, status, member_name, block_no, no_plot, nis, cgr, document_no, '
               'tgl_tanam, real_tanam_ha, gagal_tanam, sisa_di_lahan_ha, label, detaseling, '
               'latitude, longitude, user_id, kabupaten_id, '
-              'tgl_panen, real_panen, rencana_panen, '
+              'tgl_panen, real_panen, rencana_panen, panen_keterangan, '
               'kabupaten:kabupaten_id(name), kecamatan:kecamatan_id(name), desa:desa_id(name), '
               'users:user_id(name)')
           .eq('id', scheduleId)
@@ -265,6 +276,7 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
         tglPanen: row['tgl_panen'] as String?,
         realPanen: row['real_panen'] as String?,
         rencanaPanen: row['rencana_panen'] as String?,
+        panenKeterangan: row['panen_keterangan'] as String?,
         photos: photos,
         notesField: {
           'observation': notesRaw['observation'] as String?,
@@ -407,6 +419,24 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       add(VisitLoad());
     } on TimeoutException {
       if (!isClosed) emit(VisitError('Timeout hapus foto: cek koneksi'));
+    } catch (err) {
+      if (!isClosed) emit(VisitError(sanitizeError(err)));
+    }
+  }
+
+  Future<void> _savePanen(VisitPanenSaved e, Emitter<VisitState> emit) async {
+    if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) {
+      emit(VisitError('Supabase belum siap'));
+      return;
+    }
+    try {
+      await supabase.from('schedules').update({
+        'tgl_panen': e.tglPanen,
+        'panen_keterangan': e.panenKeterangan,
+      }).eq('id', scheduleId).timeout(const Duration(seconds: 10));
+      add(VisitLoad());
+    } on TimeoutException {
+      if (!isClosed) emit(VisitError('Timeout simpan panen: cek koneksi'));
     } catch (err) {
       if (!isClosed) emit(VisitError(sanitizeError(err)));
     }
