@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/constants/app_constants.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/core/supabase/scope.dart';
+import 'package:fvms_flutter/features/panen/panen_logic.dart';
 import 'package:path/path.dart' as p;
 
 class VisitPhotoLite {
@@ -74,17 +75,11 @@ class VisitDetail {
   final List<VisitPhotoLite> photos;
   final Map<String, String?> notesField;
 
-  String get panenStatus {
-    final now = DateTime.now();
-    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    if (tglPanen != null && tglPanen!.isNotEmpty) return 'Panen $tglPanen';
-    if (realPanen != null && realPanen!.isNotEmpty) return 'Panen $realPanen';
-    if (rencanaPanen != null && rencanaPanen!.isNotEmpty) {
-      if (rencanaPanen!.compareTo(today) < 0) return 'Jatuh Tempo';
-      return 'Renc: $rencanaPanen';
-    }
-    return '—';
-  }
+  String get panenStatus => computePanenStatusString(
+    tglPanen: tglPanen,
+    realPanen: realPanen,
+    rencanaPanen: rencanaPanen,
+  );
 }
 
 abstract class VisitEvent extends Equatable {
@@ -234,7 +229,7 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       final photosRaw = results[0] as List? ?? [];
       final notesRaw = results[1] as Map<String, dynamic>? ?? {};
       final photos = <VisitPhotoLite>[];
-      for (final p in photosRaw) {
+      final signedFutures = photosRaw.map((p) async {
         final m = p as Map<String, dynamic>;
         final storedUrl = (m['url'] as String?) ?? '';
         var displayUrl = storedUrl;
@@ -246,10 +241,10 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
             displayUrl = '';
           }
         }
-        if (!isClosed) {
-          photos.add(VisitPhotoLite(id: m['id'] as String, url: displayUrl, caption: m['caption'] as String?, storagePath: storedUrl));
-        }
-      }
+        return VisitPhotoLite(id: m['id'] as String, url: displayUrl, caption: m['caption'] as String?, storagePath: storedUrl);
+      }).toList();
+      final resolvedPhotos = await Future.wait(signedFutures);
+      if (!isClosed) photos.addAll(resolvedPhotos);
 
       emit(VisitLoaded(VisitDetail(
         id: row['id'] as String,

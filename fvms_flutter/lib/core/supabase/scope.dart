@@ -7,7 +7,7 @@ dynamic applyScope(dynamic query, AuthContext? ctx) {
     final scope = qcKabupatenScope(ctx);
     if (scope != null) {
       if (scope.isEmpty) return query.eq('kabupaten_id', '__none__');
-      return query.filter('kabupaten_id', 'in', '(${scope.map((e) => '"$e"').join(',')})');
+      return query.inFilter('kabupaten_id', scope);
     }
   }
   return query;

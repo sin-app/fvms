@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fvms_flutter/core/offline/sync_bloc.dart';
 import 'package:fvms_flutter/features/schedules/bloc/schedules_bloc.dart';
 import 'package:fvms_flutter/features/schedules/presentation/filter_sheet.dart';
 import 'package:fvms_flutter/widgets/shimmer.dart';
@@ -36,56 +35,53 @@ class SchedulesPage extends StatelessWidget {
                 }
                 return RefreshIndicator(
                   onRefresh: () async => c.read<SchedulesBloc>().add(SchedulesLoad()),
-                  child: ListView(
+                  child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                    children: [
-                      BlocBuilder<SyncBloc, SyncState>(
-                        builder: (_, sync) {
-                          if (sync.status != SyncStatus.offline) return const SizedBox.shrink();
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.cloud_off, color: Colors.orange, size: 20),
-                                SizedBox(width: 10),
-                                Expanded(child: Text('Mode luring: data dari cache lokal', style: TextStyle(color: Colors.orange, fontSize: 13))),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      if (s.filter != null && !s.filter!.isEmpty)
-                        _ActiveFilters(filter: s.filter!),
-                      ...grouped.entries.map((e) {
-                        final dateLabel = _formatDate(e.key);
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: [
-                                  Text(dateLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                                    child: Text('${e.value.length}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                  ),
-                                ],
+                    itemCount: _buildFlatList(s).length,
+                    itemBuilder: (ctx, i) {
+                      final item = _buildFlatList(s)[i];
+                      if (item is _DateHeader) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Text(item.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: Text('${item.count}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                               ),
-                            ),
-                            ...e.value.map((it) => _ScheduleCard(item: it)),
-                          ],
+                            ],
+                          ),
                         );
-                      }),
-                    ],
+                      }
+                      if (item is _OfflineBanner) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.cloud_off, color: Colors.orange, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Mode luring: data dari cache lokal', style: TextStyle(color: Colors.orange, fontSize: 13))),
+                            ],
+                          ),
+                        );
+                      }
+                      if (item is _ActiveFiltersData) {
+                        return _ActiveFilters(filter: item.filter);
+                      }
+                      if (item is _ScheduleItemWrapper) {
+                        return _ScheduleCard(item: item.item);
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
                 );
               }
@@ -112,6 +108,46 @@ class SchedulesPage extends StatelessWidget {
       return iso;
     }
   }
+}
+
+sealed class _FlatItem {}
+
+class _DateHeader extends _FlatItem {
+  _DateHeader({required this.label, required this.count});
+  final String label;
+  final int count;
+}
+
+class _OfflineBanner extends _FlatItem {}
+
+class _ActiveFiltersData extends _FlatItem {
+  _ActiveFiltersData({required this.filter});
+  final SchedulesFilter filter;
+}
+
+class _ScheduleItemWrapper extends _FlatItem {
+  _ScheduleItemWrapper({required this.item});
+  final ScheduleItem item;
+}
+
+List<_FlatItem> _buildFlatList(SchedulesLoaded s) {
+  final items = <_FlatItem>[];
+  items.add(_OfflineBanner());
+  if (s.filter != null && !s.filter!.isEmpty) {
+    items.add(_ActiveFiltersData(filter: s.filter!));
+  }
+  final grouped = <String, List<ScheduleItem>>{};
+  for (final it in s.items) {
+    grouped.putIfAbsent(it.visitDate, () => []).add(it);
+  }
+  for (final e in grouped.entries) {
+    final dateLabel = SchedulesPage._formatDate(e.key);
+    items.add(_DateHeader(label: dateLabel, count: e.value.length));
+    for (final it in e.value) {
+      items.add(_ScheduleItemWrapper(item: it));
+    }
+  }
+  return items;
 }
 
 class _ActiveFilters extends StatelessWidget {

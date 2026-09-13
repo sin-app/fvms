@@ -89,12 +89,14 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           supabase.from('schedules').select('status, visit_date'),
           ctx,
         );
-        final todaySchedules = await (todayQuery as dynamic).eq('visit_date', today).limit(10).timeout(const Duration(seconds: 10)) as List;
+        final todayFuture = (todayQuery as dynamic).eq('visit_date', today).limit(10).timeout(const Duration(seconds: 10)) as Future<dynamic>;
+        final upcomingFuture = (upcomingQuery as dynamic).gt('visit_date', today).order('visit_date').limit(5).timeout(const Duration(seconds: 10)) as Future<dynamic>;
+        final allFuture = (allQuery as dynamic).limit(200).timeout(const Duration(seconds: 10)) as Future<dynamic>;
+        final results = await Future.wait<dynamic>([todayFuture, upcomingFuture, allFuture]);
         if (isClosed) return;
-        final upcomingSchedules = await (upcomingQuery as dynamic).gt('visit_date', today).order('visit_date').limit(5).timeout(const Duration(seconds: 10)) as List;
-        if (isClosed) return;
-        final allSchedules = await (allQuery as dynamic).limit(200).timeout(const Duration(seconds: 10)) as List;
-        if (isClosed) return;
+        final todaySchedules = results[0] as List;
+        final upcomingSchedules = results[1] as List;
+        final allSchedules = results[2] as List;
 
         final todayList = todaySchedules.map((r) {
           final m = r as Map<String, dynamic>;

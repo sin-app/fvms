@@ -30,46 +30,19 @@ PanenStatus getPanenStatus({
   return PanenStatus('—');
 }
 
+String computePanenStatusString({
+  String? tglPanen,
+  String? realPanen,
+  String? rencanaPanen,
+}) {
+  final ps = getPanenStatus(tglPanen: tglPanen, realPanen: realPanen, rencanaPanen: rencanaPanen);
+  if (ps.date != null) return '${ps.label} ${ps.date}';
+  return ps.label;
+}
+
 String? getVarietasFromDocumentNo(String? doc) {
   if (doc == null || doc.isEmpty) return null;
   final parts = doc.split('/');
   if (parts.length >= 2) return parts[1].trim();
-  return null;
-}
-
-/// Mirror deriveScheduleStatus
-String? deriveScheduleStatus({
-  double? realTanamHa,
-  double? gagalTanam,
-  double? sisaDiLahanHa,
-  bool? hasActivity,
-}) {
-  if (sisaDiLahanHa == 0 && (gagalTanam == null || gagalTanam == 0)) {
-    return 'completed';
-  }
-  if (sisaDiLahanHa == 0 &&
-      gagalTanam != null &&
-      gagalTanam > 0 &&
-      realTanamHa != null &&
-      (realTanamHa - gagalTanam) == 0) {
-    return 'gagal_total';
-  }
-  if (sisaDiLahanHa != null &&
-      sisaDiLahanHa > 0 &&
-      gagalTanam != null &&
-      gagalTanam > 0 &&
-      realTanamHa != null &&
-      (realTanamHa - gagalTanam) == sisaDiLahanHa) {
-    return 'gagal_partial';
-  }
-  if (sisaDiLahanHa == null &&
-      realTanamHa != null &&
-      gagalTanam != null &&
-      gagalTanam > 0 &&
-      realTanamHa <= gagalTanam) {
-    return 'gagal_total';
-  }
-  if (hasActivity ?? false) return 'in_progress';
-  if (hasActivity == false) return 'pending';
   return null;
 }

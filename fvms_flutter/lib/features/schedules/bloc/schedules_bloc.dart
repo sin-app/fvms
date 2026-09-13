@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/core/supabase/scope.dart';
+import 'package:fvms_flutter/features/panen/panen_logic.dart';
 
 class ScheduleItem {
   ScheduleItem({
@@ -53,17 +54,11 @@ class ScheduleItem {
   final String? realPanen;
   final String? rencanaPanen;
 
-  String get panenStatus {
-    final now = DateTime.now();
-    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    if (tglPanen != null && tglPanen!.isNotEmpty) return 'Panen $tglPanen';
-    if (realPanen != null && realPanen!.isNotEmpty) return 'Panen $realPanen';
-    if (rencanaPanen != null && rencanaPanen!.isNotEmpty) {
-      if (rencanaPanen!.compareTo(today) < 0) return 'Jatuh Tempo';
-      return 'Renc: $rencanaPanen';
-    }
-    return '—';
-  }
+  String get panenStatus => computePanenStatusString(
+    tglPanen: tglPanen,
+    realPanen: realPanen,
+    rencanaPanen: rencanaPanen,
+  );
 }
 
 const _selectFields = 'id, visit_date, status, member_name, block_no, no_plot, nis, cgr, document_no, '

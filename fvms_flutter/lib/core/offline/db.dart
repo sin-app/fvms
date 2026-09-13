@@ -120,11 +120,15 @@ class AppDatabase extends _$AppDatabase {
         onCreate: (m) async => m.createAll(),
         onUpgrade: (m, from, to) async {
           if (from < 2) {
-            // v2 added activityLogs equivalent - handled via createAll in drift
+            await m.createAll();
           }
           if (from < 3) {
-            // v3 added land_proposals etc - simplified for Flutter F0
+            await m.createAll();
           }
+        },
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA journal_mode=WAL');
+          await customStatement('PRAGMA foreign_keys=ON');
         },
       );
 

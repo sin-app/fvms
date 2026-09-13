@@ -1,10 +1,18 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:fvms_flutter/core/offline/db.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/core/supabase/scope.dart';
+import 'package:fvms_flutter/features/panen/panen_logic.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+String _generateOutboxId() {
+  final rng = Random.secure();
+  final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+  return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+}
 
 const finalStatuses = {'completed', 'gagal_total'};
 const scheduleWhitelist = {
@@ -15,6 +23,8 @@ const scheduleWhitelist = {
   'accuracy',
   'visit_time',
 };
+
+const _maxOutboxAttempts = 10;
 
 class OfflineEngine {
   OfflineEngine({required this.db, required this.supabase});
@@ -59,7 +69,7 @@ class OfflineEngine {
             tglPanen: Value(m['tgl_panen'] as String?),
             realPanen: Value(m['real_panen'] as String?),
             rencanaPanen: Value(m['rencana_panen'] as String?),
-            varietas: Value(m['document_no'] != null ? (m['document_no'] as String).split('/').length > 1 ? (m['document_no'] as String).split('/')[1] : null : null),
+            varietas: Value(getVarietasFromDocumentNo(m['document_no'] as String?)),
             latitude: Value((m['latitude'] as num?)?.toDouble()),
             longitude: Value((m['longitude'] as num?)?.toDouble()),
             kabupatenName: Value(m['kabupaten'] is Map ? (m['kabupaten'] as Map<String, dynamic>)['name'] as String? : m['kabupaten_name'] as String?),
@@ -81,6 +91,10 @@ class OfflineEngine {
   Future<void> pushOutbox() async {
     final entries = await (db.select(db.outbox)..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get();
     for (final e in entries) {
+      if (e.attempts >= _maxOutboxAttempts) {
+        await (db.delete(db.outbox)..where((t) => t.id.equals(e.id))).go();
+        continue;
+      }
       try {
         await _applyOutboxEntry(e);
         await (db.delete(db.outbox)..where((t) => t.id.equals(e.id))).go();
@@ -88,7 +102,7 @@ class OfflineEngine {
         await (db.update(db.outbox)..where((t) => t.id.equals(e.id))).write(
           OutboxCompanion(
             attempts: Value(e.attempts + 1),
-            lastError: Value(err.toString()),
+            lastError: Value(sanitizeError(err)),
           ),
         );
       }
@@ -127,7 +141,7 @@ class OfflineEngine {
     );
     await db.into(db.outbox).insert(
           OutboxCompanion(
-            id: Value(DateTime.now().millisecondsSinceEpoch.toString()),
+            id: Value(_generateOutboxId()),
             tblName: const Value('schedules'),
             action: const Value('upsert'),
             entityId: Value(scheduleId),

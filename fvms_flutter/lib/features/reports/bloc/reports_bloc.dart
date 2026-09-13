@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/core/supabase/scope.dart';
+import 'package:fvms_flutter/features/panen/panen_logic.dart';
 
 class ReportDataLite {
   ReportDataLite({
@@ -94,16 +95,11 @@ class ReportRow {
   final String? realPanen;
   final String? rencanaPanen;
 
-  String get panenStatus {
-    final now = DateTime.now();
-    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    if (tglPanen != null && tglPanen!.isNotEmpty) return 'Panen';
-    if (rencanaPanen != null && rencanaPanen!.isNotEmpty) {
-      if (rencanaPanen!.compareTo(today) < 0) return 'Jatuh Tempo';
-      return 'Renc: $rencanaPanen';
-    }
-    return '—';
-  }
+  String get panenStatus => computePanenStatusString(
+    tglPanen: tglPanen,
+    realPanen: realPanen,
+    rencanaPanen: rencanaPanen,
+  );
 }
 
 const _selectFields = 'id, visit_date, status, member_name, block_no, no_plot, nis, cgr, document_no, '
@@ -231,7 +227,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       if (filter.dateFrom != null && filter.dateFrom!.isNotEmpty) query = query.gte('visit_date', filter.dateFrom!);
       if (filter.dateTo != null && filter.dateTo!.isNotEmpty) query = query.lte('visit_date', filter.dateTo!);
       if (filter.blockNo != null && filter.blockNo!.isNotEmpty) {
-        query = query.filter('block_no', 'in', '(${filter.blockNo!.map((e) => '"$e"').join(',')})');
+        query = query.inFilter('block_no', filter.blockNo!);
       }
       if (filter.cgr != null && filter.cgr!.isNotEmpty) query = query.eq('cgr', filter.cgr!);
       if (filter.documentNo != null && filter.documentNo!.isNotEmpty) query = query.eq('document_no', filter.documentNo!);
@@ -343,7 +339,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     try {
       dynamic query = supabase.from('users').select('id, name, role').eq('role', 'produksi').order('name');
       if (ctx != null && ctx.role == UserRole.qc && ctx.assignedKabupatenIds.isNotEmpty) {
-        query = query.filter('kabupaten_id', 'in', '(${ctx.assignedKabupatenIds.map((e) => '"$e"').join(',')})');
+        query = query.inFilter('kabupaten_id', ctx.assignedKabupatenIds);
       }
       final rows = await query.timeout(const Duration(seconds: 8));
       return (rows as List).cast<Map<String, dynamic>>();

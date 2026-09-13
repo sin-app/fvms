@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/offline/db.dart';
 import 'package:fvms_flutter/core/offline/engine.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
+import 'package:fvms_flutter/core/supabase/scope.dart';
 
 enum SyncStatus { online, offline, syncing }
 
@@ -47,13 +49,14 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     }
     on<SyncStarted>(_onStarted);
     on<SyncConnectivityChanged>(_onConn);
-    on<SyncRequested>(_onSync);
+    on<SyncRequested>(_onSync, transformer: concurrent());
     add(SyncStarted());
   }
 
   final AppDatabase db;
   OfflineEngine? _engine;
   StreamSubscription<List<ConnectivityResult>>? _connSub;
+  bool _isSyncing = false;
 
   bool _isOnline(List<ConnectivityResult> results) => !results.contains(ConnectivityResult.none);
 
@@ -79,18 +82,22 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   }
 
   Future<void> _onSync(SyncRequested e, Emitter<SyncState> emit) async {
-    if (state.status == SyncStatus.offline) return;
+    if (state.status == SyncStatus.offline || _isSyncing) return;
+    _isSyncing = true;
     emit(SyncState(status: SyncStatus.syncing, pending: state.pending, lastSyncAt: state.lastSyncAt));
     try {
       _engine ??= isSupabaseInitialized ? OfflineEngine(db: db, supabase: supabase) : null;
       if (_engine == null) throw Exception('Supabase belum siap — sync ditunda');
       await _engine!.pushOutbox();
+      if (isClosed) { _isSyncing = false; return; }
       await _engine!.hydrateOffline();
-      if (isClosed) return;
+      if (isClosed) { _isSyncing = false; return; }
       final pending = await db.select(db.outbox).get().then((v) => v.length);
       emit(SyncState(status: SyncStatus.online, pending: pending, lastSyncAt: DateTime.now().toIso8601String()));
     } catch (err) {
-      if (!isClosed) emit(SyncState(status: SyncStatus.online, pending: state.pending, lastError: err.toString()));
+      if (!isClosed) emit(SyncState(status: SyncStatus.online, pending: state.pending, lastError: sanitizeError(err)));
+    } finally {
+      _isSyncing = false;
     }
   }
 
