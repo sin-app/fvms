@@ -1,48 +1,60 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fvms_flutter/app/app.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/firebase_options.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+
+String? _initError;
 
 Future<void> main() async {
-  String? initError;
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
+    final msg = 'FlutterError: ${details.exceptionAsString()}\n${details.stack ?? ''}';
+    _initError ??= msg;
+    _logError(msg);
   };
-  ErrorWidget.builder = (details) => Material(
-    color: Colors.red.shade50,
-    child: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('ERROR', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-        const SizedBox(height: 8),
-        Text(details.exceptionAsString(), style: const TextStyle(fontSize: 12)),
-        if (details.stack != null) ...[
-          const SizedBox(height: 8),
-          Text(details.stack.toString(), style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        ],
-      ],
-    ),
-  );
+  ErrorWidget.builder = (details) {
+    final msg = 'ErrorWidget: ${details.exceptionAsString()}\n\n${details.stack ?? ''}';
+    _logError(msg);
+    return Material(
+      color: Colors.red.shade50,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text('FVMS — ERROR', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 16)),
+            const SizedBox(height: 12),
+            SelectableText(msg, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+          ],
+        ),
+      ),
+    );
+  };
+
   await runZonedGuarded<Future<void>>(() async {
     WidgetsFlutterBinding.ensureInitialized();
+
     try {
       await initializeDateFormatting('id_ID');
     } catch (e) {
-      initError ??= 'DateFormatting: $e';
+      initError('DateFormatting: $e');
     }
+
     try {
-      HydratedBloc.storage = await HydratedStorage.build(
-        storageDirectory: await getApplicationDocumentsDirectory(),
-      );
+      final dir = await getApplicationDocumentsDirectory();
+      HydratedBloc.storage = await HydratedStorage.build(storageDirectory: dir);
     } catch (e) {
-      initError ??= 'HydratedStorage: $e';
+      debugPrint('HydratedStorage init gagal (non-fatal): $e');
     }
+
     try {
       await initSupabase();
     } on Exception catch (e) {
@@ -50,25 +62,58 @@ Future<void> main() async {
     } catch (e) {
       debugPrint('Supabase init error: $e');
     }
+
     try {
       final opts = DefaultFirebaseOptions.currentPlatform;
       if (opts.apiKey != 'REPLACE_ME') {
         await Firebase.initializeApp(options: opts);
       }
     } catch (_) {}
-    if (initError != null) {
-      runApp(_ErrorApp(message: initError!));
+
+    if (_initError != null) {
+      runApp(_ErrorApp(message: _initError!));
     } else {
       runApp(const FvmsApp());
     }
   }, (error, stack) {
-    debugPrint('Uncaught: $error\n$stack');
+    final msg = 'Uncaught: $error\n$stack';
+    _initError ??= msg;
+    _logError(msg);
   });
+
+  if (_initError != null) {
+    runApp(_ErrorApp(message: _initError!));
+  }
 }
 
-class _ErrorApp extends StatelessWidget {
+void initError(String msg) {
+  _initError ??= msg;
+  _logError(msg);
+}
+
+void _logError(String msg) {
+  try {
+    final dir = Directory('/storage/emulated/0/Download');
+    if (dir.existsSync()) {
+      final file = File(p.join(dir.path, 'fvms_error.log'));
+      file.writeAsStringSync('${DateTime.now()}\n$msg\n\n', mode: FileMode.append);
+    }
+  } catch (_) {}
+}
+
+class _ErrorApp extends StatefulWidget {
   const _ErrorApp({required this.message});
   final String message;
+  @override
+  State<_ErrorApp> createState() => _ErrorAppState();
+}
+
+class _ErrorAppState extends State<_ErrorApp> {
+  @override
+  void initState() {
+    super.initState();
+    Clipboard.setData(ClipboardData(text: widget.message));
+  }
   @override
   Widget build(BuildContext context) => MaterialApp(
     home: Scaffold(
@@ -76,9 +121,11 @@ class _ErrorApp extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('FVMS — Startup Error', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('FVMS — Error', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
+            const SizedBox(height: 8),
+            const Text('Error sudah dicopy ke clipboard. Paste ke chat.', style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 12),
-            Text(message, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+            SelectableText(widget.message, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
           ],
         ),
       ),
