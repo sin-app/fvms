@@ -6,8 +6,25 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SupabaseConfig {
   static const _envUrl = String.fromEnvironment('SUPABASE_URL');
   static const _envAnon = String.fromEnvironment('SUPABASE_ANON_KEY');
-  static String get url => _envUrl.isNotEmpty ? _envUrl : (dotenv.env['SUPABASE_URL'] ?? '');
-  static String get anonKey => _envAnon.isNotEmpty ? _envAnon : (dotenv.env['SUPABASE_ANON_KEY'] ?? '');
+
+  static String get url {
+    if (_envUrl.isNotEmpty) return _envUrl;
+    try {
+      return dotenv.env['SUPABASE_URL'] ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static String get anonKey {
+    if (_envAnon.isNotEmpty) return _envAnon;
+    try {
+      return dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
 }
 
