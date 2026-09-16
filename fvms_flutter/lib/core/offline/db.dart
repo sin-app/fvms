@@ -1,6 +1,6 @@
-// ignore_for_file: avoid_print
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:meta/meta.dart';
 
 part 'db.g.dart';
 
@@ -110,6 +110,7 @@ class Meta extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fvms-offline'));
 
+  @visibleForTesting
   AppDatabase.forTesting(super.e);
 
   @override

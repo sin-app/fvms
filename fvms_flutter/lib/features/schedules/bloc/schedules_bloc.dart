@@ -174,7 +174,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
       if (isClosed) return;
       dynamic query = applyScope(supabase.from('schedules').select(_selectFields), ctx);
       query = _applyFilter(query, filter);
-      final rows = await query.order('visit_date').timeout(const Duration(seconds: 15));
+      final rows = await query.order('visit_date').limit(500).timeout(const Duration(seconds: 15));
       if (isClosed) return;
       final items = _parseRows(rows as List);
       emit(SchedulesLoaded(items, filter: filter));
@@ -195,7 +195,7 @@ class SchedulesBloc extends Bloc<SchedulesEvent, SchedulesState> {
     if (f.nis != null && f.nis!.isNotEmpty) q = q.ilike('nis', '%${f.nis}%');
     if (f.documentNo != null && f.documentNo!.isNotEmpty) q = q.ilike('document_no', '%${f.documentNo}%');
     if (f.cgr != null && f.cgr!.isNotEmpty) q = q.ilike('cgr', '%${f.cgr}%');
-    if (f.varietas != null && f.varietas!.isNotEmpty) q = q.ilike('document_no', '%${f.varietas}%');
+    if (f.varietas != null && f.varietas!.isNotEmpty) q = q.ilike('document_no', '%${sanitizeVarietas(f.varietas!)}%');
     if (f.kabupatenId != null && f.kabupatenId!.isNotEmpty) q = q.eq('kabupaten_id', f.kabupatenId!);
     if (f.kecamatanId != null && f.kecamatanId!.isNotEmpty) q = q.eq('kecamatan_id', f.kecamatanId!);
     if (f.desaId != null && f.desaId!.isNotEmpty) q = q.eq('desa_id', f.desaId!);

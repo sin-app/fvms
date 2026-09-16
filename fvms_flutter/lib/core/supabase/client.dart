@@ -73,10 +73,13 @@ Future<AuthContext?> getAuthContext() async {
     final name = (row['name'] as String?) ?? user.email ?? '';
     final email = (row['email'] as String?) ?? user.email ?? '';
     return AuthContext(userId: user.id, role: role, name: name, email: email, assignedKabupatenIds: kabIds);
+  } on TimeoutException {
+    rethrow;
   } catch (e) {
     final m = e.toString();
-    if (m.contains('LateInitializationError') || m.contains('has not been initialized') || m.contains('not been initialized')) return null;
-    if (m.contains('TimeoutException') || e is TimeoutException) rethrow;
+    if (m.contains('Permission denied') || m.contains('PGRST') || m.contains('403') || m.contains('401')) {
+      rethrow;
+    }
     return null;
   }
 }

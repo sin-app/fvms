@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fvms_flutter/core/constants/app_constants.dart';
+import 'package:fvms_flutter/core/constants/status.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/core/supabase/scope.dart';
 import 'package:fvms_flutter/features/panen/panen_logic.dart';
@@ -322,6 +323,15 @@ class VisitBloc extends Bloc<VisitEvent, VisitState> {
       return;
     }
     try {
+      final currentState = state;
+      if (currentState is VisitLoaded) {
+        final currentStatus = VisitStatusX.fromString(currentState.data.status);
+        final newStatus = VisitStatusX.fromString(e.status);
+        if (!canTransition(currentStatus, newStatus)) {
+          emit(VisitError('Transisi dari ${currentStatus.label} ke ${newStatus.label} tidak diizinkan'));
+          return;
+        }
+      }
       await supabase.from('schedules').update({'status': e.status}).eq('id', scheduleId).timeout(const Duration(seconds: 10));
       add(VisitLoad());
     } on TimeoutException {

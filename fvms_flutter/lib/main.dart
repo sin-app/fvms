@@ -7,9 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:fvms_flutter/app/app.dart';
 import 'package:fvms_flutter/core/supabase/client.dart';
 import 'package:fvms_flutter/firebase_options.dart';
-import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 String? _initError;
@@ -47,13 +45,6 @@ Future<void> main() async {
       await initializeDateFormatting('id_ID');
     } catch (e) {
       initError('DateFormatting: $e');
-    }
-
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      HydratedBloc.storage = await HydratedStorage.build(storageDirectory: dir);
-    } catch (e) {
-      debugPrint('HydratedStorage init gagal (non-fatal): $e');
     }
 
     try {
@@ -110,11 +101,7 @@ class _ErrorApp extends StatefulWidget {
 }
 
 class _ErrorAppState extends State<_ErrorApp> {
-  @override
-  void initState() {
-    super.initState();
-    Clipboard.setData(ClipboardData(text: widget.message));
-  }
+  bool _copied = false;
   @override
   Widget build(BuildContext context) => MaterialApp(
     home: Scaffold(
@@ -122,11 +109,26 @@ class _ErrorAppState extends State<_ErrorApp> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text('FVMS v$_appVersion — Error', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
+            const Text('FVMS v$_appVersion — Error', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
             const SizedBox(height: 8),
-            const Text('Error sudah dicopy ke clipboard. Paste ke chat.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(
+              _copied ? 'Error sudah dicopy.' : 'Tap tombol copy untuk copy error.',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
             const SizedBox(height: 12),
             SelectableText(widget.message, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.copy, size: 14),
+                label: const Text('Copy Error'),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: widget.message));
+                  setState(() => _copied = true);
+                },
+              ),
+            ),
           ],
         ),
       ),

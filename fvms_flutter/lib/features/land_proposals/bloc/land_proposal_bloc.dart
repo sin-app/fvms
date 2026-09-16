@@ -272,9 +272,21 @@ class LandProposalBloc extends Bloc<LandProposalEvent, LandProposalState> {
   Future<void> _cancel(LandProposalCancel e, Emitter<LandProposalState> emit) async {
     if (!isSupabaseInitialized || !SupabaseConfig.isConfigured) return;
     try {
+      final ctx = await getAuthContext().timeout(const Duration(seconds: 8));
+      if (ctx == null) {
+        emit(LandProposalsError('User tidak terautentikasi'));
+        return;
+      }
+      final row = await supabase.from('land_proposals').select('proposed_by').eq('id', e.id).maybeSingle().timeout(const Duration(seconds: 8));
+      if (row != null && row['proposed_by'] != ctx.userId && ctx.role != UserRole.admin) {
+        emit(LandProposalsError('Hanya pemilik atau admin yang dapat membatalkan'));
+        return;
+      }
       await supabase.from('land_proposals').update({'status': 'cancelled'}).eq('id', e.id).timeout(const Duration(seconds: 10));
       if (isClosed) return;
       add(LandProposalsLoad());
+    } on TimeoutException {
+      if (!isClosed) emit(LandProposalsError('Timeout: cek koneksi'));
     } catch (err) {
       if (!isClosed) emit(LandProposalsError(sanitizeError(err)));
     }

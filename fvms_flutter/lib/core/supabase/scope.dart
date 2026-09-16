@@ -13,6 +13,10 @@ dynamic applyScope(dynamic query, AuthContext? ctx) {
   return query;
 }
 
+String sanitizeVarietas(String input) {
+  return input.replaceAll(RegExp('[%_]'), '');
+}
+
 String sanitizeError(Object err) {
   final m = err.toString();
   if (m.contains('TimeoutException')) return 'Koneksi timeout. Coba lagi.';
@@ -21,6 +25,9 @@ String sanitizeError(Object err) {
   }
   if (m.contains('SocketException') || m.contains('Connection refused')) {
     return 'Tidak ada koneksi internet.';
+  }
+  if (m.contains('Permission denied') || m.contains('403') || m.contains('401')) {
+    return 'Tidak memiliki akses.';
   }
   return 'Terjadi kesalahan. Coba lagi.';
 }

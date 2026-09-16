@@ -237,7 +237,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       if (filter.kabupatenId != null && filter.kabupatenId!.isNotEmpty) query = query.eq('kabupaten_id', filter.kabupatenId!);
       if (filter.kecamatanId != null && filter.kecamatanId!.isNotEmpty) query = query.eq('kecamatan_id', filter.kecamatanId!);
       if (filter.desaId != null && filter.desaId!.isNotEmpty) query = query.eq('desa_id', filter.desaId!);
-      if (filter.varietas != null && filter.varietas!.isNotEmpty) query = query.ilike('document_no', '%${filter.varietas}%');
+      if (filter.varietas != null && filter.varietas!.isNotEmpty) query = query.ilike('document_no', '%${sanitizeVarietas(filter.varietas!)}%');
       if (filter.memberName != null && filter.memberName!.isNotEmpty) query = query.ilike('member_name', '%${filter.memberName}%');
       if (filter.panenStatus != null && filter.panenStatus!.isNotEmpty) {
         final now = DateTime.now();

@@ -16,7 +16,6 @@ dependencies:
   flutter_bloc: ^8.1.6
   equatable: ^2.0.5
   bloc_concurrency: ^0.2.5
-  hydrated_bloc: ^9.1.5
   # Navigation
   go_router: ^14.6.2
   # Supabase
@@ -31,7 +30,6 @@ dependencies:
   connectivity_plus: ^6.0.5
   intl: ^0.20.1
   logger: ^2.5.0
-  flutter_dotenv: ^5.2.1
   # Maps OSM
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
