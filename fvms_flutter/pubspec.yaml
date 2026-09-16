@@ -1,7 +1,7 @@
 name: fvms_flutter
 description: FVMS Field Visit Management System - Flutter Android (coexist web)
 publish_to: 'none'
-version: 0.1.8+1
+version: 0.1.10+1
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
