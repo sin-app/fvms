@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 String? _initError;
+const String _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
 
 Future<void> main() async {
   FlutterError.onError = (details) {
@@ -121,7 +122,7 @@ class _ErrorAppState extends State<_ErrorApp> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('FVMS — Error', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
+            Text('FVMS v$_appVersion — Error', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
             const SizedBox(height: 8),
             const Text('Error sudah dicopy ke clipboard. Paste ke chat.', style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 12),
